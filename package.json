@@ -1,22 +1,51 @@
 {
-  "name": "sip-mobile",
-  "version": "1.0.0",
+  "name": "@sip-protocol/mobile",
+  "version": "0.1.0",
   "main": "index.ts",
   "scripts": {
     "start": "expo start",
     "android": "expo start --android",
     "ios": "expo start --ios",
-    "web": "expo start --web"
+    "web": "expo start --web",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint . --ext .ts,.tsx",
+    "test": "vitest",
+    "test:run": "vitest run",
+    "prebuild": "expo prebuild",
+    "eas:build:dev": "eas build --profile development --platform all",
+    "eas:build:preview": "eas build --profile preview --platform all",
+    "eas:build:prod": "eas build --profile production --platform all"
   },
   "dependencies": {
     "expo": "~54.0.32",
+    "expo-router": "~4.0.0",
     "expo-status-bar": "~3.0.9",
+    "expo-secure-store": "~14.0.0",
+    "expo-local-authentication": "~15.0.0",
+    "expo-haptics": "~14.0.0",
+    "expo-clipboard": "~7.0.0",
+    "expo-camera": "~16.0.0",
     "react": "19.1.0",
-    "react-native": "0.81.5"
+    "react-native": "0.81.5",
+    "react-native-safe-area-context": "~5.1.0",
+    "react-native-screens": "~4.4.0",
+    "react-native-reanimated": "~3.17.0",
+    "react-native-gesture-handler": "~2.22.0",
+    "react-native-svg": "~15.10.0",
+    "nativewind": "^4.0.0",
+    "zustand": "^5.0.0",
+    "@noble/curves": "^1.7.0",
+    "@noble/hashes": "^1.6.0"
   },
   "devDependencies": {
     "@types/react": "~19.1.0",
-    "typescript": "~5.9.2"
+    "typescript": "~5.9.2",
+    "tailwindcss": "^3.4.0",
+    "vitest": "^3.0.0",
+    "@testing-library/react-native": "^13.0.0",
+    "eslint": "^9.0.0",
+    "@typescript-eslint/eslint-plugin": "^8.0.0",
+    "@typescript-eslint/parser": "^8.0.0"
   },
   "private": true
 }
