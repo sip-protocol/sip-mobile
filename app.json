@@ -3,7 +3,7 @@
     "name": "SIP Privacy",
     "slug": "sip-privacy",
     "version": "0.1.0",
-    "scheme": "sip-privacy",
+    "scheme": "sipprotocol",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "automatic",
@@ -17,7 +17,9 @@
       "supportsTablet": true,
       "bundleIdentifier": "org.sip-protocol.privacy",
       "infoPlist": {
-        "UIBackgroundModes": ["fetch"]
+        "UIBackgroundModes": [
+          "fetch"
+        ]
       }
     },
     "android": {
@@ -36,12 +38,17 @@
     "plugins": [
       "expo-router",
       "expo-secure-store",
+      "@privy-io/expo-native-extensions",
       [
         "expo-local-authentication",
         {
           "faceIDPermission": "Allow SIP Privacy to use Face ID for secure authentication."
         }
-      ]
+      ],
+      [
+        "expo-apple-authentication"
+      ],
+      "expo-web-browser"
     ],
     "experiments": {
       "typedRoutes": true

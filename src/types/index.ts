@@ -70,3 +70,75 @@ export interface PaymentRecord {
   claimed?: boolean
   claimedAt?: number
 }
+
+// ============================================================================
+// WALLET TYPES
+// ============================================================================
+
+/**
+ * Wallet connection status
+ */
+export type WalletConnectionStatus =
+  | "disconnected"
+  | "connecting"
+  | "connected"
+  | "error"
+
+/**
+ * Wallet provider type for unified hook
+ */
+export type WalletProviderType = "privy" | "mwa" | "phantom"
+
+/**
+ * Connected wallet account info
+ */
+export interface WalletAccount {
+  address: string
+  publicKey: Uint8Array
+  label?: string
+  providerType: WalletProviderType
+}
+
+/**
+ * Transaction to sign
+ */
+export interface TransactionToSign {
+  serializedTransaction: Uint8Array
+  signatures?: Uint8Array[]
+}
+
+/**
+ * Message to sign
+ */
+export interface MessageToSign {
+  message: Uint8Array
+  display?: "utf8" | "hex"
+}
+
+/**
+ * Signed result
+ */
+export interface SignedResult {
+  signature: Uint8Array
+  signedTransaction?: Uint8Array
+}
+
+/**
+ * Wallet error types
+ */
+export type WalletErrorType =
+  | "connection_failed"
+  | "user_rejected"
+  | "timeout"
+  | "not_installed"
+  | "signing_failed"
+  | "unknown"
+
+/**
+ * Wallet error
+ */
+export interface WalletError {
+  type: WalletErrorType
+  message: string
+  originalError?: unknown
+}
