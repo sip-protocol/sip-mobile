@@ -261,6 +261,7 @@ export interface SwapQuote {
     networkFee: string
     platformFee: string
   }
+  estimatedTime: number // seconds until confirmation
   expiresAt: number
 }
 

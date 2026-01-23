@@ -25,7 +25,7 @@ import { useWalletStore } from "@/stores/wallet"
 import { useSwapStore } from "@/stores/swap"
 import { useSettingsStore } from "@/stores/settings"
 import { useToastStore } from "@/stores/toast"
-import { useBiometrics } from "@/hooks/useBiometrics"
+import { useBiometrics, useQuote, useInsufficientBalance } from "@/hooks"
 import { Button, Modal } from "@/components/ui"
 import {
   TOKENS,
@@ -33,23 +33,13 @@ import {
   getMockBalance,
   formatTokenAmount,
 } from "@/data/tokens"
-import type { TokenInfo, PrivacyLevel } from "@/types"
+import type { TokenInfo, PrivacyLevel, SwapQuote } from "@/types"
 
 // ============================================================================
 // TYPES
 // ============================================================================
 
 type SwapDirection = "from" | "to"
-
-interface QuoteData {
-  outputAmount: string
-  minimumReceived: string
-  priceImpact: number
-  route: string[]
-  networkFee: string
-  isLoading: boolean
-  error: string | null
-}
 
 // ============================================================================
 // CONSTANTS
@@ -76,60 +66,6 @@ function getTokenIcon(symbol: string): string {
     ORCA: "🐋",
   }
   return icons[symbol] || "🪙"
-}
-
-// Mock quote calculation (will be replaced by useQuote hook)
-function calculateMockQuote(
-  fromToken: TokenInfo,
-  toToken: TokenInfo,
-  amount: string,
-  slippage: number
-): QuoteData {
-  const inputAmount = parseFloat(amount) || 0
-  if (inputAmount === 0) {
-    return {
-      outputAmount: "0",
-      minimumReceived: "0",
-      priceImpact: 0,
-      route: [],
-      networkFee: "0.000005",
-      isLoading: false,
-      error: null,
-    }
-  }
-
-  // Mock price ratios
-  const prices: Record<string, number> = {
-    SOL: 185.5,
-    USDC: 1.0,
-    USDT: 1.0,
-    BONK: 0.000025,
-    JUP: 0.75,
-    RAY: 2.1,
-    PYTH: 0.35,
-    WIF: 1.85,
-    JTO: 2.8,
-    ORCA: 3.5,
-  }
-
-  const fromPrice = prices[fromToken.symbol] || 1
-  const toPrice = prices[toToken.symbol] || 1
-  const outputAmount = (inputAmount * fromPrice) / toPrice
-  const minimumReceived = outputAmount * (1 - slippage / 100)
-  const priceImpact = inputAmount > 100 ? 0.15 : inputAmount > 10 ? 0.05 : 0.01
-
-  return {
-    outputAmount: outputAmount.toFixed(toToken.decimals > 6 ? 4 : 2),
-    minimumReceived: minimumReceived.toFixed(toToken.decimals > 6 ? 4 : 2),
-    priceImpact,
-    route:
-      fromToken.symbol === "SOL" || toToken.symbol === "SOL"
-        ? [fromToken.symbol, toToken.symbol]
-        : [fromToken.symbol, "SOL", toToken.symbol],
-    networkFee: "0.000005",
-    isLoading: false,
-    error: null,
-  }
 }
 
 // ============================================================================
@@ -236,23 +172,23 @@ function TokenInput({
 }
 
 interface SwapDetailsProps {
-  quote: QuoteData
+  quote: SwapQuote | null
   slippage: number
-  fromToken: TokenInfo
-  toToken: TokenInfo
 }
 
-function SwapDetails({ quote, slippage, fromToken, toToken }: SwapDetailsProps) {
-  if (!quote.outputAmount || quote.outputAmount === "0") return null
+function SwapDetails({ quote, slippage }: SwapDetailsProps) {
+  if (!quote || !quote.outputAmount || quote.outputAmount === "0") return null
+
+  const { inputToken, outputToken } = quote
 
   return (
     <View className="bg-dark-900 rounded-xl border border-dark-800 p-4 mt-4">
       <View className="flex-row justify-between items-center">
         <Text className="text-dark-400 text-sm">Rate</Text>
         <Text className="text-white text-sm">
-          1 {fromToken.symbol} ≈{" "}
-          {(parseFloat(quote.outputAmount) / parseFloat("1")).toFixed(4)}{" "}
-          {toToken.symbol}
+          1 {inputToken.symbol} ≈{" "}
+          {(parseFloat(quote.outputAmount) / parseFloat(quote.inputAmount || "1")).toFixed(4)}{" "}
+          {outputToken.symbol}
         </Text>
       </View>
 
@@ -274,8 +210,8 @@ function SwapDetails({ quote, slippage, fromToken, toToken }: SwapDetailsProps) 
       <View className="flex-row justify-between items-center mt-2">
         <Text className="text-dark-400 text-sm">Minimum Received</Text>
         <Text className="text-white text-sm">
-          {formatTokenAmount(quote.minimumReceived, toToken.decimals)}{" "}
-          {toToken.symbol}
+          {formatTokenAmount(quote.minimumReceived, outputToken.decimals)}{" "}
+          {outputToken.symbol}
         </Text>
       </View>
 
@@ -286,14 +222,14 @@ function SwapDetails({ quote, slippage, fromToken, toToken }: SwapDetailsProps) 
 
       <View className="flex-row justify-between items-center mt-2">
         <Text className="text-dark-400 text-sm">Network Fee</Text>
-        <Text className="text-white text-sm">{quote.networkFee} SOL</Text>
+        <Text className="text-white text-sm">{quote.fees.networkFee} SOL</Text>
       </View>
 
       {quote.route.length > 0 && (
         <View className="mt-3 pt-3 border-t border-dark-800">
           <Text className="text-dark-400 text-sm mb-2">Route</Text>
           <View className="flex-row items-center flex-wrap">
-            {quote.route.map((hop, index) => (
+            {quote.route.map((hop: string, index: number) => (
               <View key={index} className="flex-row items-center">
                 <View className="bg-dark-800 px-2 py-1 rounded">
                   <Text className="text-white text-sm">{hop}</Text>
@@ -362,48 +298,35 @@ export default function SwapScreen() {
   const [showSlippageModal, setShowSlippageModal] = useState(false)
   const [showConfirmModal, setShowConfirmModal] = useState(false)
 
-  // Quote state
-  const [isQuoteLoading, setIsQuoteLoading] = useState(false)
-  const [quote, setQuote] = useState<QuoteData>({
-    outputAmount: "0",
-    minimumReceived: "0",
-    priceImpact: 0,
-    route: [],
-    networkFee: "0.000005",
-    isLoading: false,
-    error: null,
-  })
+  // Quote hook - handles fetching, auto-refresh, and freshness tracking
+  const quoteParams = useMemo(
+    () =>
+      fromAmount && parseFloat(fromAmount) > 0
+        ? {
+            fromToken,
+            toToken,
+            amount: fromAmount,
+            slippage,
+            privacyLevel,
+          }
+        : null,
+    [fromToken, toToken, fromAmount, slippage, privacyLevel]
+  )
+  const {
+    quote,
+    isLoading: isQuoteLoading,
+    error: quoteError,
+    freshness,
+    expiresIn,
+    refresh: refreshQuote,
+  } = useQuote(quoteParams)
+
+  // Insufficient balance check
+  const insufficientBalance = useInsufficientBalance(fromToken.symbol, fromAmount)
 
   // Get balances
   const fromBalance = getMockBalance(fromToken.symbol)
   const toBalance = getMockBalance(toToken.symbol)
-
-  // Calculate quote when inputs change
-  useEffect(() => {
-    if (!fromAmount || parseFloat(fromAmount) === 0) {
-      setQuote({
-        outputAmount: "0",
-        minimumReceived: "0",
-        priceImpact: 0,
-        route: [],
-        networkFee: "0.000005",
-        isLoading: false,
-        error: null,
-      })
-      return
-    }
-
-    setIsQuoteLoading(true)
-
-    // Simulate API delay
-    const timer = setTimeout(() => {
-      const newQuote = calculateMockQuote(fromToken, toToken, fromAmount, slippage)
-      setQuote(newQuote)
-      setIsQuoteLoading(false)
-    }, 500)
-
-    return () => clearTimeout(timer)
-  }, [fromAmount, fromToken, toToken, slippage])
 
   // Calculate USD values
   const fromUsdValue = useMemo(() => {
@@ -413,11 +336,11 @@ export default function SwapScreen() {
   }, [fromAmount, fromBalance])
 
   const toUsdValue = useMemo(() => {
-    if (!quote.outputAmount || quote.outputAmount === "0") return 0
+    if (!quote?.outputAmount || quote.outputAmount === "0") return 0
     if (!toBalance?.usdValue) return 0
     const ratio = parseFloat(quote.outputAmount) / parseFloat(toBalance.balance)
     return toBalance.usdValue * ratio
-  }, [quote.outputAmount, toBalance])
+  }, [quote?.outputAmount, toBalance])
 
   const handleTokenPress = (direction: SwapDirection) => {
     setTokenSelectorDirection(direction)
@@ -445,7 +368,8 @@ export default function SwapScreen() {
     const tempToken = fromToken
     setFromToken(toToken)
     setToToken(tempToken)
-    setFromAmount(quote.outputAmount !== "0" ? quote.outputAmount : "")
+    const outputAmount = quote?.outputAmount
+    setFromAmount(outputAmount && outputAmount !== "0" ? outputAmount : "")
   }
 
   const handleSwap = async () => {
@@ -489,11 +413,9 @@ export default function SwapScreen() {
   const canSwap =
     fromAmount &&
     parseFloat(fromAmount) > 0 &&
+    quote?.outputAmount &&
     quote.outputAmount !== "0" &&
     !isQuoteLoading
-
-  const insufficientBalance =
-    fromBalance && parseFloat(fromAmount) > parseFloat(fromBalance.balance)
 
   return (
     <SafeAreaView className="flex-1 bg-dark-950">
@@ -546,7 +468,7 @@ export default function SwapScreen() {
             <TokenInput
               direction="to"
               token={toToken}
-              amount={quote.outputAmount}
+              amount={quote?.outputAmount ?? "0"}
               onTokenPress={() => handleTokenPress("to")}
               balance={toBalance?.balance}
               usdValue={toUsdValue}
@@ -603,14 +525,50 @@ export default function SwapScreen() {
           </TouchableOpacity>
 
           {/* Swap Details */}
-          <SwapDetails
-            quote={quote}
-            slippage={slippage}
-            fromToken={fromToken}
-            toToken={toToken}
-          />
+          <SwapDetails quote={quote} slippage={slippage} />
 
-          {/* Error Messages */}
+          {/* Quote Freshness Indicator */}
+          {quote && (
+            <View className="flex-row items-center justify-between mt-3">
+              <View className="flex-row items-center">
+                <View
+                  className={`w-2 h-2 rounded-full mr-2 ${
+                    freshness === "fresh"
+                      ? "bg-green-500"
+                      : freshness === "stale"
+                        ? "bg-yellow-500"
+                        : "bg-red-500"
+                  }`}
+                />
+                <Text className="text-dark-500 text-xs">
+                  {freshness === "fresh"
+                    ? "Quote fresh"
+                    : freshness === "stale"
+                      ? "Quote stale"
+                      : "Quote expired"}
+                  {expiresIn !== null && expiresIn > 0 && ` (${expiresIn}s)`}
+                </Text>
+              </View>
+              <TouchableOpacity
+                onPress={refreshQuote}
+                disabled={isQuoteLoading}
+                className="px-3 py-1 bg-dark-800 rounded-lg"
+              >
+                <Text className="text-dark-400 text-xs">
+                  {isQuoteLoading ? "Loading..." : "Refresh"}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          )}
+
+          {/* Quote Error */}
+          {quoteError && (
+            <View className="mt-4 bg-red-900/20 border border-red-700 rounded-xl p-3">
+              <Text className="text-red-400 text-sm text-center">{quoteError}</Text>
+            </View>
+          )}
+
+          {/* Insufficient Balance Error */}
           {insufficientBalance && (
             <View className="mt-4 bg-red-900/20 border border-red-700 rounded-xl p-3">
               <Text className="text-red-400 text-sm text-center">
@@ -797,7 +755,7 @@ export default function SwapScreen() {
               <View className="items-center">
                 <Text className="text-3xl">{getTokenIcon(toToken.symbol)}</Text>
                 <Text className="text-green-400 font-bold text-lg mt-2">
-                  {quote.outputAmount} {toToken.symbol}
+                  {quote?.outputAmount ?? "0"} {toToken.symbol}
                 </Text>
               </View>
             </View>
@@ -808,7 +766,7 @@ export default function SwapScreen() {
               <Text className="text-dark-400">Rate</Text>
               <Text className="text-white">
                 1 {fromToken.symbol} ={" "}
-                {(parseFloat(quote.outputAmount) / parseFloat(fromAmount || "1")).toFixed(
+                {(parseFloat(quote?.outputAmount ?? "1") / parseFloat(fromAmount || "1")).toFixed(
                   4
                 )}{" "}
                 {toToken.symbol}
@@ -817,12 +775,12 @@ export default function SwapScreen() {
             <View className="flex-row justify-between mb-2">
               <Text className="text-dark-400">Minimum Received</Text>
               <Text className="text-white">
-                {quote.minimumReceived} {toToken.symbol}
+                {quote?.minimumReceived ?? "0"} {toToken.symbol}
               </Text>
             </View>
             <View className="flex-row justify-between mb-2">
               <Text className="text-dark-400">Network Fee</Text>
-              <Text className="text-white">{quote.networkFee} SOL</Text>
+              <Text className="text-white">{quote?.fees.networkFee ?? "0.000005"} SOL</Text>
             </View>
             <View className="flex-row justify-between">
               <Text className="text-dark-400">Privacy</Text>

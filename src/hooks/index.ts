@@ -29,3 +29,11 @@ export type {
   AuthResult,
   UseBiometricsReturn,
 } from "./useBiometrics"
+
+// DEX hooks
+export { useQuote, useExchangeRate, useInsufficientBalance } from "./useQuote"
+export type {
+  QuoteParams,
+  QuoteFreshness,
+  QuoteResult,
+} from "./useQuote"
