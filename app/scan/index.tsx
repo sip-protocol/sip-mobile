@@ -308,9 +308,16 @@ export default function ScanScreen() {
             lastScanResult.newPayments.length > 0 &&
             !isScanning && (
               <View className="mt-8">
-                <Text className="text-white font-semibold text-lg mb-4">
-                  Newly Found Payments
-                </Text>
+                <View className="flex-row items-center justify-between mb-4">
+                  <Text className="text-white font-semibold text-lg">
+                    Newly Found Payments
+                  </Text>
+                  <TouchableOpacity onPress={() => router.push("/claim")}>
+                    <Text className="text-green-400 font-medium">
+                      Claim All →
+                    </Text>
+                  </TouchableOpacity>
+                </View>
                 <View className="bg-dark-900 rounded-xl border border-dark-800 px-4">
                   {lastScanResult.newPayments.map((payment) => (
                     <FoundPaymentRow

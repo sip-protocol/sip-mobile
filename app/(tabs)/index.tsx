@@ -13,6 +13,7 @@ import { router } from "expo-router"
 import { useState, useCallback } from "react"
 import { useWalletStore, formatAddress } from "@/stores/wallet"
 import { usePrivacyStore } from "@/stores/privacy"
+import { useClaim } from "@/hooks/useClaim"
 import { AccountIndicator } from "@/components/AccountSwitcher"
 import type { PaymentRecord } from "@/types"
 
@@ -147,10 +148,12 @@ function TransactionRow({ payment, onPress }: TransactionRowProps) {
 export default function HomeScreen() {
   const { isConnected, address } = useWalletStore()
   const { payments } = usePrivacyStore()
+  const { getClaimableAmount } = useClaim()
   const [refreshing, setRefreshing] = useState(false)
 
   // Get recent payments (last 5)
   const recentPayments = payments.slice(0, 5)
+  const { count: unclaimedCount, amount: unclaimedAmount } = getClaimableAmount()
 
   const handleRefresh = useCallback(async () => {
     setRefreshing(true)
@@ -253,6 +256,27 @@ export default function HomeScreen() {
             }}
           />
         </View>
+
+        {/* Unclaimed Payments Banner */}
+        {isConnected && unclaimedCount > 0 && (
+          <TouchableOpacity
+            className="mt-6 bg-green-900/20 border border-green-700/50 rounded-xl p-4 flex-row items-center"
+            onPress={() => router.push("/claim")}
+          >
+            <View className="w-12 h-12 bg-green-900/30 rounded-full items-center justify-center">
+              <Text className="text-2xl">💰</Text>
+            </View>
+            <View className="flex-1 ml-3">
+              <Text className="text-green-400 font-semibold">
+                {unclaimedCount} Unclaimed Payment{unclaimedCount !== 1 ? "s" : ""}
+              </Text>
+              <Text className="text-dark-400 text-sm">
+                {unclaimedAmount.toFixed(4)} SOL ready to claim
+              </Text>
+            </View>
+            <Text className="text-green-400 text-2xl">→</Text>
+          </TouchableOpacity>
+        )}
 
         {/* Privacy Stats */}
         {isConnected && payments.length > 0 && (
