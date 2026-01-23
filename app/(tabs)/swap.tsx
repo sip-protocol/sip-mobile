@@ -19,7 +19,7 @@ import {
   Keyboard,
 } from "react-native"
 import { SafeAreaView } from "react-native-safe-area-context"
-import { router } from "expo-router"
+import { router, useLocalSearchParams } from "expo-router"
 import { useState, useEffect, useMemo } from "react"
 import { useWalletStore } from "@/stores/wallet"
 import { useSwapStore } from "@/stores/swap"
@@ -315,6 +315,10 @@ function SwapDetails({ quote, slippage, fromToken, toToken }: SwapDetailsProps) 
 // ============================================================================
 
 export default function SwapScreen() {
+  const params = useLocalSearchParams<{
+    fromToken?: string
+    toToken?: string
+  }>()
   const { isConnected } = useWalletStore()
   const { isPreviewMode } = useSwapStore()
   const { slippage: storedSlippage } = useSettingsStore()
@@ -325,6 +329,27 @@ export default function SwapScreen() {
   const [fromToken, setFromToken] = useState<TokenInfo>(TOKENS.SOL)
   const [toToken, setToToken] = useState<TokenInfo>(TOKENS.USDC)
   const [fromAmount, setFromAmount] = useState("")
+
+  // Handle token selection from params (full-screen selector)
+  useEffect(() => {
+    if (params.fromToken && TOKENS[params.fromToken]) {
+      const newToken = TOKENS[params.fromToken]
+      if (newToken.symbol === toToken.symbol) {
+        setToToken(fromToken) // Swap if same
+      }
+      setFromToken(newToken)
+    }
+  }, [params.fromToken])
+
+  useEffect(() => {
+    if (params.toToken && TOKENS[params.toToken]) {
+      const newToken = TOKENS[params.toToken]
+      if (newToken.symbol === fromToken.symbol) {
+        setFromToken(toToken) // Swap if same
+      }
+      setToToken(newToken)
+    }
+  }, [params.toToken])
 
   // Settings state
   const [slippage, setSlippage] = useState(storedSlippage || DEFAULT_SLIPPAGE)
@@ -676,7 +701,11 @@ export default function SwapScreen() {
             className="mt-2 py-3 items-center"
             onPress={() => {
               setShowTokenSelector(false)
-              router.push("/swap/tokens")
+              const selected = tokenSelectorDirection === "from" ? fromToken.symbol : toToken.symbol
+              router.push({
+                pathname: "/swap/tokens",
+                params: { direction: tokenSelectorDirection, selected },
+              })
             }}
           >
             <Text className="text-brand-400">View all tokens →</Text>

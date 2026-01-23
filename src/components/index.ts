@@ -7,3 +7,4 @@ export * from "./ui"
 
 // Feature components
 export { AccountSwitcher, AccountIndicator } from "./AccountSwitcher"
+export { TokenIcon, getTokenEmoji } from "./TokenIcon"
