@@ -142,3 +142,31 @@ export interface WalletError {
   message: string
   originalError?: unknown
 }
+
+// ============================================================================
+// MULTI-ACCOUNT TYPES
+// ============================================================================
+
+/**
+ * Stored account for multi-account support
+ */
+export interface StoredAccount {
+  id: string
+  address: string
+  nickname: string
+  providerType: WalletProviderType
+  chain: ChainType
+  createdAt: number
+  lastUsedAt: number
+  isActive: boolean
+}
+
+/**
+ * Account creation input
+ */
+export interface CreateAccountInput {
+  address: string
+  providerType: WalletProviderType
+  chain: ChainType
+  nickname?: string
+}
