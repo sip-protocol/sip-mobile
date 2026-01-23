@@ -481,12 +481,20 @@ export default function SwapScreen() {
                 Jupiter
               </Text>
             </View>
-            <TouchableOpacity
-              className="bg-dark-800 p-2 rounded-lg"
-              onPress={() => setShowSlippageModal(true)}
-            >
-              <Text className="text-dark-400">⚙️</Text>
-            </TouchableOpacity>
+            <View className="flex-row items-center gap-2">
+              <TouchableOpacity
+                className="bg-dark-800 p-2 rounded-lg"
+                onPress={() => router.push("/swap/history")}
+              >
+                <Text className="text-dark-400">📊</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                className="bg-dark-800 p-2 rounded-lg"
+                onPress={() => setShowSlippageModal(true)}
+              >
+                <Text className="text-dark-400">⚙️</Text>
+              </TouchableOpacity>
+            </View>
           </View>
 
           {/* From Token */}
