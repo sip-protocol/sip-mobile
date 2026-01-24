@@ -29,7 +29,11 @@
         "backgroundColor": "#0A0A0A"
       },
       "edgeToEdgeEnabled": true,
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "permissions": [
+        "android.permission.USE_BIOMETRIC",
+        "android.permission.USE_FINGERPRINT"
+      ]
     },
     "web": {
       "bundler": "metro",
@@ -38,7 +42,6 @@
     "plugins": [
       "expo-router",
       "expo-secure-store",
-      "@privy-io/expo-native-extensions",
       [
         "expo-local-authentication",
         {
@@ -48,7 +51,8 @@
       [
         "expo-apple-authentication"
       ],
-      "expo-web-browser"
+      "expo-web-browser",
+      "expo-font"
     ],
     "experiments": {
       "typedRoutes": true
@@ -58,8 +62,9 @@
         "origin": false
       },
       "eas": {
-        "projectId": "sip-privacy"
+        "projectId": "0e9edac4-13d5-4067-9b56-4da0f08d1f2a"
       }
-    }
+    },
+    "owner": "rector89"
   }
 }

@@ -1,16 +1,11 @@
-# Solana dApp Store Publishing Configuration
-# SIP Privacy - Private Payments on Solana
-# Reference: https://docs.solanamobile.com/dapp-publishing/prepare
-
 publisher:
   name: SIP Protocol
   website: https://sip-protocol.org
   email: rector@rectorspace.com
   support_email: rector@rectorspace.com
-
 app:
   name: SIP Privacy
-  address: '' # Will be populated after first publish
+  address: 2THAY9h4MaxsCtbm2WVj1gn2NMbVN3GUhLQ1EkMvqQby
   android_package: org.sip_protocol.privacy
   urls:
     license_url: https://github.com/sip-protocol/sip-mobile/blob/main/LICENSE
@@ -20,19 +15,13 @@ app:
   media:
     - purpose: icon
       uri: media/app-icon-512.png
-
 release:
-  address: '' # Will be populated after first publish
+  address: Cq8m84EtYXovgqewZT52Qi4ntNqCQ2dpSiaZePXuEgBF
   media:
     - purpose: icon
       uri: media/app-icon-512.png
     - purpose: banner
       uri: media/banner-1200x600.png
-    # Feature graphic (optional, for Editor's Choice)
-    # - purpose: featureGraphic
-    #   uri: media/feature-1200x1200.png
-    # Screenshots - minimum 4 required
-    # TODO: Capture screenshots from running app
     - purpose: screenshot
       uri: media/screenshots/01-home-dashboard.png
     - purpose: screenshot
@@ -43,9 +32,6 @@ release:
       uri: media/screenshots/04-swap-privacy.png
     - purpose: screenshot
       uri: media/screenshots/05-compliance-audit.png
-    # Video preview (optional)
-    # - purpose: video
-    #   uri: media/demo-video.mp4
   files:
     - purpose: install
       uri: builds/sip-privacy-release.apk
@@ -92,11 +78,14 @@ release:
       saga_features: |
         Enhanced security with Saga's secure element for key storage.
   android_details:
+    cert_fingerprint: be3e93cf0ce6ee2dacaf11f56a9357870009d2814956946d0a23fc510fcc4e9d
+    min_sdk: 24
+    version: 0.1.0
+    version_code: 1
     locales:
       - en-US
-
 solana_mobile_dapp_publisher_portal:
-  google_store_package: '' # Not published to Google Play
+  google_store_package: ''
   testing_instructions: |
     TESTING ACCOUNT:
     No test account needed - app works with any Solana wallet.
@@ -142,8 +131,10 @@ solana_mobile_dapp_publisher_portal:
 
     MAINNET:
     Switch to mainnet in Settings when ready for production use.
-
   alpha_testers: []
-    # Add wallet addresses for alpha testers
-    # - address: <WALLET_ADDRESS>
-    #   comment: SIP Protocol team
+lastSubmittedVersionOnChain:
+  address: Cq8m84EtYXovgqewZT52Qi4ntNqCQ2dpSiaZePXuEgBF
+  version_code: 1
+  apk_hash: 3rRbQomhmI+I3GJCdZTgREcjJvIrOaDx5ksUimdXLE8=
+lastUpdatedVersionOnStore:
+  address: Cq8m84EtYXovgqewZT52Qi4ntNqCQ2dpSiaZePXuEgBF
