@@ -44,6 +44,12 @@ publishing/     # APK builds, dApp Store config
 
 **Cost/release:** ~0.025 SOL (Arweave ~0.02 + NFT rent ~0.002 + fees)
 
+**Submission:**
+- Review time: 2-5 business days (new apps & updates)
+- Status: Email notifications for approval/rejection
+- Support: [Discord #dapp-store](https://discord.gg/solanamobile)
+- Docs: [Submit New App](https://docs.solanamobile.com/dapp-publishing/submit-new-app) | [Publishing Overview](https://docs.solanamobile.com/dapp-publishing/overview)
+
 ---
 
 ## Guidelines
