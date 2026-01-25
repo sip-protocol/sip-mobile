@@ -176,4 +176,4 @@ scrcpy --record session.mp4                    # Record
 
 ---
 
-**Status:** v0.1.2 | dApp Store submitted | Wallet pivot in progress
+**Status:** v0.1.4 | dApp Store submitted | Native wallet complete | Seed Vault stub (pending native module setup)

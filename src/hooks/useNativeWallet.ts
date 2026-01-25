@@ -19,7 +19,7 @@ import { useState, useCallback, useEffect } from "react"
 import { PublicKey, Transaction, VersionedTransaction, Keypair } from "@solana/web3.js"
 import { generateMnemonic, mnemonicToSeedSync, validateMnemonic } from "@scure/bip39"
 import { HDKey } from "@scure/bip32"
-import { wordlist } from "@scure/bip39/wordlists/english"
+import { wordlist } from "@scure/bip39/wordlists/english.js"
 import bs58 from "bs58"
 import nacl from "tweetnacl"
 import {
