@@ -203,6 +203,7 @@ export function useScanPayments(): UseScanPaymentsReturn {
   const {
     payments,
     addPayment,
+    updatePayment,
     setScanning,
     setLastScanTimestamp,
     lastScanTimestamp,
@@ -339,10 +340,11 @@ export function useScanPayments(): UseScanPaymentsReturn {
         })
 
         // Get existing payment IDs to avoid duplicates
-        const existingAddresses = new Set(
+        // Use txHash (transfer record PDA) as the unique identifier
+        const existingRecordPDAs = new Set(
           payments
-            .filter((p) => p.stealthAddress)
-            .map((p) => p.stealthAddress)
+            .filter((p) => p.txHash && !p.txHash.startsWith("mock_"))
+            .map((p) => p.txHash)
         )
 
         // Process in batches
@@ -356,19 +358,27 @@ export function useScanPayments(): UseScanPaymentsReturn {
 
           for (const record of batch) {
             result.scanned++
-            console.warn(`[SCAN] Processing record ${result.scanned}: ${record.pubkey.toBase58()}`)
+            const recordId = record.pubkey.toBase58()
+            console.warn(`[SCAN] Processing record ${result.scanned}: ${recordId}`)
 
-            // Skip already claimed records
+            // If claimed on-chain, sync local status and skip
             if (record.claimed) {
-              console.warn("[SCAN] Skipping - already claimed")
+              console.warn("[SCAN] Record claimed on-chain")
+              // Find local payment and mark as claimed if exists
+              const localPayment = payments.find((p) => p.txHash === recordId)
+              if (localPayment && !localPayment.claimed) {
+                console.warn("[SCAN] Syncing claimed status to local store")
+                updatePayment(localPayment.id, {
+                  status: "claimed",
+                  claimed: true,
+                  claimedAt: Date.now(),
+                })
+              }
               continue
             }
 
-            // Generate unique ID for this record
-            const recordId = record.pubkey.toBase58()
-
-            // Check if we already have this payment
-            if (existingAddresses.has(recordId)) {
+            // Check if we already have this payment (by transfer record PDA)
+            if (existingRecordPDAs.has(recordId)) {
               console.warn("[SCAN] Skipping - already in store")
               continue
             }
@@ -478,7 +488,7 @@ export function useScanPayments(): UseScanPaymentsReturn {
         setScanning(false)
       }
     },
-    [isConnected, network, payments, addPayment, setScanning, setLastScanTimestamp]
+    [isConnected, network, payments, addPayment, updatePayment, setScanning, setLastScanTimestamp]
   )
 
   const cancelScan = useCallback(() => {
