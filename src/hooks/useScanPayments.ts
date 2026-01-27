@@ -178,7 +178,9 @@ function decryptRecordAmount(
     // Decrypt amount
     return decryptAmount(record.encryptedAmount, sharedSecret)
   } catch (err) {
-    console.error("Failed to decrypt amount:", err)
+    // Use warn instead of error to avoid red toast in dev mode
+    // Fallback to RPC balance fetch will handle this gracefully
+    console.warn("[SCAN] Amount decryption failed (will fetch balance):", err)
     return null
   }
 }
@@ -405,6 +407,18 @@ export function useScanPayments(): UseScanPaymentsReturn {
                 amountSol = (Number(decryptedAmount) / LAMPORTS_PER_SOL).toFixed(
                   4
                 )
+              } else {
+                // Fallback: fetch stealth address balance directly
+                console.warn("[SCAN] Decryption failed, fetching balance from RPC...")
+                try {
+                  const balance = await connection.getBalance(record.stealthRecipient)
+                  if (balance > 0) {
+                    amountSol = (balance / LAMPORTS_PER_SOL).toFixed(4)
+                    console.warn(`[SCAN] Fetched balance: ${amountSol} SOL`)
+                  }
+                } catch (balanceErr) {
+                  console.error("[SCAN] Failed to fetch balance:", balanceErr)
+                }
               }
 
               // Build stealth address in claim-compatible format
