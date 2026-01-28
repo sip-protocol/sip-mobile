@@ -11,10 +11,13 @@ import { View, Text, ScrollView, TouchableOpacity, RefreshControl } from "react-
 import { SafeAreaView } from "react-native-safe-area-context"
 import { router } from "expo-router"
 import { useCallback, useState, useMemo } from "react"
+import * as Clipboard from "expo-clipboard"
 import { useWalletStore, formatAddress } from "@/stores/wallet"
 import { usePrivacyStore } from "@/stores/privacy"
+import { useSettingsStore } from "@/stores/settings"
 import { useClaim } from "@/hooks/useClaim"
 import { useBalance } from "@/hooks/useBalance"
+import { useToastStore } from "@/stores/toast"
 import { AccountIndicator } from "@/components/AccountSwitcher"
 import {
   ShieldCheck,
@@ -61,6 +64,32 @@ function getStatusColor(status: PaymentRecord["status"]): string {
       return "text-red-400"
     default:
       return "text-dark-400"
+  }
+}
+
+function getNetworkDisplayName(network: "mainnet-beta" | "devnet" | "testnet"): string {
+  switch (network) {
+    case "mainnet-beta":
+      return "Mainnet"
+    case "devnet":
+      return "Devnet"
+    case "testnet":
+      return "Testnet"
+    default:
+      return "Unknown"
+  }
+}
+
+function getNetworkBadgeColor(network: "mainnet-beta" | "devnet" | "testnet"): string {
+  switch (network) {
+    case "mainnet-beta":
+      return "bg-green-900/30 text-green-400"
+    case "devnet":
+      return "bg-yellow-900/30 text-yellow-400"
+    case "testnet":
+      return "bg-orange-900/30 text-orange-400"
+    default:
+      return "bg-dark-800 text-dark-400"
   }
 }
 
@@ -163,6 +192,8 @@ function TransactionRow({ payment, onPress }: TransactionRowProps) {
 export default function HomeScreen() {
   const { isConnected, address } = useWalletStore()
   const { payments } = usePrivacyStore()
+  const { network } = useSettingsStore()
+  const { addToast } = useToastStore()
   const { getClaimableAmount } = useClaim()
   const { balance, usdValue, isLoading: balanceLoading, refresh: refreshBalance } = useBalance()
   const [refreshing, setRefreshing] = useState(false)
@@ -188,6 +219,16 @@ export default function HomeScreen() {
   const handleTransactionPress = useCallback((payment: PaymentRecord) => {
     router.push(`/history/${payment.id}`)
   }, [])
+
+  const handleCopyAddress = useCallback(async () => {
+    if (!address) return
+    await Clipboard.setStringAsync(address)
+    addToast({
+      type: "success",
+      title: "Address Copied",
+      message: "Wallet address copied to clipboard",
+    })
+  }, [address, addToast])
 
   return (
     <SafeAreaView className="flex-1 bg-dark-950">
@@ -220,9 +261,16 @@ export default function HomeScreen() {
           <View className="flex-row items-center justify-between">
             <Text className="text-dark-400 text-sm">Total Balance</Text>
             {isConnected && (
-              <View className="flex-row items-center">
-                <View className="w-2 h-2 rounded-full bg-green-500 mr-2" />
-                <Text className="text-dark-500 text-sm">Connected</Text>
+              <View className="flex-row items-center gap-2">
+                <View className="flex-row items-center">
+                  <View className="w-2 h-2 rounded-full bg-green-500 mr-2" />
+                  <Text className="text-dark-500 text-sm">Connected</Text>
+                </View>
+                <View className={`px-2 py-0.5 rounded-full ${getNetworkBadgeColor(network)}`}>
+                  <Text className={`text-xs font-medium ${getNetworkBadgeColor(network).split(' ')[1]}`}>
+                    {getNetworkDisplayName(network)}
+                  </Text>
+                </View>
               </View>
             )}
           </View>
@@ -235,11 +283,16 @@ export default function HomeScreen() {
               <Text className="text-dark-500 mt-1">
                 ≈ ${usdValue.toLocaleString(undefined, { maximumFractionDigits: 2 })}
               </Text>
-              <View className="flex-row items-center mt-3 pt-3 border-t border-dark-800">
+              <TouchableOpacity
+                className="flex-row items-center mt-3 pt-3 border-t border-dark-800"
+                onPress={handleCopyAddress}
+                activeOpacity={0.7}
+              >
                 <Text className="text-dark-500 text-sm">
                   {formatAddress(address)}
                 </Text>
-              </View>
+                <Text className="text-dark-600 text-xs ml-2">Tap to copy</Text>
+              </TouchableOpacity>
             </>
           ) : (
             <>

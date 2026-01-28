@@ -207,7 +207,7 @@ export function usePhantomDeeplink(): UsePhantomDeeplinkReturn {
         app_url: "https://sip-protocol.org",
         dapp_encryption_public_key: dappPublicKeyBase58,
         redirect_link: REDIRECT_URL,
-        cluster: network === "mainnet" ? "mainnet-beta" : "devnet",
+        cluster: network,
       })
 
       // Open Phantom using auth session (handles custom URL scheme callbacks)

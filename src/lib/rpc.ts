@@ -13,7 +13,7 @@ import { Connection, PublicKey, LAMPORTS_PER_SOL } from "@solana/web3.js"
 
 // ─── Types ─────────────────────────────────────────────────────────────────
 
-export type RpcProvider = "helius" | "quicknode" | "triton" | "generic"
+export type RpcProvider = "helius" | "quicknode" | "triton" | "publicnode"
 export type NetworkCluster = "mainnet-beta" | "devnet" | "testnet"
 
 export interface RpcConfig {
@@ -40,9 +40,10 @@ export interface TokenBalance {
 
 // ─── Constants ─────────────────────────────────────────────────────────────
 
-const RPC_ENDPOINTS: Record<NetworkCluster, string> = {
-  "mainnet-beta": "https://api.mainnet-beta.solana.com",
-  devnet: "https://api.devnet.solana.com",
+// PublicNode endpoints (free, no key required)
+const PUBLICNODE_ENDPOINTS: Record<NetworkCluster, string> = {
+  "mainnet-beta": "https://solana-rpc.publicnode.com",
+  devnet: "https://api.devnet.solana.com", // PublicNode doesn't have devnet, fallback
   testnet: "https://api.testnet.solana.com",
 }
 
@@ -85,29 +86,29 @@ export class SolanaRpcClient {
     switch (provider) {
       case "helius":
         if (!apiKey) {
-          console.warn("Helius requires API key, falling back to generic RPC")
-          return RPC_ENDPOINTS[cluster]
+          console.warn("Helius requires API key, falling back to PublicNode")
+          return PUBLICNODE_ENDPOINTS[cluster]
         }
         return `${HELIUS_ENDPOINTS[cluster]}/?api-key=${apiKey}`
 
       case "quicknode":
         if (!apiKey) {
-          console.warn("QuickNode requires API key, falling back to generic RPC")
-          return RPC_ENDPOINTS[cluster]
+          console.warn("QuickNode requires API key, falling back to PublicNode")
+          return PUBLICNODE_ENDPOINTS[cluster]
         }
         return `${QUICKNODE_ENDPOINTS[cluster]}/${apiKey}`
 
       case "triton":
-        // Triton uses custom endpoint format
+        // Triton uses custom endpoint (user provides full URL)
         if (!customEndpoint) {
-          console.warn("Triton requires custom endpoint, falling back to generic RPC")
-          return RPC_ENDPOINTS[cluster]
+          console.warn("Triton requires custom endpoint, falling back to PublicNode")
+          return PUBLICNODE_ENDPOINTS[cluster]
         }
         return customEndpoint
 
-      case "generic":
+      case "publicnode":
       default:
-        return RPC_ENDPOINTS[cluster]
+        return PUBLICNODE_ENDPOINTS[cluster]
     }
   }
 
@@ -205,7 +206,7 @@ export function getRpcClient(config?: RpcConfig): SolanaRpcClient {
   if (!rpcClientInstance || config) {
     rpcClientInstance = new SolanaRpcClient(
       config || {
-        provider: "generic",
+        provider: "publicnode",
         cluster: "devnet",
       }
     )

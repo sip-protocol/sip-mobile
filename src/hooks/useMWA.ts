@@ -82,7 +82,7 @@ export function useMWA(): UseMWAReturn {
       const result = await transact(async (wallet: Web3MobileWallet) => {
         // Authorize with wallet
         const authResult = await wallet.authorize({
-          cluster: network === "mainnet" ? "mainnet-beta" : "devnet",
+          cluster: network,
           identity: APP_IDENTITY,
         })
 

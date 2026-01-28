@@ -25,6 +25,7 @@ import { useState, useCallback, useEffect } from "react"
 import { router } from "expo-router"
 import { useSend } from "@/hooks/useSend"
 import { useWalletStore } from "@/stores/wallet"
+import { useSettingsStore } from "@/stores/settings"
 import { useToastStore } from "@/stores/toast"
 import { useBalance } from "@/hooks/useBalance"
 import { Button, Modal } from "@/components/ui"
@@ -43,12 +44,12 @@ export default function SendScreen() {
     getUsdValue,
   } = useSend()
   const { isConnected } = useWalletStore()
+  const { defaultPrivacyLevel } = useSettingsStore()
   const { addToast } = useToastStore()
   const { balance } = useBalance()
 
   const [amount, setAmount] = useState("")
   const [recipient, setRecipient] = useState("")
-  const [privacyLevel, setPrivacyLevel] = useState<PrivacyLevel>("shielded")
   const [showConfirmModal, setShowConfirmModal] = useState(false)
   const [showSuccessModal, setShowSuccessModal] = useState(false)
 
@@ -122,7 +123,7 @@ export default function SendScreen() {
     const result = await send({
       amount,
       recipient,
-      privacyLevel,
+      privacyLevel: defaultPrivacyLevel,
     })
 
     if (!result.success) {
@@ -132,7 +133,7 @@ export default function SendScreen() {
         message: result.error || "Unknown error",
       })
     }
-  }, [send, amount, recipient, privacyLevel, addToast])
+  }, [send, amount, recipient, defaultPrivacyLevel, addToast])
 
   const handleCloseSuccess = useCallback(() => {
     setShowSuccessModal(false)
@@ -317,79 +318,56 @@ export default function SendScreen() {
               </View>
             </View>
 
-            {/* Privacy Level Selection */}
-            <View className="mt-6">
+            {/* Privacy Level Display (read-only, configured in Settings) */}
+            <TouchableOpacity
+              className="mt-6"
+              onPress={() => router.push("/(tabs)/settings")}
+              activeOpacity={0.7}
+            >
               <Text className="text-dark-400 text-sm mb-3">Privacy Level</Text>
-              <View className="gap-2">
-                {(["shielded", "compliant", "transparent"] as PrivacyLevel[]).map(
-                  (level) => {
-                    const info = getPrivacyLevelInfo(level)
-                    const isSelected = privacyLevel === level
-                    return (
-                      <TouchableOpacity
-                        key={level}
-                        className={`p-4 rounded-xl border ${
-                          isSelected
-                            ? level === "shielded"
-                              ? "bg-brand-900/20 border-brand-700"
-                              : level === "compliant"
-                              ? "bg-cyan-900/20 border-cyan-700"
-                              : "bg-dark-800 border-dark-600"
-                            : "bg-dark-900 border-dark-800"
+              <View
+                className={`p-4 rounded-xl border ${
+                  defaultPrivacyLevel === "shielded"
+                    ? "bg-brand-900/20 border-brand-700"
+                    : defaultPrivacyLevel === "compliant"
+                    ? "bg-cyan-900/20 border-cyan-700"
+                    : "bg-dark-800 border-dark-600"
+                }`}
+              >
+                <View className="flex-row items-center justify-between">
+                  <View className="flex-row items-center gap-3">
+                    <Text className="text-2xl">
+                      {getPrivacyLevelInfo(defaultPrivacyLevel).icon}
+                    </Text>
+                    <View>
+                      <Text
+                        className={`font-medium ${
+                          defaultPrivacyLevel === "transparent"
+                            ? "text-white"
+                            : defaultPrivacyLevel === "compliant"
+                            ? "text-cyan-400"
+                            : "text-brand-400"
                         }`}
-                        onPress={() => setPrivacyLevel(level)}
                       >
-                        <View className="flex-row items-center justify-between">
-                          <View className="flex-row items-center gap-3">
-                            <Text className="text-2xl">{info.icon}</Text>
-                            <View>
-                              <Text
-                                className={`font-medium ${
-                                  isSelected
-                                    ? level === "transparent"
-                                      ? "text-white"
-                                      : level === "compliant"
-                                      ? "text-cyan-400"
-                                      : "text-brand-400"
-                                    : "text-white"
-                                }`}
-                              >
-                                {info.title}
-                              </Text>
-                              <Text className="text-dark-500 text-xs">
-                                {info.description}
-                              </Text>
-                            </View>
-                          </View>
-                          <View
-                            className={`w-5 h-5 rounded-full border-2 ${
-                              isSelected
-                                ? level === "compliant"
-                                  ? "border-cyan-500 bg-cyan-500"
-                                  : level === "shielded"
-                                  ? "border-brand-500 bg-brand-500"
-                                  : "border-dark-400 bg-dark-400"
-                                : "border-dark-600"
-                            }`}
-                          >
-                            {isSelected && (
-                              <View className="flex-1 items-center justify-center">
-                                <Text className="text-white text-xs">✓</Text>
-                              </View>
-                            )}
-                          </View>
-                        </View>
-                      </TouchableOpacity>
-                    )
-                  }
-                )}
+                        {getPrivacyLevelInfo(defaultPrivacyLevel).title}
+                      </Text>
+                      <Text className="text-dark-500 text-xs">
+                        {getPrivacyLevelInfo(defaultPrivacyLevel).description}
+                      </Text>
+                    </View>
+                  </View>
+                  <View className="flex-row items-center gap-2">
+                    <Text className="text-dark-500 text-xs">Change</Text>
+                    <Text className="text-dark-500">›</Text>
+                  </View>
+                </View>
               </View>
-            </View>
+            </TouchableOpacity>
 
             {/* Warning for non-stealth address with private transfer */}
             {recipient &&
               !isStealth &&
-              privacyLevel !== "transparent" &&
+              defaultPrivacyLevel !== "transparent" &&
               !addressError && (
                 <View className="mt-4 bg-yellow-900/20 border border-yellow-700/50 rounded-xl p-3">
                   <View className="flex-row items-start gap-2">
@@ -408,7 +386,7 @@ export default function SendScreen() {
         {/* Send Button */}
         <View className="px-6 pb-6 pt-2 border-t border-dark-900">
           <Button fullWidth size="lg" onPress={handleReview} disabled={!isValid}>
-            {privacyLevel !== "transparent" ? "Send Privately" : "Send"}
+            {defaultPrivacyLevel !== "transparent" ? "Send Privately" : "Send"}
           </Button>
         </View>
       </KeyboardAvoidingView>
@@ -440,14 +418,14 @@ export default function SendScreen() {
               <Text className="text-dark-500">Privacy</Text>
               <Text
                 className={
-                  privacyLevel === "shielded"
+                  defaultPrivacyLevel === "shielded"
                     ? "text-brand-400"
-                    : privacyLevel === "compliant"
+                    : defaultPrivacyLevel === "compliant"
                     ? "text-cyan-400"
                     : "text-dark-300"
                 }
               >
-                {getPrivacyLevelInfo(privacyLevel).title}
+                {getPrivacyLevelInfo(defaultPrivacyLevel).title}
               </Text>
             </View>
             <View className="flex-row justify-between">

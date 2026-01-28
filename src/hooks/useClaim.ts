@@ -187,7 +187,7 @@ async function deriveSpendingKeyFromPayment(
  * Get RPC URL for network
  */
 function getRpcUrl(network: string): string {
-  return network === "mainnet"
+  return network === "mainnet-beta"
     ? "https://api.mainnet-beta.solana.com"
     : "https://api.devnet.solana.com"
 }

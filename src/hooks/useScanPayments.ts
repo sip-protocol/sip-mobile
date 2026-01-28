@@ -338,7 +338,7 @@ export function useScanPayments(): UseScanPaymentsReturn {
 
         // Setup connection
         const connection = new Connection(
-          network === "mainnet"
+          network === "mainnet-beta"
             ? "https://api.mainnet-beta.solana.com"
             : "https://api.devnet.solana.com",
           { commitment: "confirmed" }

@@ -272,7 +272,7 @@ export function useSend(): UseSendReturn {
         const { Connection, PublicKey } = await import("@solana/web3.js")
 
         const connection = new Connection(
-          network === "mainnet"
+          network === "mainnet-beta"
             ? "https://api.mainnet-beta.solana.com"
             : "https://api.devnet.solana.com",
           { commitment: "confirmed" }

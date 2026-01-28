@@ -11,10 +11,10 @@ import { useSettingsStore } from "@/stores/settings"
 import {
   getRpcClient,
   getSolPrice,
-  type BalanceResult,
   type TokenBalance,
   type RpcConfig,
 } from "@/lib/rpc"
+import { getRpcApiKey } from "@/lib/config"
 
 // ─── Types ─────────────────────────────────────────────────────────────────
 
@@ -46,7 +46,7 @@ const PRICE_REFRESH_INTERVAL = 60000 // 1 minute
 
 export function useBalance(): UseBalanceReturn {
   const { isConnected, address } = useWalletStore()
-  const { rpcProvider, network } = useSettingsStore()
+  const { rpcProvider, network, heliusApiKey, quicknodeApiKey, tritonEndpoint } = useSettingsStore()
 
   const [balance, setBalance] = useState(0)
   const [balanceLamports, setBalanceLamports] = useState(0)
@@ -63,12 +63,37 @@ export function useBalance(): UseBalanceReturn {
     return balance * solPrice
   }, [balance, solPrice])
 
-  // Get RPC config from settings
-  const rpcConfig: RpcConfig = useMemo(() => ({
-    provider: rpcProvider as "helius" | "quicknode" | "triton" | "generic",
-    cluster: network as "mainnet-beta" | "devnet" | "testnet",
-    // API keys would come from environment/secure storage
-  }), [rpcProvider, network])
+  // Get RPC config from settings (user override) or app config (build default)
+  const rpcConfig: RpcConfig = useMemo(() => {
+    const provider = rpcProvider as "helius" | "quicknode" | "triton" | "publicnode"
+
+    // Get API key based on provider
+    let apiKey: string | undefined
+    let customEndpoint: string | undefined
+
+    switch (provider) {
+      case "helius":
+        apiKey = heliusApiKey || getRpcApiKey("helius") || undefined
+        break
+      case "quicknode":
+        apiKey = quicknodeApiKey || undefined
+        break
+      case "triton":
+        customEndpoint = tritonEndpoint || undefined
+        break
+      case "publicnode":
+      default:
+        // No key needed
+        break
+    }
+
+    return {
+      provider,
+      cluster: network as "mainnet-beta" | "devnet" | "testnet",
+      apiKey,
+      customEndpoint,
+    }
+  }, [rpcProvider, network, heliusApiKey, quicknodeApiKey, tritonEndpoint])
 
   // Fetch balance
   const fetchBalance = useCallback(async (silent = false) => {

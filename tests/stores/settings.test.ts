@@ -103,11 +103,14 @@ describe("Settings Store", () => {
     it("should set network", () => {
       const { setNetwork } = useSettingsStore.getState()
 
-      setNetwork("mainnet")
-      expect(useSettingsStore.getState().network).toBe("mainnet")
+      setNetwork("mainnet-beta")
+      expect(useSettingsStore.getState().network).toBe("mainnet-beta")
 
       setNetwork("devnet")
       expect(useSettingsStore.getState().network).toBe("devnet")
+
+      setNetwork("testnet")
+      expect(useSettingsStore.getState().network).toBe("testnet")
     })
   })
 
@@ -126,8 +129,8 @@ describe("Settings Store", () => {
       setRpcProvider("triton")
       expect(useSettingsStore.getState().rpcProvider).toBe("triton")
 
-      setRpcProvider("generic")
-      expect(useSettingsStore.getState().rpcProvider).toBe("generic")
+      setRpcProvider("publicnode")
+      expect(useSettingsStore.getState().rpcProvider).toBe("publicnode")
     })
   })
 })

@@ -23,12 +23,20 @@ interface SettingsStore {
   setBiometricsEnabled: (enabled: boolean) => void
 
   // Network
-  network: "mainnet" | "devnet"
-  setNetwork: (network: "mainnet" | "devnet") => void
+  network: "mainnet-beta" | "devnet" | "testnet"
+  setNetwork: (network: "mainnet-beta" | "devnet" | "testnet") => void
 
   // RPC Provider
-  rpcProvider: "helius" | "quicknode" | "triton" | "generic"
-  setRpcProvider: (provider: "helius" | "quicknode" | "triton" | "generic") => void
+  rpcProvider: "helius" | "quicknode" | "triton" | "publicnode"
+  setRpcProvider: (provider: "helius" | "quicknode" | "triton" | "publicnode") => void
+
+  // API Keys (user overrides)
+  heliusApiKey: string | null
+  setHeliusApiKey: (key: string | null) => void
+  quicknodeApiKey: string | null
+  setQuicknodeApiKey: (key: string | null) => void
+  tritonEndpoint: string | null
+  setTritonEndpoint: (endpoint: string | null) => void
 }
 
 export const useSettingsStore = create<SettingsStore>()(
@@ -59,6 +67,14 @@ export const useSettingsStore = create<SettingsStore>()(
       // RPC Provider
       rpcProvider: "helius",
       setRpcProvider: (provider) => set({ rpcProvider: provider }),
+
+      // API Keys (user overrides)
+      heliusApiKey: null,
+      setHeliusApiKey: (key) => set({ heliusApiKey: key }),
+      quicknodeApiKey: null,
+      setQuicknodeApiKey: (key) => set({ quicknodeApiKey: key }),
+      tritonEndpoint: null,
+      setTritonEndpoint: (endpoint) => set({ tritonEndpoint: endpoint }),
     }),
     {
       name: "sip-settings",
