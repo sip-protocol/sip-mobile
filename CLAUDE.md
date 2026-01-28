@@ -179,8 +179,10 @@ app/settings/backup.tsx        # View/backup recovery phrase
 | Provider | Status | SDK | Hackathon Bounty |
 |----------|--------|-----|------------------|
 | **SIP Native** | ✅ Complete | Built-in | — |
-| **Privacy Cash** | 🔲 Stub | `privacy-cash-sdk` | $15K |
+| **Privacy Cash** | ⏳ SDK Installed | `privacycash@1.1.11` | $15K |
 | **ShadowWire** | 🔲 Stub | `@radr/shadowwire` | $15K |
+
+**Privacy Cash Note:** SDK installed and API integrated. Requires keypair integration for signing (SDK signs internally rather than using wallet adapter). Next step: integrate with biometric-protected key access.
 
 ### Key Files
 

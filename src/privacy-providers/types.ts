@@ -275,16 +275,16 @@ export const PRIVACY_PROVIDERS: PrivacyProviderInfo[] = [
   {
     id: "privacy-cash",
     name: "Privacy Cash",
-    description: "Pool-based mixing with ZK proofs",
+    description: "Pool-based mixing with ZK proofs (SDK installed)",
     icon: "cash",
     recommended: false,
     features: {
       send: true,
-      swap: true,
+      swap: false, // Privacy Cash focuses on transfers
       viewingKeys: false, // SIP adds this on top
       compliance: false,
     },
-    status: "coming-soon",
+    status: "coming-soon", // Awaiting keypair integration
   },
   {
     id: "shadowwire",

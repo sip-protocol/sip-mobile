@@ -2,16 +2,15 @@
  * Privacy Cash Adapter
  *
  * Pool-based mixing with ZK proofs using the Privacy Cash SDK.
- * SDK: privacy-cash-sdk (npm)
+ * SDK: privacycash (npm) - audited by Zigtur
  *
  * Features:
  * - Pool-based deposits and withdrawals
- * - ZK proofs for privacy
+ * - ZK proofs for privacy (snarkjs)
  * - Supports SOL, USDC, USDT
  *
  * Flow:
- * - Send: deposit(amount) → withdraw(to recipient)
- * - Swap: depositSPL(input) → internal swap → withdrawSPL(output)
+ * - Send: deposit(lamports) → withdraw(to recipient)
  *
  * Note: SIP adds viewing keys on top for compliance.
  *
@@ -36,31 +35,61 @@ import { debug } from "@/utils/logger"
 // ============================================================================
 
 /**
- * Privacy Cash SDK interface (imported dynamically)
- * Based on: https://github.com/Privacy-Cash/privacy-cash-sdk
+ * Privacy Cash SDK class
+ * From: privacycash npm package
  */
-interface PrivacyCashSDK {
-  deposit(amount: number): Promise<string>
-  withdraw(recipient: string, amount: number, proof: Uint8Array): Promise<string>
-  getPrivateBalance(): Promise<number>
-  depositSPL(mint: string, amount: number): Promise<string>
-  withdrawSPL(mint: string, recipient: string, amount: number, proof: Uint8Array): Promise<string>
-  getPrivateBalanceSpl(mint: string): Promise<number>
-  generateProof(amount: number, recipient: string): Promise<Uint8Array>
+interface PrivacyCashClient {
+  deposit(params: { lamports: number }): Promise<{ tx: string }>
+  withdraw(params: {
+    lamports: number
+    recipientAddress?: string
+    referrer?: string
+  }): Promise<{
+    isPartial: boolean
+    tx: string
+    recipient: string
+    amount_in_lamports: number
+    fee_in_lamports: number
+  }>
+  getPrivateBalance(abortSignal?: AbortSignal): Promise<{ lamports: number }>
+  depositSPL(params: {
+    base_units?: number
+    amount?: number
+    mintAddress: string
+  }): Promise<{ tx: string }>
+  withdrawSPL(params: {
+    base_units?: number
+    amount?: number
+    mintAddress: string
+    recipientAddress?: string
+    referrer?: string
+  }): Promise<{
+    isPartial: boolean
+    tx: string
+    recipient: string
+    base_units: number
+    fee_base_units: number
+  }>
+  getPrivateBalanceSpl(mintAddress: string): Promise<{
+    base_units: number
+    amount: number
+    lamports: number
+  }>
+  clearCache(): Promise<void>
 }
 
 // ============================================================================
 // CONSTANTS
 // ============================================================================
 
-/** Privacy Cash relayer endpoint */
-const RELAYER_ENDPOINT = "https://api.privacycash.io/v1"
-
 /** Supported SPL tokens */
-const SUPPORTED_TOKENS: Record<string, string> = {
-  USDC: "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
-  USDT: "Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB",
+const SUPPORTED_TOKENS: Record<string, { mint: string; decimals: number }> = {
+  USDC: { mint: "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v", decimals: 6 },
+  USDT: { mint: "Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB", decimals: 6 },
 }
+
+/** SOL decimals */
+const SOL_DECIMALS = 9
 
 // ============================================================================
 // PRIVACY CASH ADAPTER
@@ -72,7 +101,7 @@ export class PrivacyCashAdapter implements PrivacyProviderAdapter {
 
   private options: AdapterOptions
   private initialized = false
-  private sdk: PrivacyCashSDK | null = null
+  private client: PrivacyCashClient | null = null
 
   constructor(options: AdapterOptions) {
     this.options = options
@@ -80,23 +109,27 @@ export class PrivacyCashAdapter implements PrivacyProviderAdapter {
 
   async initialize(): Promise<void> {
     try {
-      // Dynamically import Privacy Cash SDK
-      // Note: Requires `npm install privacy-cash-sdk` and Node 24+
-      // const PrivacyCash = await import("privacy-cash-sdk")
-
-      // For now, SDK is not installed - mark as stub
-      debug("Privacy Cash SDK not yet installed - running in stub mode")
-      this.initialized = true
-
-      // When SDK is installed, initialization would look like:
-      // this.sdk = new PrivacyCash.default({
-      //   relayerEndpoint: RELAYER_ENDPOINT,
-      //   network: this.options.network,
-      //   walletAddress: this.options.walletAddress,
+      // Privacy Cash SDK requires a Keypair for signing
+      // This is a security-sensitive operation that needs the private key
+      //
+      // INTEGRATION NOTE:
+      // The SDK signs transactions internally, so we need to pass the keypair.
+      // For mobile, this means extracting the key from SecureStore.
+      // This should only happen with user biometric authentication.
+      //
+      // Example initialization (when private key is available):
+      // const { PrivacyCash } = await import("privacycash")
+      // this.client = new PrivacyCash({
+      //   RPC_url: getRpcEndpoint(this.options.network),
+      //   owner: keypairFromPrivateKey,
+      //   enableDebug: __DEV__,
       // })
+
+      debug("Privacy Cash SDK installed - awaiting keypair integration")
+      this.initialized = true
     } catch (err) {
-      debug("Privacy Cash SDK initialization failed:", err)
-      this.initialized = true // Mark as initialized but in stub mode
+      debug("Privacy Cash initialization failed:", err)
+      this.initialized = true
     }
   }
 
@@ -109,7 +142,7 @@ export class PrivacyCashAdapter implements PrivacyProviderAdapter {
       case "send":
         return true
       case "swap":
-        return true // Privacy Cash supports internal swaps
+        return false // Privacy Cash focuses on transfers, not DEX
       case "viewingKeys":
         return false // SIP adds this on top
       case "compliance":
@@ -152,15 +185,16 @@ export class PrivacyCashAdapter implements PrivacyProviderAdapter {
   ): Promise<PrivacySendResult> {
     onStatusChange?.("validating")
 
-    // Check if SDK is available
-    if (!this.sdk) {
+    // Check if SDK client is available
+    if (!this.client) {
       onStatusChange?.("error")
       return {
         success: false,
-        error: "Privacy Cash SDK not installed. Please use SIP Native for now.",
+        error: "Privacy Cash requires keypair integration. Coming soon!",
         providerData: {
-          status: "sdk_not_installed",
-          installCommand: "npm install privacy-cash-sdk",
+          status: "awaiting_keypair_integration",
+          reason: "SDK requires direct keypair access for signing",
+          package: "privacycash@1.1.11",
         },
       }
     }
@@ -174,41 +208,79 @@ export class PrivacyCashAdapter implements PrivacyProviderAdapter {
 
       onStatusChange?.("preparing")
 
-      // Privacy Cash flow:
-      // 1. Deposit SOL to privacy pool
-      // 2. Generate ZK proof for withdrawal
-      // 3. Withdraw to recipient
+      // Convert amount to lamports (SOL) or base_units (SPL)
+      const amount = parseFloat(params.amount)
+      const isSPL = params.tokenMint && params.tokenMint !== "So11111111111111111111111111111111111111112"
 
-      const amountLamports = parseFloat(params.amount) * 1e9
+      if (isSPL) {
+        // SPL token transfer
+        const tokenInfo = Object.values(SUPPORTED_TOKENS).find(t => t.mint === params.tokenMint)
+        if (!tokenInfo) {
+          throw new Error("Token not supported by Privacy Cash (only USDC, USDT)")
+        }
 
-      // Step 1: Deposit to pool
-      debug("Privacy Cash: Depositing to pool...")
-      const depositTx = await this.sdk.deposit(amountLamports)
-      debug("Privacy Cash: Deposit tx:", depositTx)
+        const baseUnits = Math.floor(amount * Math.pow(10, tokenInfo.decimals))
 
-      onStatusChange?.("signing")
+        onStatusChange?.("signing")
 
-      // Step 2: Generate ZK proof
-      debug("Privacy Cash: Generating ZK proof...")
-      const proof = await this.sdk.generateProof(amountLamports, params.recipient)
+        // Deposit to pool
+        debug("Privacy Cash: Depositing SPL to pool...")
+        await this.client.depositSPL({
+          base_units: baseUnits,
+          mintAddress: params.tokenMint!,
+        })
 
-      onStatusChange?.("submitting")
+        onStatusChange?.("submitting")
 
-      // Step 3: Withdraw to recipient
-      debug("Privacy Cash: Withdrawing to recipient...")
-      const withdrawTx = await this.sdk.withdraw(params.recipient, amountLamports, proof)
-      debug("Privacy Cash: Withdraw tx:", withdrawTx)
+        // Withdraw to recipient
+        debug("Privacy Cash: Withdrawing SPL to recipient...")
+        const result = await this.client.withdrawSPL({
+          base_units: baseUnits,
+          mintAddress: params.tokenMint!,
+          recipientAddress: params.recipient,
+        })
 
-      onStatusChange?.("confirmed")
+        onStatusChange?.("confirmed")
 
-      return {
-        success: true,
-        txHash: withdrawTx,
-        providerData: {
-          depositTx,
-          withdrawTx,
-          provider: "privacy-cash",
-        },
+        return {
+          success: true,
+          txHash: result.tx,
+          providerData: {
+            provider: "privacy-cash",
+            isPartial: result.isPartial,
+            fee: result.fee_base_units,
+          },
+        }
+      } else {
+        // SOL transfer
+        const lamports = Math.floor(amount * Math.pow(10, SOL_DECIMALS))
+
+        onStatusChange?.("signing")
+
+        // Deposit to pool
+        debug("Privacy Cash: Depositing SOL to pool...")
+        await this.client.deposit({ lamports })
+
+        onStatusChange?.("submitting")
+
+        // Withdraw to recipient
+        debug("Privacy Cash: Withdrawing SOL to recipient...")
+        const result = await this.client.withdraw({
+          lamports,
+          recipientAddress: params.recipient,
+        })
+
+        onStatusChange?.("confirmed")
+
+        return {
+          success: true,
+          txHash: result.tx,
+          providerData: {
+            provider: "privacy-cash",
+            isPartial: result.isPartial,
+            fee: result.fee_in_lamports,
+          },
+        }
       }
     } catch (err) {
       onStatusChange?.("error")
@@ -220,83 +292,51 @@ export class PrivacyCashAdapter implements PrivacyProviderAdapter {
   }
 
   // ─────────────────────────────────────────────────────────────────────────
-  // SWAP OPERATION
+  // SWAP OPERATION (Not supported by Privacy Cash)
   // ─────────────────────────────────────────────────────────────────────────
 
   async swap(
-    params: PrivacySwapParams,
+    _params: PrivacySwapParams,
     _signTransaction: (tx: Uint8Array) => Promise<Uint8Array | null>,
     onStatusChange?: (status: PrivacySwapStatus) => void
   ): Promise<PrivacySwapResult> {
-    onStatusChange?.("confirming")
+    onStatusChange?.("error")
+    return {
+      success: false,
+      error: "Privacy Cash does not support swaps. Use SIP Native for private swaps.",
+      providerData: {
+        provider: "privacy-cash",
+        reason: "Privacy Cash focuses on private transfers, not DEX operations",
+      },
+    }
+  }
 
-    // Check if SDK is available
-    if (!this.sdk) {
-      onStatusChange?.("error")
-      return {
-        success: false,
-        error: "Privacy Cash SDK not installed. Please use SIP Native for now.",
-        providerData: {
-          status: "sdk_not_installed",
-          installCommand: "npm install privacy-cash-sdk",
-        },
-      }
+  // ─────────────────────────────────────────────────────────────────────────
+  // BALANCE QUERY
+  // ─────────────────────────────────────────────────────────────────────────
+
+  /**
+   * Get private balance in Privacy Cash pool
+   * This is additional functionality not in the base adapter interface
+   */
+  async getPrivateBalance(): Promise<{ sol: number; usdc?: number; usdt?: number }> {
+    if (!this.client) {
+      return { sol: 0 }
     }
 
     try {
-      const { quote } = params
-
-      // Check if tokens are supported
-      const inputMint = quote.inputToken.mint
-      const outputMint = quote.outputToken.mint
-
-      // Privacy Cash only supports SOL, USDC, USDT
-      const supportedMints = ["So11111111111111111111111111111111111111112", ...Object.values(SUPPORTED_TOKENS)]
-      if (!supportedMints.includes(inputMint) || !supportedMints.includes(outputMint)) {
-        throw new Error("Privacy Cash only supports SOL, USDC, and USDT swaps")
-      }
-
-      onStatusChange?.("signing")
-
-      // Privacy Cash swap flow:
-      // 1. Deposit input token to pool
-      // 2. Internal swap (handled by relayer)
-      // 3. Withdraw output token
-
-      const inputAmount = parseFloat(quote.inputAmount)
-
-      // For SOL
-      if (inputMint === "So11111111111111111111111111111111111111112") {
-        await this.sdk.deposit(inputAmount * 1e9)
-      } else {
-        await this.sdk.depositSPL(inputMint, inputAmount)
-      }
-
-      onStatusChange?.("submitting")
-
-      // Relayer handles internal swap + withdrawal
-      // This is a simplified flow - actual implementation depends on SDK
-
-      debug("Privacy Cash: Swap executed via relayer")
-
-      onStatusChange?.("success")
+      const solBalance = await this.client.getPrivateBalance()
+      const usdcBalance = await this.client.getPrivateBalanceSpl(SUPPORTED_TOKENS.USDC.mint)
+      const usdtBalance = await this.client.getPrivateBalanceSpl(SUPPORTED_TOKENS.USDT.mint)
 
       return {
-        success: true,
-        txHash: `privacy-cash-swap-${Date.now()}`,
-        explorerUrl: undefined, // Privacy Cash transactions may not be directly viewable
-        providerData: {
-          provider: "privacy-cash",
-          inputToken: quote.inputToken.symbol,
-          outputToken: quote.outputToken.symbol,
-        },
+        sol: solBalance.lamports / Math.pow(10, SOL_DECIMALS),
+        usdc: usdcBalance.amount,
+        usdt: usdtBalance.amount,
       }
     } catch (err) {
-      onStatusChange?.("error")
-      return {
-        success: false,
-        error: err instanceof Error ? err.message : "Privacy Cash swap failed",
-      }
+      debug("Failed to get private balance:", err)
+      return { sol: 0 }
     }
   }
 }
