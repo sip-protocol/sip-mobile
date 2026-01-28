@@ -87,6 +87,7 @@ const DEFAULT_TRANSFER_TYPE: TransferType = "internal"
 const SUPPORTED_TOKENS: Record<string, { decimals: number; fee: number }> = {
   SOL: { decimals: 9, fee: 0.5 },
   USDC: { decimals: 6, fee: 1.0 },
+  USD1: { decimals: 6, fee: 1.0 }, // WLFI USD1 stablecoin - hackathon bounty
   BONK: { decimals: 5, fee: 1.0 },
   ORE: { decimals: 11, fee: 0.3 },
   RADR: { decimals: 9, fee: 0.3 },
@@ -348,6 +349,7 @@ export class ShadowWireAdapter implements PrivacyProviderAdapter {
     const MINT_TO_SYMBOL: Record<string, string> = {
       So11111111111111111111111111111111111111112: "SOL",
       EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v: "USDC",
+      "4oRwqhNroh7kgwNXCnu9idZ861zdbWLVfv7aERUcuzU3": "USD1", // WLFI USD1 - hackathon bounty
       DezXAZ8z7PnrnRJjz3wXBoRgixCa6xjnB7YaB1pPB263: "BONK",
       oreoU2P8bN6jkk3jbaiVxYnG1dCXcYxwhwyK9jSybcp: "ORE",
     }
