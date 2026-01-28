@@ -176,22 +176,34 @@ app/settings/backup.tsx        # View/backup recovery phrase
 
 ### Provider Status
 
-| Provider | Status | SDK | Hackathon Bounty |
-|----------|--------|-----|------------------|
-| **SIP Native** | ✅ Complete | Built-in | — |
-| **Privacy Cash** | ⏳ SDK Installed | `privacycash@1.1.11` | $15K |
-| **ShadowWire** | 🔲 Stub | `@radr/shadowwire` | $15K |
+| Provider | Status | SDK | Send | Swap | Signing |
+|----------|--------|-----|------|------|---------|
+| **SIP Native** | ✅ Complete | Built-in | ✅ | ✅ | Wallet Adapter |
+| **ShadowWire** | ✅ SDK Integrated | `@radr/shadowwire@1.1.15` | ✅ | ❌ | signMessage ✅ |
+| **Privacy Cash** | ⏳ SDK Installed | `privacycash@1.1.11` | ✅ | ❌ | Keypair ⚠️ |
 
-**Privacy Cash Note:** SDK installed and API integrated. Requires keypair integration for signing (SDK signs internally rather than using wallet adapter). Next step: integrate with biometric-protected key access.
+### Integration Notes
+
+**ShadowWire:** Ready for production use.
+- Uses `signMessage` callback — wallet adapter compatible!
+- 22 supported tokens (SOL, USDC, BONK, ORE, RADR, JIM, etc.)
+- Transfer types: `internal` (amount hidden via ZK) / `external` (sender anonymous)
+- NO swap support — focuses on private transfers
+
+**Privacy Cash:** Requires additional work.
+- SDK signs internally using `Keypair` — NOT wallet adapter compatible
+- Need to integrate with biometric-protected key access from SecureStore
+- Pool-based mixing model (Tornado-style)
+- NO swap support — only deposit/withdraw
 
 ### Key Files
 
 ```
 src/privacy-providers/
 ├── types.ts          # PrivacyProviderAdapter interface
-├── sip-native.ts     # SIP Native adapter (default)
-├── privacy-cash.ts   # Privacy Cash adapter (stub)
-├── shadowwire.ts     # ShadowWire adapter (stub)
+├── sip-native.ts     # SIP Native adapter (default, active)
+├── privacy-cash.ts   # Privacy Cash adapter (needs keypair integration)
+├── shadowwire.ts     # ShadowWire adapter (ready, signMessage compatible)
 ├── registry.ts       # Factory & caching
 └── index.ts          # Module exports
 

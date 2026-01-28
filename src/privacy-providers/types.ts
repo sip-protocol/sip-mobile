@@ -275,30 +275,30 @@ export const PRIVACY_PROVIDERS: PrivacyProviderInfo[] = [
   {
     id: "privacy-cash",
     name: "Privacy Cash",
-    description: "Pool-based mixing with ZK proofs (SDK installed)",
+    description: "Pool-based mixing with ZK proofs (SOL/USDC/USDT)",
     icon: "cash",
     recommended: false,
     features: {
       send: true,
-      swap: false, // Privacy Cash focuses on transfers
+      swap: false, // Privacy Cash focuses on transfers, not DEX
       viewingKeys: false, // SIP adds this on top
       compliance: false,
     },
-    status: "coming-soon", // Awaiting keypair integration
+    status: "coming-soon", // Needs keypair integration (signs internally)
   },
   {
     id: "shadowwire",
     name: "ShadowWire",
-    description: "Bulletproofs + internal transfers",
+    description: "Bulletproofs + internal transfers (22 tokens)",
     icon: "bolt",
     recommended: false,
     features: {
       send: true,
-      swap: true,
+      swap: false, // ShadowWire focuses on transfers, not DEX
       viewingKeys: false, // SIP adds this on top
       compliance: false,
     },
-    status: "coming-soon",
+    status: "available", // SDK integrated, signMessage compatible
   },
 ]
 

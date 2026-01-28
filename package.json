@@ -22,6 +22,7 @@
     "@expo/vector-icons": "^15.0.3",
     "@noble/curves": "^1.7.0",
     "@noble/hashes": "^1.6.0",
+    "@radr/shadowwire": "^1.1.15",
     "@react-native-async-storage/async-storage": "^2.2.0",
     "@scure/bip32": "^2.0.1",
     "@scure/bip39": "^2.0.1",

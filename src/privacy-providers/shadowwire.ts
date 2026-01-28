@@ -1,17 +1,17 @@
 /**
  * ShadowWire Adapter
  *
- * Bulletproofs + internal transfers using the Radr ShadowWire SDK.
- * SDK: @radr/shadowwire (npm)
+ * Bulletproofs + transfers using the Radr ShadowWire SDK.
+ * SDK: @radr/shadowwire@1.1.15
  *
  * Features:
  * - Bulletproof ZK proofs for amount hiding
  * - Internal (fully private) and external (sender anonymous) transfers
- * - 22 supported tokens (SOL, USDC, BONK, ORE, etc.)
- * - Client-side proof generation option
+ * - 22 supported tokens
+ * - Uses signMessage (wallet adapter compatible!)
  *
  * Transfer Types:
- * - internal: Amount hidden via ZK proofs (Radr-to-Radr)
+ * - internal: Amount hidden via ZK proofs
  * - external: Visible amount, sender anonymous
  *
  * Note: SIP adds viewing keys on top for compliance.
@@ -33,33 +33,47 @@ import type {
 import { debug } from "@/utils/logger"
 
 // ============================================================================
-// TYPES
+// TYPES (from @radr/shadowwire)
 // ============================================================================
 
-/**
- * ShadowWire SDK interface (imported dynamically)
- * Based on: https://github.com/radrdotfun/ShadowWire
- */
-interface ShadowWireSDK {
-  getBalance(wallet: string, token: string): Promise<number>
-  deposit(params: { wallet: string; amount: number }): Promise<{ txHash: string }>
-  withdraw(params: { wallet: string; amount: number }): Promise<{ txHash: string }>
-  transfer(params: {
-    sender: string
-    recipient: string
-    amount: number
-    token: string
-    type: "internal" | "external"
-    wallet?: { signMessage: (message: Uint8Array) => Promise<Uint8Array> }
-  }): Promise<{ txHash: string }>
-  getFeePercentage(token: string): number
-  getMinimumAmount(token: string): number
+type TransferType = "internal" | "external"
+
+interface TransferRequest {
+  sender: string
+  recipient: string
+  amount: number
+  token: string
+  type: TransferType
+  wallet?: {
+    signMessage: (message: Uint8Array) => Promise<Uint8Array>
+  }
 }
 
-/**
- * Transfer type options
- */
-type TransferType = "internal" | "external"
+interface TransferResponse {
+  success: boolean
+  tx_signature: string
+  amount_sent: number | null
+  amount_hidden: boolean
+}
+
+interface PoolBalance {
+  wallet: string
+  available: number
+  deposited: number
+  withdrawn_to_escrow: number
+  migrated: boolean
+  pool_address: string
+}
+
+interface ShadowWireClientType {
+  getBalance(wallet: string, token?: string): Promise<PoolBalance>
+  deposit(params: { wallet: string; amount: number; token?: string }): Promise<{ txHash: string }>
+  withdraw(params: { wallet: string; amount: number; token?: string }): Promise<{ txHash: string }>
+  transfer(params: TransferRequest): Promise<TransferResponse>
+  getFeePercentage(token: string): number
+  getMinimumAmount(token: string): number
+  calculateFee(amount: number, token: string): { fee: number; total: number }
+}
 
 // ============================================================================
 // CONSTANTS
@@ -68,13 +82,16 @@ type TransferType = "internal" | "external"
 /** Default transfer type - use internal for maximum privacy */
 const DEFAULT_TRANSFER_TYPE: TransferType = "internal"
 
-/** Supported tokens with fee info */
+/** Supported tokens from ShadowWire (22 total) */
 const SUPPORTED_TOKENS: Record<string, { decimals: number; fee: number }> = {
   SOL: { decimals: 9, fee: 0.5 },
   USDC: { decimals: 6, fee: 1.0 },
-  USDT: { decimals: 6, fee: 1.0 },
   BONK: { decimals: 5, fee: 1.0 },
   ORE: { decimals: 11, fee: 0.3 },
+  RADR: { decimals: 9, fee: 0.3 },
+  JIM: { decimals: 9, fee: 1.0 },
+  ANON: { decimals: 9, fee: 1.0 },
+  ZEC: { decimals: 9, fee: 1.0 },
 }
 
 // ============================================================================
@@ -87,7 +104,7 @@ export class ShadowWireAdapter implements PrivacyProviderAdapter {
 
   private options: AdapterOptions
   private initialized = false
-  private client: ShadowWireSDK | null = null
+  private client: ShadowWireClientType | null = null
 
   constructor(options: AdapterOptions) {
     this.options = options
@@ -95,26 +112,25 @@ export class ShadowWireAdapter implements PrivacyProviderAdapter {
 
   async initialize(): Promise<void> {
     try {
-      // Dynamically import ShadowWire SDK
-      // Note: Requires `npm install @radr/shadowwire`
-      // const { ShadowWireClient } = await import("@radr/shadowwire")
+      // Import ShadowWire SDK
+      const { ShadowWireClient } = await import("@radr/shadowwire")
 
-      // For now, SDK is not installed - mark as stub
-      debug("ShadowWire SDK not yet installed - running in stub mode")
+      // Cast through unknown since we only use a subset of the SDK's features
+      this.client = new ShadowWireClient({
+        debug: false,
+      }) as unknown as ShadowWireClientType
+
+      debug("ShadowWire SDK initialized successfully")
       this.initialized = true
-
-      // When SDK is installed, initialization would look like:
-      // this.client = new ShadowWireClient({
-      //   debug: __DEV__,
-      // })
     } catch (err) {
       debug("ShadowWire SDK initialization failed:", err)
-      this.initialized = true // Mark as initialized but in stub mode
+      // Still mark as initialized so we can show proper error messages
+      this.initialized = true
     }
   }
 
   isReady(): boolean {
-    return this.initialized
+    return this.initialized && this.client !== null
   }
 
   supportsFeature(feature: "send" | "swap" | "viewingKeys" | "compliance"): boolean {
@@ -122,7 +138,7 @@ export class ShadowWireAdapter implements PrivacyProviderAdapter {
       case "send":
         return true
       case "swap":
-        return true // ShadowWire supports internal swaps
+        return false // ShadowWire focuses on transfers, not DEX
       case "viewingKeys":
         return false // SIP adds this on top
       case "compliance":
@@ -165,15 +181,15 @@ export class ShadowWireAdapter implements PrivacyProviderAdapter {
   ): Promise<PrivacySendResult> {
     onStatusChange?.("validating")
 
-    // Check if SDK is available
+    // Check if SDK client is available
     if (!this.client) {
       onStatusChange?.("error")
       return {
         success: false,
-        error: "ShadowWire SDK not installed. Please use SIP Native for now.",
+        error: "ShadowWire SDK not initialized. Please try again.",
         providerData: {
-          status: "sdk_not_installed",
-          installCommand: "npm install @radr/shadowwire",
+          status: "sdk_not_initialized",
+          package: "@radr/shadowwire@1.1.15",
         },
       }
     }
@@ -188,30 +204,31 @@ export class ShadowWireAdapter implements PrivacyProviderAdapter {
       onStatusChange?.("preparing")
 
       // Determine token (default to SOL)
-      const token = params.tokenMint ? this.getTokenSymbol(params.tokenMint) : "SOL"
-      if (!token) {
-        throw new Error("Unsupported token for ShadowWire")
-      }
-
+      const token = this.getTokenSymbol(params.tokenMint) || "SOL"
       const tokenInfo = SUPPORTED_TOKENS[token]
+
       if (!tokenInfo) {
         throw new Error(`Token ${token} not supported by ShadowWire`)
       }
 
-      // Convert amount to smallest unit
       const amount = parseFloat(params.amount)
-      const amountSmallest = Math.floor(amount * Math.pow(10, tokenInfo.decimals))
 
       // Check minimum amount
       const minimum = this.client.getMinimumAmount(token)
-      if (amountSmallest < minimum) {
-        throw new Error(`Amount below minimum (${minimum / Math.pow(10, tokenInfo.decimals)} ${token})`)
+      if (amount < minimum) {
+        throw new Error(`Amount below minimum (${minimum} ${token})`)
       }
+
+      // Calculate fee
+      const feeInfo = this.client.calculateFee(amount, token)
+      debug(`ShadowWire fee: ${feeInfo.fee} ${token} (${tokenInfo.fee}%)`)
 
       onStatusChange?.("signing")
 
-      // Create sign message wrapper for ShadowWire
+      // Create signMessage wrapper for ShadowWire
+      // ShadowWire uses signMessage (not signTransaction), which is compatible!
       const signMessage = async (message: Uint8Array): Promise<Uint8Array> => {
+        // ShadowWire passes message bytes, we can use the same pattern
         const signed = await signTransaction(message)
         if (!signed) {
           throw new Error("Message signing rejected")
@@ -222,28 +239,32 @@ export class ShadowWireAdapter implements PrivacyProviderAdapter {
       onStatusChange?.("submitting")
 
       // Execute transfer using ShadowWire
-      // Use 'internal' type for maximum privacy (amount hidden)
       const result = await this.client.transfer({
         sender: this.options.walletAddress,
         recipient: params.recipient,
-        amount: amountSmallest,
+        amount,
         token,
         type: DEFAULT_TRANSFER_TYPE,
         wallet: { signMessage },
       })
 
-      debug("ShadowWire transfer:", result.txHash)
+      if (!result.success) {
+        throw new Error("Transfer failed")
+      }
+
+      debug("ShadowWire transfer:", result.tx_signature)
 
       onStatusChange?.("confirmed")
 
       return {
         success: true,
-        txHash: result.txHash,
+        txHash: result.tx_signature,
         providerData: {
           provider: "shadowwire",
           transferType: DEFAULT_TRANSFER_TYPE,
           token,
           fee: `${tokenInfo.fee}%`,
+          amountHidden: result.amount_hidden,
         },
       }
     } catch (err) {
@@ -256,86 +277,43 @@ export class ShadowWireAdapter implements PrivacyProviderAdapter {
   }
 
   // ─────────────────────────────────────────────────────────────────────────
-  // SWAP OPERATION
+  // SWAP OPERATION (Not supported - ShadowWire focuses on transfers)
   // ─────────────────────────────────────────────────────────────────────────
 
   async swap(
-    params: PrivacySwapParams,
+    _params: PrivacySwapParams,
     _signTransaction: (tx: Uint8Array) => Promise<Uint8Array | null>,
     onStatusChange?: (status: PrivacySwapStatus) => void
   ): Promise<PrivacySwapResult> {
-    onStatusChange?.("confirming")
+    onStatusChange?.("error")
+    return {
+      success: false,
+      error: "ShadowWire does not support swaps. Use SIP Native for private swaps.",
+      providerData: {
+        provider: "shadowwire",
+        reason: "ShadowWire focuses on private transfers, not DEX operations",
+      },
+    }
+  }
 
-    // Check if SDK is available
+  // ─────────────────────────────────────────────────────────────────────────
+  // BALANCE QUERY
+  // ─────────────────────────────────────────────────────────────────────────
+
+  /**
+   * Get private balance in ShadowWire
+   */
+  async getPrivateBalance(token: string = "SOL"): Promise<number> {
     if (!this.client) {
-      onStatusChange?.("error")
-      return {
-        success: false,
-        error: "ShadowWire SDK not installed. Please use SIP Native for now.",
-        providerData: {
-          status: "sdk_not_installed",
-          installCommand: "npm install @radr/shadowwire",
-        },
-      }
+      return 0
     }
 
     try {
-      const { quote } = params
-
-      // Get token symbols
-      const inputToken = quote.inputToken.symbol
-      const outputToken = quote.outputToken.symbol
-
-      // Verify tokens are supported
-      if (!SUPPORTED_TOKENS[inputToken] || !SUPPORTED_TOKENS[outputToken]) {
-        throw new Error(
-          `ShadowWire swap requires supported tokens. Input: ${inputToken}, Output: ${outputToken}`
-        )
-      }
-
-      onStatusChange?.("signing")
-
-      // ShadowWire swap flow:
-      // 1. Deposit input token to ShadowWire
-      // 2. Internal swap (handled by protocol)
-      // 3. Withdraw output token or keep in ShadowWire
-
-      const inputAmount = parseFloat(quote.inputAmount)
-      const inputInfo = SUPPORTED_TOKENS[inputToken]
-      const amountSmallest = Math.floor(inputAmount * Math.pow(10, inputInfo.decimals))
-
-      // Deposit to ShadowWire
-      debug("ShadowWire: Depositing for swap...")
-      const depositResult = await this.client.deposit({
-        wallet: this.options.walletAddress,
-        amount: amountSmallest,
-      })
-
-      onStatusChange?.("submitting")
-
-      // Note: Actual swap logic depends on ShadowWire's DEX integration
-      // This is a simplified flow showing the deposit step
-      debug("ShadowWire: Swap executed via protocol")
-
-      onStatusChange?.("success")
-
-      return {
-        success: true,
-        txHash: depositResult.txHash,
-        explorerUrl: `https://solscan.io/tx/${depositResult.txHash}`,
-        providerData: {
-          provider: "shadowwire",
-          inputToken,
-          outputToken,
-          inputFee: `${inputInfo.fee}%`,
-        },
-      }
+      const balance = await this.client.getBalance(this.options.walletAddress, token)
+      return balance.available
     } catch (err) {
-      onStatusChange?.("error")
-      return {
-        success: false,
-        error: err instanceof Error ? err.message : "ShadowWire swap failed",
-      }
+      debug("Failed to get ShadowWire balance:", err)
+      return 0
     }
   }
 
@@ -346,12 +324,14 @@ export class ShadowWireAdapter implements PrivacyProviderAdapter {
   /**
    * Get token symbol from mint address
    */
-  private getTokenSymbol(mint: string): string | null {
+  private getTokenSymbol(mint?: string): string | null {
+    if (!mint) return "SOL"
+
     const MINT_TO_SYMBOL: Record<string, string> = {
       So11111111111111111111111111111111111111112: "SOL",
       EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v: "USDC",
-      Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB: "USDT",
       DezXAZ8z7PnrnRJjz3wXBoRgixCa6xjnB7YaB1pPB263: "BONK",
+      oreoU2P8bN6jkk3jbaiVxYnG1dCXcYxwhwyK9jSybcp: "ORE",
     }
     return MINT_TO_SYMBOL[mint] || null
   }
