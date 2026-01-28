@@ -5,24 +5,28 @@ import { StatusBar } from "expo-status-bar"
 import { GestureHandlerRootView } from "react-native-gesture-handler"
 import * as SplashScreen from "expo-splash-screen"
 import { WalletProvider } from "@/providers"
+import {
+  markPerformance,
+  logPerformanceSummary,
+} from "@/utils/performance"
 
 // Keep splash screen visible while we initialize
 SplashScreen.preventAutoHideAsync()
+markPerformance("splash_prevented")
 
 export default function RootLayout() {
   const [isReady, setIsReady] = useState(false)
 
   useEffect(() => {
     async function prepare() {
-      console.log("[SplashScreen] prepare() started")
+      markPerformance("prepare_start")
       try {
-        // Pre-load any critical resources here
-        // For now, just a minimal delay to ensure smooth transition
-        await new Promise((resolve) => setTimeout(resolve, 100))
-        console.log("[SplashScreen] prepare() delay complete")
+        // Minimal delay - let stores hydrate async
+        await new Promise((resolve) => setTimeout(resolve, 50))
+        markPerformance("prepare_done")
       } finally {
-        console.log("[SplashScreen] setIsReady(true)")
         setIsReady(true)
+        markPerformance("is_ready")
       }
     }
     prepare()
@@ -31,23 +35,23 @@ export default function RootLayout() {
   // Hide splash screen when ready
   useEffect(() => {
     if (isReady) {
-      console.log("[SplashScreen] isReady=true, hiding splash...")
+      markPerformance("hiding_splash")
       SplashScreen.hideAsync()
-        .then(() => console.log("[SplashScreen] hideAsync SUCCESS"))
-        .catch((e) => console.error("[SplashScreen] hideAsync ERROR:", e))
+        .then(() => markPerformance("splash_hidden"))
+        .catch(() => {})
     }
   }, [isReady])
 
   const onLayoutRootView = useCallback(async () => {
-    console.log("[SplashScreen] onLayoutRootView called, isReady:", isReady)
     if (isReady) {
-      // Hide splash screen once layout is ready
-      console.log("[SplashScreen] Calling hideAsync...")
+      markPerformance("layout_ready")
       try {
         await SplashScreen.hideAsync()
-        console.log("[SplashScreen] hideAsync completed successfully")
-      } catch (e) {
-        console.error("[SplashScreen] hideAsync error:", e)
+        markPerformance("app_ready")
+        // Log performance summary in dev mode
+        logPerformanceSummary()
+      } catch {
+        // Ignore - splash may already be hidden
       }
     }
   }, [isReady])

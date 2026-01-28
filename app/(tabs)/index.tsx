@@ -10,7 +10,11 @@
 import { View, Text, ScrollView, TouchableOpacity, RefreshControl } from "react-native"
 import { SafeAreaView } from "react-native-safe-area-context"
 import { router } from "expo-router"
-import { useCallback, useState, useMemo } from "react"
+import { useCallback, useState, useMemo, useEffect } from "react"
+import { markPerformance } from "@/utils/performance"
+
+// Mark when home screen module loads
+markPerformance("home_module_load")
 import * as Clipboard from "expo-clipboard"
 import { useWalletStore, formatAddress } from "@/stores/wallet"
 import { usePrivacyStore } from "@/stores/privacy"
@@ -197,6 +201,11 @@ export default function HomeScreen() {
   const { getClaimableAmount } = useClaim()
   const { balance, usdValue, isLoading: balanceLoading, refresh: refreshBalance } = useBalance()
   const [refreshing, setRefreshing] = useState(false)
+
+  // Mark when home screen first renders
+  useEffect(() => {
+    markPerformance("home_first_render")
+  }, [])
 
   // Memoize expensive computations
   const recentPayments = useMemo(() => payments.slice(0, 5), [payments])
