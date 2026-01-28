@@ -24,6 +24,7 @@ import type {
   StealthKeysRecord,
   StealthKeysStorage,
 } from "@/types"
+import { debug } from "@/utils/logger"
 
 // ============================================================================
 // TYPES
@@ -98,7 +99,7 @@ async function migrateLegacyKeys(): Promise<StealthKeysStorage | null> {
     const legacyData = await SecureStore.getItemAsync(LEGACY_STORE_KEY)
     if (!legacyData) return null
 
-    console.log("Migrating legacy stealth keys to archival format...")
+    debug("Migrating legacy stealth keys to archival format...")
 
     const legacyKeys = JSON.parse(legacyData) as StealthKeys
     const keyId = `keys_${Date.now()}`
@@ -123,7 +124,7 @@ async function migrateLegacyKeys(): Promise<StealthKeysStorage | null> {
     // Clean up legacy key
     await SecureStore.deleteItemAsync(LEGACY_STORE_KEY)
 
-    console.log("Legacy keys migrated successfully")
+    debug("Legacy keys migrated successfully")
     return storage
   } catch (err) {
     console.error("Failed to migrate legacy keys:", err)

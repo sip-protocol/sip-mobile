@@ -5,7 +5,7 @@
  * In production, this would be fetched from Jupiter's token list API.
  */
 
-import type { TokenInfo, TokenBalance } from "@/types"
+import type { TokenInfo } from "@/types"
 
 // ============================================================================
 // POPULAR TOKENS
@@ -142,17 +142,3 @@ export function parseTokenAmount(
   return BigInt(whole + paddedFraction)
 }
 
-// ============================================================================
-// MOCK BALANCES (for demo)
-// ============================================================================
-
-export const MOCK_BALANCES: TokenBalance[] = [
-  { token: TOKENS.SOL, balance: "12.45", usdValue: 2308.12 },
-  { token: TOKENS.USDC, balance: "1500.00", usdValue: 1500.0 },
-  { token: TOKENS.BONK, balance: "5000000", usdValue: 125.5 },
-  { token: TOKENS.JUP, balance: "250.00", usdValue: 187.5 },
-]
-
-export function getMockBalance(symbol: string): TokenBalance | undefined {
-  return MOCK_BALANCES.find((b) => b.token.symbol === symbol)
-}

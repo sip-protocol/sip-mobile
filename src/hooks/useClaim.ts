@@ -22,6 +22,7 @@ import {
   type StealthAddress,
 } from "@/lib/stealth"
 import { buildClaimTransfer, signClaimWithStealth } from "@/lib/anchor/client"
+import { debug } from "@/utils/logger"
 import bs58 from "bs58"
 
 // ============================================================================
@@ -364,10 +365,10 @@ export function useClaim(): UseClaimReturn {
           }
         )
 
-        console.log("Claim transaction built")
-        console.log("Nullifier:", bs58.encode(nullifier))
-        console.log("Stealth pubkey:", bs58.encode(stealthPublicKey))
-        console.log("Expected stealth pubkey:", stealthPubkey.toBase58())
+        debug("Claim transaction built")
+        debug("Nullifier:", bs58.encode(nullifier))
+        debug("Stealth pubkey:", bs58.encode(stealthPublicKey))
+        debug("Expected stealth pubkey:", stealthPubkey.toBase58())
 
         // Sign with stealth scalar (custom ed25519 signing with derived scalar)
         const stealthSignedTx = await signClaimWithStealth(
@@ -407,7 +408,7 @@ export function useClaim(): UseClaimReturn {
           lastValidBlockHeight,
         })
 
-        console.log("Claim transaction submitted:", signature)
+        debug("Claim transaction submitted:", signature)
 
         // Update payment status
         // IMPORTANT: Don't overwrite txHash - it's the transfer record PDA used for sync

@@ -40,7 +40,7 @@ export default function PhoneLoginScreen() {
           </Text>
 
           <Button
-            onPress={() => router.replace("/(auth)/wallet-setup" as any)}
+            onPress={() => router.replace("/wallet-setup")}
             size="lg"
           >
             Set Up Native Wallet

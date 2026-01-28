@@ -18,6 +18,7 @@ import {
   parseStealthMetaAddress,
   hexToBytes,
 } from "@/lib/stealth"
+import { debug } from "@/utils/logger"
 import {
   getSipPrivacyClient,
   type ShieldedTransferParams,
@@ -324,8 +325,8 @@ export function useSend(): UseSendReturn {
           // Send the transaction
           try {
             txHash = await client.sendTransaction(signedTx as SolanaTransaction)
-            console.log("Shielded transfer confirmed:", txHash)
-            console.log("Transfer record PDA:", transferRecord.toBase58())
+            debug("Shielded transfer confirmed:", txHash)
+            debug("Transfer record PDA:", transferRecord.toBase58())
           } catch (sendErr) {
             // If program not initialized, fall back to regular transfer
             console.warn("Shielded transfer failed, using regular transfer:", sendErr)

@@ -180,7 +180,7 @@ export default function SendScreen() {
           icon="wallet-outline"
           iconColor="#8b5cf6"
           actionLabel="Set Up Wallet"
-          onAction={() => router.push("/(auth)/wallet-setup" as any)}
+          onAction={() => router.push("/wallet-setup")}
           className="flex-1"
         />
       </SafeAreaView>

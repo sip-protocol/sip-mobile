@@ -11,7 +11,6 @@ import {
   getTokenByMint,
   formatTokenAmount,
   parseTokenAmount,
-  getMockBalance,
 } from "@/data/tokens"
 
 describe("Token Data", () => {
@@ -132,16 +131,4 @@ describe("Token Helpers", () => {
     })
   })
 
-  describe("getMockBalance", () => {
-    it("should return balance for known token", () => {
-      const balance = getMockBalance("SOL")
-      expect(balance).toBeDefined()
-      expect(balance?.token.symbol).toBe("SOL")
-      expect(parseFloat(balance?.balance || "0")).toBeGreaterThan(0)
-    })
-
-    it("should return undefined for unknown token", () => {
-      expect(getMockBalance("UNKNOWN")).toBeUndefined()
-    })
-  })
 })

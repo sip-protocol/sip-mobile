@@ -63,7 +63,7 @@ export default function BackupWalletScreen() {
         <Text className="text-dark-400 text-center">
           No wallet found. Please create or import a wallet first.
         </Text>
-        <Button className="mt-4" onPress={() => router.push("/(auth)/wallet-setup" as any)}>
+        <Button className="mt-4" onPress={() => router.push("/wallet-setup")}>
           Set Up Wallet
         </Button>
       </SafeAreaView>

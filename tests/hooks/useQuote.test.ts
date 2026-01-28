@@ -5,7 +5,6 @@
  */
 
 import { describe, it, expect } from "vitest"
-import { getMockBalance } from "@/data/tokens"
 
 // Token prices for testing (mirroring useQuote.ts)
 const TOKEN_PRICES: Record<string, number> = {
@@ -158,36 +157,19 @@ describe("Quote Price Calculations", () => {
 
 describe("Balance Checking", () => {
   describe("Insufficient Balance Logic", () => {
-    it("should have balance for SOL", () => {
-      const balance = getMockBalance("SOL")
-      expect(balance).toBeDefined()
-      expect(parseFloat(balance?.balance || "0")).toBeGreaterThan(0)
-    })
-
-    it("should have balance for USDC", () => {
-      const balance = getMockBalance("USDC")
-      expect(balance).toBeDefined()
-      expect(parseFloat(balance?.balance || "0")).toBeGreaterThan(0)
-    })
-
-    it("should return undefined for unknown token", () => {
-      const balance = getMockBalance("UNKNOWN_TOKEN")
-      expect(balance).toBeUndefined()
-    })
-
     it("should detect insufficient balance", () => {
-      const balance = getMockBalance("SOL")
+      const balance = 10.5 // Real balance would come from useBalance hook
       const amount = "999999"
 
-      const isInsufficient = parseFloat(amount) > parseFloat(balance?.balance || "0")
+      const isInsufficient = parseFloat(amount) > balance
       expect(isInsufficient).toBe(true)
     })
 
     it("should pass for sufficient balance", () => {
-      const balance = getMockBalance("SOL")
+      const balance = 10.5 // Real balance would come from useBalance hook
       const amount = "0.001"
 
-      const isInsufficient = parseFloat(amount) > parseFloat(balance?.balance || "0")
+      const isInsufficient = parseFloat(amount) > balance
       expect(isInsufficient).toBe(false)
     })
   })

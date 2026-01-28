@@ -9,7 +9,7 @@
 
 import { View, Text, TouchableOpacity } from "react-native"
 import { SafeAreaView } from "react-native-safe-area-context"
-import { router } from "expo-router"
+import { router, Href } from "expo-router"
 import { useNativeWallet } from "@/hooks"
 import { useEffect } from "react"
 
@@ -18,7 +18,7 @@ interface SetupOption {
   emoji: string
   title: string
   description: string
-  route: string
+  route: Href
   primary?: boolean
 }
 
@@ -28,7 +28,7 @@ const SETUP_OPTIONS: SetupOption[] = [
     emoji: "✨",
     title: "Create New Wallet",
     description: "Generate a new wallet with a secure seed phrase",
-    route: "/(auth)/create-wallet",
+    route: "/create-wallet",
     primary: true,
   },
   {
@@ -36,7 +36,7 @@ const SETUP_OPTIONS: SetupOption[] = [
     emoji: "📥",
     title: "Import Existing Wallet",
     description: "Restore from seed phrase or private key",
-    route: "/(auth)/import-wallet",
+    route: "/import-wallet",
   },
 ]
 
@@ -51,7 +51,7 @@ export default function WalletSetupScreen() {
   }, [isInitialized, wallet])
 
   const handleOptionPress = (option: SetupOption) => {
-    router.push(option.route as any)
+    router.push(option.route)
   }
 
   const handleConnectExternal = () => {

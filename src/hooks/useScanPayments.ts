@@ -29,6 +29,7 @@ import {
   type TransferRecordData,
 } from "@/lib/anchor/client"
 import { decryptAmount, deriveSharedSecret } from "@/lib/anchor/crypto"
+import { debug } from "@/utils/logger"
 import { ed25519 } from "@noble/curves/ed25519"
 import { sha256 } from "@noble/hashes/sha256"
 import { sha512 } from "@noble/hashes/sha512"
@@ -145,9 +146,9 @@ function checkRecordOwnership(
     const stealthBytes = record.stealthRecipient.toBytes()
     const stealthHex = `0x${bytesToHex(stealthBytes)}`
 
-    console.log("=== Checking ownership for record ===")
-    console.log("Stealth recipient:", record.stealthRecipient.toBase58())
-    console.log("Ephemeral pubkey:", ephemeralHex.slice(0, 24) + "...")
+    debug("=== Checking ownership for record ===")
+    debug("Stealth recipient:", record.stealthRecipient.toBase58())
+    debug("Ephemeral pubkey:", ephemeralHex.slice(0, 24) + "...")
 
     // Derive spending scalar from private key
     // IMPORTANT: ed25519 uses SHA512, not SHA256! (RFC 8032)
@@ -175,7 +176,7 @@ function checkRecordOwnership(
 
     // View tag is first byte of shared secret hash
     const viewTag = sharedSecretHash[0]
-    console.log("Computed view tag:", viewTag)
+    debug("Computed view tag:", viewTag)
 
     const stealthAddr: StealthAddress = {
       address: stealthHex,
@@ -184,8 +185,8 @@ function checkRecordOwnership(
     }
 
     const isOwner = checkStealthAddress(stealthAddr, spendingPrivateKey, viewingPrivateKey)
-    console.log("Ownership result:", isOwner)
-    console.log("=== End ownership check ===")
+    debug("Ownership result:", isOwner)
+    debug("=== End ownership check ===")
 
     return isOwner
   } catch (err) {
@@ -220,7 +221,7 @@ function decryptRecordAmount(
   } catch (err) {
     // Use warn instead of error to avoid red toast in dev mode
     // Fallback to RPC balance fetch will handle this gracefully
-    console.warn("[SCAN] Amount decryption failed (will fetch balance):", err)
+    debug("[SCAN] Amount decryption failed (will fetch balance):", err)
     return null
   }
 }
@@ -310,18 +311,18 @@ export function useScanPayments(): UseScanPaymentsReturn {
         }
 
         // Debug: verify stored keys match derived public keys
-        console.log("=== Stored keys debug ===")
-        console.log("Spending pub (stored):", spendingPublicKey?.slice(0, 24) + "...")
-        console.log("Viewing pub (stored):", viewingPublicKey?.slice(0, 24) + "...")
+        debug("=== Stored keys debug ===")
+        debug("Spending pub (stored):", spendingPublicKey?.slice(0, 24) + "...")
+        debug("Viewing pub (stored):", viewingPublicKey?.slice(0, 24) + "...")
 
         // Derive public keys from private keys to verify consistency
         const spendPrivBytes = hexToBytes(spendingPrivateKey)
         const viewPrivBytes = hexToBytes(viewingPrivateKey)
         const derivedSpendPub = ed25519.getPublicKey(spendPrivBytes)
         const derivedViewPub = ed25519.getPublicKey(viewPrivBytes)
-        console.log("Spending pub (derived):", "0x" + bytesToHex(derivedSpendPub).slice(0, 20) + "...")
-        console.log("Viewing pub (derived):", "0x" + bytesToHex(derivedViewPub).slice(0, 20) + "...")
-        console.log("=== End keys debug ===")
+        debug("Spending pub (derived):", "0x" + bytesToHex(derivedSpendPub).slice(0, 20) + "...")
+        debug("Viewing pub (derived):", "0x" + bytesToHex(derivedViewPub).slice(0, 20) + "...")
+        debug("=== End keys debug ===")
 
         // Check for cancellation
         if (cancelRef.current) {
@@ -346,7 +347,7 @@ export function useScanPayments(): UseScanPaymentsReturn {
 
         // Fetch all transfer records from the SIP program
         const records = await fetchAllTransferRecords(connection)
-        console.log(`Fetched ${records.length} transfer records from chain`)
+        debug(`Fetched ${records.length} transfer records from chain`)
 
         // Filter by timestamp if provided
         const filteredRecords = options.fromTimestamp
@@ -400,15 +401,15 @@ export function useScanPayments(): UseScanPaymentsReturn {
           for (const record of batch) {
             result.scanned++
             const recordId = record.pubkey.toBase58()
-            console.warn(`[SCAN] Processing record ${result.scanned}: ${recordId}`)
+            debug(`[SCAN] Processing record ${result.scanned}: ${recordId}`)
 
             // If claimed on-chain, sync local status and skip
             if (record.claimed) {
-              console.warn("[SCAN] Record claimed on-chain")
+              debug("[SCAN] Record claimed on-chain")
               // Find local payment and mark as claimed if exists
               const localPayment = payments.find((p) => p.txHash === recordId)
               if (localPayment && !localPayment.claimed) {
-                console.warn("[SCAN] Syncing claimed status to local store")
+                debug("[SCAN] Syncing claimed status to local store")
                 updatePayment(localPayment.id, {
                   status: "claimed",
                   claimed: true,
@@ -420,18 +421,18 @@ export function useScanPayments(): UseScanPaymentsReturn {
 
             // Check if we already have this payment (by transfer record PDA)
             if (existingRecordPDAs.has(recordId)) {
-              console.warn("[SCAN] Skipping - already in store")
+              debug("[SCAN] Skipping - already in store")
               continue
             }
 
-            console.warn("[SCAN] Checking ownership...")
+            debug("[SCAN] Checking ownership...")
             // Check ownership using stealth keys
             const isOurs = checkRecordOwnership(
               record,
               spendingPrivateKey,
               viewingPrivateKey
             )
-            console.warn(`[SCAN] Ownership result: ${isOurs}`)
+            debug(`[SCAN] Ownership result: ${isOurs}`)
 
             if (isOurs) {
               result.found++
@@ -448,12 +449,12 @@ export function useScanPayments(): UseScanPaymentsReturn {
                 )
               } else {
                 // Fallback: fetch stealth address balance directly
-                console.warn("[SCAN] Decryption failed, fetching balance from RPC...")
+                debug("[SCAN] Decryption failed, fetching balance from RPC...")
                 try {
                   const balance = await connection.getBalance(record.stealthRecipient)
                   if (balance > 0) {
                     amountSol = (balance / LAMPORTS_PER_SOL).toFixed(4)
-                    console.warn(`[SCAN] Fetched balance: ${amountSol} SOL`)
+                    debug(`[SCAN] Fetched balance: ${amountSol} SOL`)
                   }
                 } catch (balanceErr) {
                   console.error("[SCAN] Failed to fetch balance:", balanceErr)
@@ -485,7 +486,7 @@ export function useScanPayments(): UseScanPaymentsReturn {
 
               result.newPayments.push(payment)
               addPayment(payment)
-              console.log(`Found payment: ${amountSol} SOL to ${record.stealthRecipient.toBase58()}`)
+              debug(`Found payment: ${amountSol} SOL to ${record.stealthRecipient.toBase58()}`)
             }
           }
 
