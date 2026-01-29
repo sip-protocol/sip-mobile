@@ -25,7 +25,7 @@ import {
 } from "react-native"
 import { SafeAreaView } from "react-native-safe-area-context"
 import { useState, useCallback, useEffect } from "react"
-import { router } from "expo-router"
+import { router, useLocalSearchParams } from "expo-router"
 import * as Clipboard from "expo-clipboard"
 import { usePrivacyProvider } from "@/hooks/usePrivacyProvider"
 import { useWalletStore } from "@/stores/wallet"
@@ -107,6 +107,9 @@ function formatUsdValue(amount: string, solPrice: number): string {
 // ============================================================================
 
 export default function SendScreen() {
+  // Handle scanned address from QR scanner
+  const { scannedAddress } = useLocalSearchParams<{ scannedAddress?: string }>()
+
   // Privacy Provider (supports Arcium, Privacy Cash, ShadowWire, etc.)
   const {
     send,
@@ -169,6 +172,14 @@ export default function SendScreen() {
       setAddressError(null)
     }
   }, [])
+
+  // Handle scanned address from QR scanner
+  useEffect(() => {
+    if (scannedAddress) {
+      setRecipient(scannedAddress)
+      handleRecipientChange(scannedAddress)
+    }
+  }, [scannedAddress, handleRecipientChange])
 
   const handleMaxAmount = useCallback(() => {
     const maxAmount = Math.max(0, balance - 0.001).toFixed(6) // Leave for fees
@@ -403,14 +414,7 @@ export default function SendScreen() {
               <View className="flex-row gap-2 mt-3">
                 <TouchableOpacity
                   className="flex-row items-center bg-dark-800 rounded-lg px-3 py-2"
-                  onPress={() => {
-                    // TODO: Implement QR scanner
-                    addToast({
-                      type: "info",
-                      title: "Coming soon",
-                      message: "QR scanner will be added",
-                    })
-                  }}
+                  onPress={() => router.push("/send/scanner")}
                 >
                   <Text className="text-dark-400 mr-1">📷</Text>
                   <Text className="text-dark-400 text-sm">Scan QR</Text>
