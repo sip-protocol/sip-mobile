@@ -22,7 +22,7 @@ import type { JupiterQuoteResponse } from "@/hooks/useQuote"
 /**
  * Supported privacy provider types
  */
-export type PrivacyProviderType = "sip-native" | "privacy-cash" | "shadowwire" | "magicblock" | "arcium" | "inco"
+export type PrivacyProviderType = "sip-native" | "privacy-cash" | "shadowwire" | "magicblock" | "arcium" | "inco" | "cspl"
 
 /**
  * Provider metadata for UI display
@@ -339,6 +339,20 @@ export const PRIVACY_PROVIDERS: PrivacyProviderInfo[] = [
       swap: true, // Encrypted swap amounts
       viewingKeys: true, // SIP adds this on top
       compliance: true, // Attested decryption audit trail
+    },
+    status: "available", // SDK integrated
+  },
+  {
+    id: "cspl",
+    name: "C-SPL Confidential Tokens",
+    description: "Token-2022 encrypted balances (hides amounts, not addresses)",
+    icon: "eye-off",
+    recommended: false,
+    features: {
+      send: true, // Confidential transfers
+      swap: false, // Use Arcium for swaps
+      viewingKeys: false, // SIP Native adds this
+      compliance: true, // Auditor keys
     },
     status: "available", // SDK integrated
   },

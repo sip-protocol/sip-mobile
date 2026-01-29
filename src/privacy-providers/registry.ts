@@ -16,6 +16,7 @@ import { createShadowWireAdapter } from "./shadowwire"
 import { createMagicBlockAdapter } from "./magicblock"
 import { createArciumAdapter } from "./arcium"
 import { createIncoAdapter } from "./inco"
+import { createCSPLAdapter } from "./cspl"
 import { debug } from "@/utils/logger"
 
 // ============================================================================
@@ -54,6 +55,8 @@ export function createAdapter(
       return createArciumAdapter(options)
     case "inco":
       return createIncoAdapter(options)
+    case "cspl":
+      return createCSPLAdapter(options)
     default:
       throw new Error(`Unknown privacy provider: ${type}`)
   }

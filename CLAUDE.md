@@ -170,14 +170,15 @@ app/settings/backup.tsx        # View/backup recovery phrase
 │  ├── ShadowWire     — Bulletproofs + internal transfers     │
 │  ├── MagicBlock     — TEE (Intel TDX) via Ephemeral Rollups │
 │  ├── Arcium         — MPC confidential computing            │
-│  └── Inco           — FHE/TEE via Inco Lightning            │
+│  ├── Inco           — FHE/TEE via Inco Lightning            │
+│  └── C-SPL          — Token-2022 encrypted amounts          │
 ├─────────────────────────────────────────────────────────────┤
 │  SIP VALUE-ADD: Viewing Keys for ALL providers              │
 │  └── Compliance layer works with any backend                │
 └─────────────────────────────────────────────────────────────┘
 ```
 
-### Provider Status (6 Providers)
+### Provider Status (7 Providers)
 
 | Provider | Status | SDK | Send | Swap | Technology |
 |----------|--------|-----|------|------|------------|
@@ -187,6 +188,23 @@ app/settings/backup.tsx        # View/backup recovery phrase
 | **MagicBlock** | ✅ Complete | `@magicblock-labs/ephemeral-rollups-sdk` | ✅ | ❌ | TEE (Intel TDX) |
 | **Arcium** | ✅ **Deployed** | `@arcium-hq/client` | ✅ | ✅ | MPC |
 | **Inco** | ✅ Complete | `@inco/solana-sdk` | ✅ | ✅ | FHE/TEE |
+| **C-SPL** | ✅ Complete | Token-2022 simulated | ✅ | ❌ | Encrypted amounts |
+
+### C-SPL Integration Notes
+
+**C-SPL (Confidential SPL)** uses Token-2022 Confidential Transfers to encrypt token amounts.
+
+| What C-SPL Hides | What C-SPL Doesn't Hide |
+|------------------|-------------------------|
+| Token balances | Wallet addresses |
+| Transfer amounts | Transaction participants |
+
+**For full privacy** (hidden sender + recipient + amount), use `usePrivateDeFi` hook which combines:
+1. **C-SPL** — Encrypted amounts (Token-2022)
+2. **Arcium** — MPC swap validation
+3. **SIP Native** — Stealth addresses (hidden recipient)
+
+**Current Status:** Token-2022 ZK ElGamal proofs disabled on Solana. Using simulated encryption with documented API mapping. Production upgrade when proofs enabled.
 
 ### Arcium Deployment (Devnet)
 
@@ -225,8 +243,11 @@ src/privacy-providers/
 ├── magicblock.ts     # MagicBlock adapter (TEE)
 ├── arcium.ts         # Arcium adapter (MPC)
 ├── inco.ts           # Inco adapter (FHE/TEE)
+├── cspl.ts           # C-SPL adapter (Token-2022 Confidential Transfers)
 ├── registry.ts       # Factory & caching
 └── index.ts          # Module exports
+
+src/hooks/usePrivateDeFi.ts  # Orchestrates full-privacy DeFi (C-SPL + Arcium + SIP Native)
 
 programs/sip_arcium_transfer/    # Arcium MPC program
 ├── encrypted-ixs/src/lib.rs     # Arcis circuits (MPC logic)

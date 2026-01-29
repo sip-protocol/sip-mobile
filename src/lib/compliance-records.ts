@@ -25,7 +25,7 @@ import { bytesToHex, hexToBytes } from "./stealth"
 // TYPES
 // ============================================================================
 
-export type PrivacyProvider = "sip-native" | "shadowwire" | "privacy-cash" | "magicblock" | "arcium" | "inco"
+export type PrivacyProvider = "sip-native" | "shadowwire" | "privacy-cash" | "magicblock" | "arcium" | "inco" | "cspl"
 
 export interface ComplianceRecord {
   id: string
@@ -54,6 +54,10 @@ export interface ComplianceRecord {
     slippageBps?: number
     /** Program ID used for computation */
     programId?: string
+    /** C-SPL encrypted amount flag */
+    encryptedAmount?: boolean
+    /** C-SPL confidential mint address */
+    csplMint?: string
   }
 }
 
@@ -331,6 +335,7 @@ export async function getComplianceRecordStats(): Promise<{
     magicblock: 0,
     arcium: 0,
     inco: 0,
+    cspl: 0,
   }
 
   for (const record of encrypted) {

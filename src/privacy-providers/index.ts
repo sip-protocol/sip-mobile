@@ -16,6 +16,7 @@ export { ShadowWireAdapter, createShadowWireAdapter } from "./shadowwire"
 export { MagicBlockAdapter, createMagicBlockAdapter } from "./magicblock"
 export { ArciumAdapter, createArciumAdapter } from "./arcium"
 export { IncoAdapter, createIncoAdapter } from "./inco"
+export { CSPLAdapter, createCSPLAdapter } from "./cspl"
 
 // Registry & Factory
 export { createAdapter, getAdapter, initializeAdapter } from "./registry"
