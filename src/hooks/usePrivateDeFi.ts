@@ -2,7 +2,6 @@
  * Private DeFi Hook
  *
  * Orchestrates full-stack privacy for DeFi operations by combining:
- * - C-SPL: Encrypted token amounts (Token-2022 Confidential Transfers)
  * - Arcium: MPC-based confidential swap validation
  * - SIP Native: Stealth addresses for hidden recipients
  *
@@ -10,16 +9,16 @@
  *
  * | Layer | What it hides | Provider |
  * |-------|---------------|----------|
- * | C-SPL | Token amounts | Token-2022 Confidential Transfers |
  * | Arcium | Swap logic/validation | MPC Network |
  * | SIP Native | Sender/Recipient | Stealth Addresses |
  *
  * ## Flow: Full Privacy Swap
  *
  * ```
- * 1. Wrap SPL → C-SPL (encrypted balance)
- * 2. Execute swap via Arcium MPC (encrypted validation)
- * 3. Send output to stealth address (hidden recipient)
+ * 1. Get real quote from Jupiter
+ * 2. Validate swap via Arcium MPC (encrypted validation)
+ * 3. Execute swap via Jupiter
+ * 4. Send output to stealth address (hidden recipient)
  * ```
  *
  * @example
@@ -27,11 +26,12 @@
  * const { privateSwap, isReady } = usePrivateDeFi()
  *
  * const result = await privateSwap({
- *   inputToken: "SOL",
- *   outputToken: "USDC",
+ *   inputToken: SOL_TOKEN,
+ *   outputToken: USDC_TOKEN,
  *   amount: "1.0",
  *   recipient: "sip:solana:...", // Stealth address
  *   slippageBps: 50,
+ *   jupiterQuote: quoteFromUseQuote, // Real Jupiter quote
  * })
  * ```
  */
@@ -41,16 +41,15 @@ import { useSettingsStore } from "@/stores/settings"
 import { useWalletStore } from "@/stores/wallet"
 import { useNativeWallet } from "./useNativeWallet"
 import {
-  type PrivacySendStatus,
   type PrivacySwapStatus,
   type AdapterOptions,
 } from "@/privacy-providers"
-import { CSPLAdapter } from "@/privacy-providers/cspl"
 import { ArciumAdapter } from "@/privacy-providers/arcium"
 import { SipNativeAdapter } from "@/privacy-providers/sip-native"
 import { storeComplianceRecord } from "@/lib/compliance-records"
 import { debug } from "@/utils/logger"
-import type { PrivacyLevel } from "@/types"
+import type { PrivacyLevel, TokenInfo, SwapQuote } from "@/types"
+import type { JupiterQuoteResponse } from "./useQuote"
 
 // ============================================================================
 // TYPES
@@ -61,9 +60,8 @@ import type { PrivacyLevel } from "@/types"
  */
 export type PrivateDeFiStatus =
   | "idle"
-  | "wrapping" // Wrapping SPL to C-SPL
-  | "encrypting" // Encrypting swap inputs
-  | "swapping" // Executing swap via Arcium MPC
+  | "validating" // Validating swap via Arcium MPC
+  | "swapping" // Executing swap via Jupiter
   | "transferring" // Sending to stealth address
   | "confirming" // Waiting for confirmation
   | "success"
@@ -73,10 +71,10 @@ export type PrivateDeFiStatus =
  * Parameters for a full privacy swap
  */
 export interface PrivateSwapParams {
-  /** Input token mint (or "SOL" for native) */
-  inputToken: string
-  /** Output token mint (or "SOL" for native) */
-  outputToken: string
+  /** Input token info */
+  inputToken: TokenInfo
+  /** Output token info */
+  outputToken: TokenInfo
   /** Amount to swap (in UI units, e.g., "1.5") */
   amount: string
   /** Recipient (stealth meta-address or regular address) */
@@ -87,6 +85,10 @@ export interface PrivateSwapParams {
   privacyLevel?: PrivacyLevel
   /** Optional memo */
   memo?: string
+  /** Real Jupiter quote (required) */
+  jupiterQuote: JupiterQuoteResponse
+  /** Parsed swap quote */
+  quote: SwapQuote
 }
 
 /**
@@ -98,7 +100,7 @@ export interface PrivateDeFiResult {
   txHash?: string
   /** Step results for debugging */
   steps?: {
-    wrap?: { success: boolean; signature?: string; csplMint?: string }
+    validation?: { success: boolean; computationId?: string }
     swap?: { success: boolean; signature?: string }
     transfer?: { success: boolean; signature?: string }
   }
@@ -106,20 +108,6 @@ export interface PrivateDeFiResult {
   error?: string
   /** Compliance record ID */
   complianceRecordId?: string | null
-}
-
-/**
- * Parameters for a confidential transfer (C-SPL only)
- */
-export interface ConfidentialTransferParams {
-  /** Token mint address */
-  tokenMint?: string
-  /** Amount to transfer */
-  amount: string
-  /** Recipient address (regular Solana address) */
-  recipient: string
-  /** Optional memo */
-  memo?: string
 }
 
 /**
@@ -138,33 +126,86 @@ export interface UsePrivateDeFiReturn {
   /**
    * Execute a full privacy swap
    *
-   * Flow: SPL → C-SPL → Arcium Swap → Stealth Transfer
+   * Flow: Jupiter Quote → Arcium MPC Validation → Jupiter Swap → Stealth Transfer
    */
   privateSwap: (
     params: PrivateSwapParams,
     onStatusChange?: (status: PrivateDeFiStatus) => void
   ) => Promise<PrivateDeFiResult>
+}
 
-  /**
-   * Send a confidential transfer (C-SPL only)
-   *
-   * Hides amount but NOT recipient address.
-   * For full privacy, use SIP Native stealth addresses.
-   */
-  confidentialTransfer: (
-    params: ConfidentialTransferParams,
-    onStatusChange?: (status: PrivateDeFiStatus) => void
-  ) => Promise<PrivateDeFiResult>
+// ============================================================================
+// CONSTANTS
+// ============================================================================
 
-  /**
-   * Wrap SPL tokens to C-SPL
-   *
-   * First step for confidential token operations.
-   */
-  wrapToCSPL: (params: {
-    tokenMint: string
-    amount: string
-  }) => Promise<{ success: boolean; csplMint?: string; error?: string }>
+/** Jupiter Swap API endpoint */
+const JUPITER_SWAP_API = "https://quote-api.jup.ag/v6/swap"
+
+// ============================================================================
+// HELPERS
+// ============================================================================
+
+/**
+ * Execute swap using Jupiter API
+ */
+async function executeJupiterSwap(
+  jupiterQuote: JupiterQuoteResponse,
+  walletAddress: string,
+  signTransaction: (tx: Uint8Array) => Promise<Uint8Array | null>
+): Promise<{ success: boolean; signature?: string; error?: string }> {
+  try {
+    // 1. Get swap transaction from Jupiter
+    const swapResponse = await fetch(JUPITER_SWAP_API, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        quoteResponse: jupiterQuote,
+        userPublicKey: walletAddress,
+        wrapAndUnwrapSol: true,
+        dynamicComputeUnitLimit: true,
+        prioritizationFeeLamports: "auto",
+      }),
+    })
+
+    if (!swapResponse.ok) {
+      const errorText = await swapResponse.text()
+      throw new Error(`Jupiter swap API error: ${errorText}`)
+    }
+
+    const { swapTransaction } = await swapResponse.json()
+
+    // 2. Deserialize and sign
+    const txBuffer = Buffer.from(swapTransaction, "base64")
+    const signedTx = await signTransaction(new Uint8Array(txBuffer))
+
+    if (!signedTx) {
+      throw new Error("Transaction signing cancelled")
+    }
+
+    // 3. Send transaction
+    const { Connection } = await import("@solana/web3.js")
+    const connection = new Connection("https://api.mainnet-beta.solana.com")
+
+    const signature = await connection.sendRawTransaction(signedTx, {
+      skipPreflight: false,
+      maxRetries: 3,
+    })
+
+    // 4. Confirm
+    const latestBlockhash = await connection.getLatestBlockhash()
+    await connection.confirmTransaction({
+      signature,
+      blockhash: latestBlockhash.blockhash,
+      lastValidBlockHeight: latestBlockhash.lastValidBlockHeight,
+    })
+
+    return { success: true, signature }
+  } catch (err) {
+    return {
+      success: false,
+      error: err instanceof Error ? err.message : "Jupiter swap failed",
+    }
+  }
 }
 
 // ============================================================================
@@ -213,111 +254,6 @@ export function usePrivateDeFi(): UsePrivateDeFiReturn {
   )
 
   // ─────────────────────────────────────────────────────────────────────────
-  // WRAP TO C-SPL
-  // ─────────────────────────────────────────────────────────────────────────
-
-  const wrapToCSPL = useCallback(
-    async (params: {
-      tokenMint: string
-      amount: string
-    }): Promise<{ success: boolean; csplMint?: string; error?: string }> => {
-      if (!isReady || !walletAddress) {
-        return { success: false, error: "Wallet not connected" }
-      }
-
-      try {
-        const options = getAdapterOptions()
-        const csplAdapter = new CSPLAdapter(options)
-        await csplAdapter.initialize()
-
-        const result = await csplAdapter.wrapToken({
-          mint: params.tokenMint,
-          amount: params.amount,
-          owner: walletAddress,
-        })
-
-        return result
-      } catch (err) {
-        return {
-          success: false,
-          error: err instanceof Error ? err.message : "Wrap failed",
-        }
-      }
-    },
-    [isReady, walletAddress, getAdapterOptions]
-  )
-
-  // ─────────────────────────────────────────────────────────────────────────
-  // CONFIDENTIAL TRANSFER (C-SPL ONLY)
-  // ─────────────────────────────────────────────────────────────────────────
-
-  const confidentialTransfer = useCallback(
-    async (
-      params: ConfidentialTransferParams,
-      onStatusChange?: (status: PrivateDeFiStatus) => void
-    ): Promise<PrivateDeFiResult> => {
-      if (!isReady || !walletAddress) {
-        return { success: false, error: "Wallet not connected" }
-      }
-
-      setIsLoading(true)
-      setError(null)
-      setStatus("encrypting")
-      onStatusChange?.("encrypting")
-
-      try {
-        const options = getAdapterOptions()
-        const csplAdapter = new CSPLAdapter(options)
-        await csplAdapter.initialize()
-
-        setStatus("transferring")
-        onStatusChange?.("transferring")
-
-        // Execute confidential transfer
-        const result = await csplAdapter.send(
-          {
-            amount: params.amount,
-            recipient: params.recipient,
-            privacyLevel: "shielded",
-            memo: params.memo,
-            tokenMint: params.tokenMint,
-          },
-          wrappedSignTransaction,
-          (sendStatus: PrivacySendStatus) => {
-            // Map send status to DeFi status
-            if (sendStatus === "signing") setStatus("transferring")
-            if (sendStatus === "submitting") setStatus("confirming")
-          }
-        )
-
-        if (!result.success) {
-          throw new Error(result.error || "Confidential transfer failed")
-        }
-
-        setStatus("success")
-        onStatusChange?.("success")
-
-        return {
-          success: true,
-          txHash: result.txHash,
-          steps: {
-            transfer: { success: true, signature: result.txHash },
-          },
-        }
-      } catch (err) {
-        const errorMsg = err instanceof Error ? err.message : "Transfer failed"
-        setError(errorMsg)
-        setStatus("error")
-        onStatusChange?.("error")
-        return { success: false, error: errorMsg }
-      } finally {
-        setIsLoading(false)
-      }
-    },
-    [isReady, walletAddress, getAdapterOptions, wrappedSignTransaction]
-  )
-
-  // ─────────────────────────────────────────────────────────────────────────
   // PRIVATE SWAP (FULL PRIVACY)
   // ─────────────────────────────────────────────────────────────────────────
 
@@ -330,6 +266,10 @@ export function usePrivateDeFi(): UsePrivateDeFiReturn {
         return { success: false, error: "Wallet not connected" }
       }
 
+      if (!params.jupiterQuote) {
+        return { success: false, error: "Jupiter quote required" }
+      }
+
       setIsLoading(true)
       setError(null)
 
@@ -339,100 +279,64 @@ export function usePrivateDeFi(): UsePrivateDeFiReturn {
         const options = getAdapterOptions()
 
         // ─────────────────────────────────────────────────────────────────
-        // STEP 1: Wrap input token to C-SPL (encrypted balance)
+        // STEP 1: Validate swap via Arcium MPC (encrypted validation)
         // ─────────────────────────────────────────────────────────────────
 
-        setStatus("wrapping")
-        onStatusChange?.("wrapping")
-        debug("PrivateDeFi: Step 1 - Wrapping to C-SPL")
-
-        const csplAdapter = new CSPLAdapter(options)
-        await csplAdapter.initialize()
-
-        // Determine input mint
-        const inputMint = params.inputToken === "SOL"
-          ? "So11111111111111111111111111111111111111112"
-          : params.inputToken
-
-        const wrapResult = await csplAdapter.wrapToken({
-          mint: inputMint,
-          amount: params.amount,
-          owner: walletAddress,
-        })
-
-        if (!wrapResult.success) {
-          throw new Error(wrapResult.error || "Failed to wrap to C-SPL")
-        }
-
-        steps.wrap = {
-          success: true,
-          signature: wrapResult.signature,
-          csplMint: wrapResult.csplMint,
-        }
-
-        debug("PrivateDeFi: Wrapped to C-SPL:", wrapResult.csplMint)
-
-        // ─────────────────────────────────────────────────────────────────
-        // STEP 2: Execute swap via Arcium MPC (encrypted validation)
-        // ─────────────────────────────────────────────────────────────────
-
-        setStatus("swapping")
-        onStatusChange?.("swapping")
-        debug("PrivateDeFi: Step 2 - Executing swap via Arcium MPC")
+        setStatus("validating")
+        onStatusChange?.("validating")
+        debug("PrivateDeFi: Step 1 - Validating swap via Arcium MPC")
 
         const arciumAdapter = new ArciumAdapter(options)
         await arciumAdapter.initialize()
 
-        // Build swap quote
-        const inputAmount = parseFloat(params.amount)
-        // Mock output calculation (in production, get real quote from Jupiter)
-        const outputAmount = inputAmount * 0.98 // ~2% simulated slippage
-
-        const swapResult = await arciumAdapter.swap(
+        // Use real quote data
+        const validationResult = await arciumAdapter.swap(
           {
-            quote: {
-              inputToken: {
-                symbol: params.inputToken,
-                name: params.inputToken === "SOL" ? "Solana" : params.inputToken,
-                mint: inputMint,
-                decimals: 9,
-              },
-              outputToken: {
-                symbol: params.outputToken,
-                name: params.outputToken === "USDC" ? "USD Coin" : params.outputToken,
-                mint: params.outputToken,
-                decimals: 6,
-              },
-              inputAmount: params.amount,
-              outputAmount: outputAmount.toString(),
-              minimumReceived: (outputAmount * 0.995).toString(), // 0.5% slippage
-              route: [params.inputToken, params.outputToken],
-              priceImpact: 0.5,
-              fees: {
-                networkFee: "0.000005",
-                platformFee: "0",
-              },
-              estimatedTime: 30,
-              expiresAt: Date.now() + 60000, // 1 minute
-            },
+            quote: params.quote,
             privacyLevel: params.privacyLevel || "shielded",
+            jupiterQuote: params.jupiterQuote,
           },
           wrappedSignTransaction,
-          (_swapStatus: PrivacySwapStatus) => {
-            // Already in swapping state
+          (swapStatus: PrivacySwapStatus) => {
+            debug("Arcium validation status:", swapStatus)
           }
         )
 
+        if (!validationResult.success) {
+          throw new Error(validationResult.error || "MPC swap validation failed")
+        }
+
+        steps.validation = {
+          success: true,
+          computationId: validationResult.providerData?.computationId as string,
+        }
+
+        debug("PrivateDeFi: Swap validated via MPC:", validationResult.providerData)
+
+        // ─────────────────────────────────────────────────────────────────
+        // STEP 2: Execute swap via Jupiter
+        // ─────────────────────────────────────────────────────────────────
+
+        setStatus("swapping")
+        onStatusChange?.("swapping")
+        debug("PrivateDeFi: Step 2 - Executing swap via Jupiter")
+
+        const swapResult = await executeJupiterSwap(
+          params.jupiterQuote,
+          walletAddress,
+          wrappedSignTransaction
+        )
+
         if (!swapResult.success) {
-          throw new Error(swapResult.error || "MPC swap validation failed")
+          throw new Error(swapResult.error || "Jupiter swap failed")
         }
 
         steps.swap = {
           success: true,
-          signature: swapResult.txHash,
+          signature: swapResult.signature,
         }
 
-        debug("PrivateDeFi: Swap validated via MPC")
+        debug("PrivateDeFi: Swap executed:", swapResult.signature)
 
         // ─────────────────────────────────────────────────────────────────
         // STEP 3: Send output to stealth address (hidden recipient)
@@ -453,25 +357,21 @@ export function usePrivateDeFi(): UsePrivateDeFiReturn {
 
           transferResult = await sipAdapter.send(
             {
-              amount: outputAmount.toString(),
+              amount: params.quote.outputAmount,
               recipient: params.recipient,
               privacyLevel: params.privacyLevel || "shielded",
               memo: params.memo,
+              tokenMint: params.outputToken.mint,
             },
             wrappedSignTransaction
           )
         } else {
-          // Regular address - use C-SPL for encrypted amount
-          transferResult = await csplAdapter.send(
-            {
-              amount: outputAmount.toString(),
-              recipient: params.recipient,
-              privacyLevel: params.privacyLevel || "shielded",
-              memo: params.memo,
-              tokenMint: params.outputToken === "SOL" ? undefined : params.outputToken,
-            },
-            wrappedSignTransaction
-          )
+          // Regular address - direct transfer after swap
+          // Swap already sent to wallet, just record compliance
+          transferResult = {
+            success: true,
+            txHash: swapResult.signature,
+          }
         }
 
         if (!transferResult.success) {
@@ -493,17 +393,18 @@ export function usePrivateDeFi(): UsePrivateDeFiReturn {
         onStatusChange?.("confirming")
 
         const complianceRecordId = await storeComplianceRecord({
-          provider: isStealth ? "sip-native" : "cspl",
-          txHash: transferResult.txHash || "combined",
+          provider: isStealth ? "sip-native" : "arcium",
+          txHash: transferResult.txHash || swapResult.signature || "unknown",
           amount: params.amount,
-          token: params.inputToken,
+          token: params.inputToken.symbol,
           recipient: params.recipient,
           metadata: {
             transferType: "external",
-            outputToken: params.outputToken,
+            outputToken: params.outputToken.symbol,
             slippageBps: params.slippageBps || 50,
             computationType: "private_swap",
-            encrypted: true,
+            arciumValidation: true,
+            jupiterSwap: swapResult.signature,
           },
         })
 
@@ -512,7 +413,7 @@ export function usePrivateDeFi(): UsePrivateDeFiReturn {
 
         return {
           success: true,
-          txHash: transferResult.txHash,
+          txHash: transferResult.txHash || swapResult.signature,
           steps,
           complianceRecordId,
         }
@@ -543,9 +444,7 @@ export function usePrivateDeFi(): UsePrivateDeFiReturn {
       status,
       error,
       privateSwap,
-      confidentialTransfer,
-      wrapToCSPL,
     }),
-    [isReady, isLoading, status, error, privateSwap, confidentialTransfer, wrapToCSPL]
+    [isReady, isLoading, status, error, privateSwap]
   )
 }

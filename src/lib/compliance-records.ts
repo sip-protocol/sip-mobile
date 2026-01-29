@@ -58,6 +58,14 @@ export interface ComplianceRecord {
     encryptedAmount?: boolean
     /** C-SPL confidential mint address */
     csplMint?: string
+    /** Arcium computation offset (unique ID) */
+    computationOffset?: string
+    /** Whether Arcium MPC validation was used */
+    arciumValidation?: boolean
+    /** Jupiter swap transaction signature */
+    jupiterSwap?: string
+    /** Minimum output amount for swaps */
+    minOutput?: string
   }
 }
 
