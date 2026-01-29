@@ -418,7 +418,7 @@ scrcpy --record session.mp4                    # Record
 |-------|------|-------|----------|
 | Seed Vault disabled | `useSeedVault.ts:11,87` | RN codegen issue | #70, hardware wallet |
 | ~~QR Scanner~~ | ~~`send.tsx:407`~~ | ✅ DONE (`53ff5f4`) | — |
-| Token prices | `swap.tsx:386` | USD shows 0 for tokens | Jupiter API needed |
+| ~~Token prices~~ | ~~`swap.tsx:386`~~ | ✅ DONE (`af7374b`) | — |
 
 ### MEDIUM Priority
 
@@ -448,9 +448,9 @@ scrcpy --record session.mp4                    # Record
 
 | Category | Tests | Status |
 |----------|-------|--------|
-| Total | 632 | 100% pass |
+| Total | 647 | 100% pass |
 | E2E Flows | 49 | ✅ Good |
-| Hooks | 175 | ✅ Good |
+| Hooks | 190 | ✅ Good |
 | Stores | 80 | ✅ Good |
 | Utils | 138 | ✅ Good |
 | Anchor/Lib | 90 | ✅ Good |
