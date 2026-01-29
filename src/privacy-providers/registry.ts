@@ -13,6 +13,9 @@ import type {
 import { createSipNativeAdapter } from "./sip-native"
 import { createPrivacyCashAdapter } from "./privacy-cash"
 import { createShadowWireAdapter } from "./shadowwire"
+import { createMagicBlockAdapter } from "./magicblock"
+import { createArciumAdapter } from "./arcium"
+import { createIncoAdapter } from "./inco"
 import { debug } from "@/utils/logger"
 
 // ============================================================================
@@ -45,6 +48,12 @@ export function createAdapter(
       return createPrivacyCashAdapter(options)
     case "shadowwire":
       return createShadowWireAdapter(options)
+    case "magicblock":
+      return createMagicBlockAdapter(options)
+    case "arcium":
+      return createArciumAdapter(options)
+    case "inco":
+      return createIncoAdapter(options)
     default:
       throw new Error(`Unknown privacy provider: ${type}`)
   }

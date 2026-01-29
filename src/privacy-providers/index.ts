@@ -13,6 +13,9 @@ export * from "./types"
 export { SipNativeAdapter, createSipNativeAdapter } from "./sip-native"
 export { PrivacyCashAdapter, createPrivacyCashAdapter } from "./privacy-cash"
 export { ShadowWireAdapter, createShadowWireAdapter } from "./shadowwire"
+export { MagicBlockAdapter, createMagicBlockAdapter } from "./magicblock"
+export { ArciumAdapter, createArciumAdapter } from "./arcium"
+export { IncoAdapter, createIncoAdapter } from "./inco"
 
 // Registry & Factory
 export { createAdapter, getAdapter, initializeAdapter } from "./registry"

@@ -17,9 +17,12 @@
     "eas:build:prod": "eas build --profile production --platform all"
   },
   "dependencies": {
+    "@arcium-hq/client": "^0.6.5",
     "@coral-xyz/anchor": "^0.30.0",
     "@ethersproject/shims": "^5.8.0",
     "@expo/vector-icons": "^15.0.3",
+    "@inco/solana-sdk": "^0.0.2",
+    "@magicblock-labs/ephemeral-rollups-sdk": "^0.8.4",
     "@noble/ciphers": "^2.1.1",
     "@noble/curves": "^1.7.0",
     "@noble/hashes": "^1.6.0",

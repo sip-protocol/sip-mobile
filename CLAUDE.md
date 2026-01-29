@@ -167,20 +167,36 @@ app/settings/backup.tsx        # View/backup recovery phrase
 │  Privacy Provider Adapters (PrivacyProviderAdapter)         │
 │  ├── SIP Native     — Stealth + Pedersen + viewing keys     │
 │  ├── Privacy Cash   — Pool-based mixing + ZK proofs         │
-│  └── ShadowWire     — Bulletproofs + internal transfers     │
+│  ├── ShadowWire     — Bulletproofs + internal transfers     │
+│  ├── MagicBlock     — TEE (Intel TDX) via Ephemeral Rollups │
+│  ├── Arcium         — MPC confidential computing            │
+│  └── Inco           — FHE/TEE via Inco Lightning            │
 ├─────────────────────────────────────────────────────────────┤
 │  SIP VALUE-ADD: Viewing Keys for ALL providers              │
 │  └── Compliance layer works with any backend                │
 └─────────────────────────────────────────────────────────────┘
 ```
 
-### Provider Status
+### Provider Status (6 Providers)
 
-| Provider | Status | SDK | Send | Swap | Signing |
-|----------|--------|-----|------|------|---------|
-| **SIP Native** | ✅ Complete | Built-in | ✅ | ✅ | Wallet Adapter |
-| **ShadowWire** | ✅ Complete | `@radr/shadowwire@1.1.15` | ✅ | ❌ | signMessage |
-| **Privacy Cash** | ✅ Complete | `privacycash@1.1.11` | ✅ | ❌ | Keypair + Biometric |
+| Provider | Status | SDK | Send | Swap | Technology |
+|----------|--------|-----|------|------|------------|
+| **SIP Native** | ✅ Complete | Built-in | ✅ | ✅ | Stealth + Pedersen |
+| **Privacy Cash** | ✅ Complete | `privacycash@1.1.11` | ✅ | ❌ | Pool mixing (ZK) |
+| **ShadowWire** | ✅ Complete | `@radr/shadowwire@1.1.15` | ✅ | ❌ | Bulletproofs |
+| **MagicBlock** | ✅ Complete | `@magicblock-labs/ephemeral-rollups-sdk` | ✅ | ❌ | TEE (Intel TDX) |
+| **Arcium** | ✅ **Deployed** | `@arcium-hq/client` | ✅ | ✅ | MPC |
+| **Inco** | ✅ Complete | `@inco/solana-sdk` | ✅ | ✅ | FHE/TEE |
+
+### Arcium Deployment (Devnet)
+
+```
+Program ID:      S1P5q5497A6oRCUutUFb12LkNQynTNoEyRyUvotmcX9  (S1P vanity)
+MXE Account:     5qy4Njk4jCJE4QgZ5dsg8uye3vzFypFTV7o7RRSQ8vr4
+Cluster Offset:  456 (Arcium devnet v0.6.3)
+Authority:       S1P6j1yeTm6zkewQVeihrTZvmfoHABRkHDhabWTuWMd
+Balance:         3.77 SOL (reclaimable)
+```
 
 ### Integration Notes
 
@@ -206,8 +222,16 @@ src/privacy-providers/
 ├── sip-native.ts     # SIP Native adapter (default)
 ├── privacy-cash.ts   # Privacy Cash adapter (biometric + keypair)
 ├── shadowwire.ts     # ShadowWire adapter (signMessage)
+├── magicblock.ts     # MagicBlock adapter (TEE)
+├── arcium.ts         # Arcium adapter (MPC)
+├── inco.ts           # Inco adapter (FHE/TEE)
 ├── registry.ts       # Factory & caching
 └── index.ts          # Module exports
+
+programs/sip_arcium_transfer/    # Arcium MPC program
+├── encrypted-ixs/src/lib.rs     # Arcis circuits (MPC logic)
+├── programs/.../src/lib.rs      # Anchor program
+└── scripts/init-comp-defs.ts    # Initialization script
 
 src/lib/compliance-records.ts    # Viewing key compliance layer
 src/hooks/usePrivacyProvider.ts  # Hook for components

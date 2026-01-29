@@ -22,7 +22,7 @@ import type { JupiterQuoteResponse } from "@/hooks/useQuote"
 /**
  * Supported privacy provider types
  */
-export type PrivacyProviderType = "sip-native" | "privacy-cash" | "shadowwire"
+export type PrivacyProviderType = "sip-native" | "privacy-cash" | "shadowwire" | "magicblock" | "arcium" | "inco"
 
 /**
  * Provider metadata for UI display
@@ -299,6 +299,48 @@ export const PRIVACY_PROVIDERS: PrivacyProviderInfo[] = [
       compliance: false,
     },
     status: "available", // SDK integrated, signMessage compatible
+  },
+  {
+    id: "magicblock",
+    name: "MagicBlock",
+    description: "TEE-based privacy via Private Ephemeral Rollups",
+    icon: "cube",
+    recommended: false,
+    features: {
+      send: true,
+      swap: false, // MagicBlock focuses on private transfers
+      viewingKeys: true, // SIP adds this on top
+      compliance: true, // Permission-based access control
+    },
+    status: "available", // SDK integrated, TEE verification
+  },
+  {
+    id: "arcium",
+    name: "Arcium",
+    description: "MPC-based confidential computing network",
+    icon: "lock-closed",
+    recommended: false,
+    features: {
+      send: true,
+      swap: true, // Confidential swap validation
+      viewingKeys: true, // SIP adds this on top
+      compliance: true, // Encrypted computation audit trail
+    },
+    status: "available", // SDK integrated, program built
+  },
+  {
+    id: "inco",
+    name: "Inco Lightning",
+    description: "FHE/TEE-based confidential computing",
+    icon: "cloud",
+    recommended: false,
+    features: {
+      send: true,
+      swap: true, // Encrypted swap amounts
+      viewingKeys: true, // SIP adds this on top
+      compliance: true, // Attested decryption audit trail
+    },
+    status: "available", // SDK integrated
   },
 ]
 

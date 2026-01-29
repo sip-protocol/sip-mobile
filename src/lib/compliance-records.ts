@@ -25,7 +25,7 @@ import { bytesToHex, hexToBytes } from "./stealth"
 // TYPES
 // ============================================================================
 
-export type PrivacyProvider = "sip-native" | "shadowwire" | "privacy-cash"
+export type PrivacyProvider = "sip-native" | "shadowwire" | "privacy-cash" | "magicblock" | "arcium" | "inco"
 
 export interface ComplianceRecord {
   id: string
@@ -40,6 +40,20 @@ export interface ComplianceRecord {
     transferType?: "internal" | "external"
     fee?: string
     poolAddress?: string
+    /** MagicBlock TEE validator address */
+    teeValidator?: string
+    /** MagicBlock auth token expiration */
+    authTokenExpires?: number
+    /** Arcium computation type */
+    computationType?: string
+    /** Whether computation was encrypted */
+    encrypted?: boolean
+    /** Output token for swaps */
+    outputToken?: string
+    /** Slippage in basis points */
+    slippageBps?: number
+    /** Program ID used for computation */
+    programId?: string
   }
 }
 
@@ -314,6 +328,9 @@ export async function getComplianceRecordStats(): Promise<{
     "sip-native": 0,
     shadowwire: 0,
     "privacy-cash": 0,
+    magicblock: 0,
+    arcium: 0,
+    inco: 0,
   }
 
   for (const record of encrypted) {
