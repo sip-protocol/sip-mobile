@@ -426,7 +426,7 @@ scrcpy --record session.mp4                    # Record
 |-------|------|-------|
 | C-SPL SimulatedService | `cspl.ts:295` | Pending SDK export |
 | Custom token import | `tokens.tsx:443` | Shows "Coming soon" |
-| JSON.parse validation | `tokens.tsx:199` | AsyncStorage edge case |
+| ~~JSON.parse validation~~ | — | ✅ DONE (`d84572c`) |
 
 ### LOW Priority
 
@@ -434,7 +434,7 @@ scrcpy --record session.mp4                    # Record
 |-------|-------|
 | Security timeouts hardcoded | Could be env vars (5 min timeout, 5 attempts) |
 | DEFAULT_SOL_PRICE_USD = 185 | Fallback only |
-| Promise.all in useBalance | Consider Promise.allSettled |
+| ~~Promise.allSettled~~ | ✅ DONE (`d84572c`) |
 
 ### What's Clean
 
