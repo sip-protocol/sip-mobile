@@ -194,10 +194,20 @@ export default function TokenSelectorScreen() {
     try {
       const stored = await AsyncStorage.getItem(RECENT_TOKENS_KEY)
       if (stored) {
-        setRecentTokens(JSON.parse(stored))
+        const parsed = JSON.parse(stored)
+        // Validate parsed data is an array of strings
+        if (Array.isArray(parsed) && parsed.every((item) => typeof item === "string")) {
+          setRecentTokens(parsed)
+        } else {
+          // Invalid format, clear corrupted data
+          console.warn("Invalid recent tokens format, clearing...")
+          await AsyncStorage.removeItem(RECENT_TOKENS_KEY)
+        }
       }
     } catch (err) {
       console.error("Failed to load recent tokens:", err)
+      // Clear corrupted data on parse error
+      await AsyncStorage.removeItem(RECENT_TOKENS_KEY).catch(() => {})
     } finally {
       setIsLoading(false)
     }

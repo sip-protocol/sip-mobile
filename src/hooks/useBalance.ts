@@ -145,13 +145,15 @@ export function useBalance(): UseBalanceReturn {
   }, [])
 
   // Public refresh function
+  // Uses Promise.allSettled to ensure both complete independently
   const refresh = useCallback(async () => {
-    await Promise.all([fetchBalance(false), fetchPrice()])
+    await Promise.allSettled([fetchBalance(false), fetchPrice()])
   }, [fetchBalance, fetchPrice])
 
   // Silent refresh (no loading state)
+  // Uses Promise.allSettled to ensure both complete independently
   const refreshSilently = useCallback(async () => {
-    await Promise.all([fetchBalance(true), fetchPrice()])
+    await Promise.allSettled([fetchBalance(true), fetchPrice()])
   }, [fetchBalance, fetchPrice])
 
   // Initial fetch and setup auto-refresh
