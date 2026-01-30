@@ -258,7 +258,7 @@ export default function HomeScreen() {
           <View>
             <View className="flex-row items-center">
               <Image
-                source={require("@/assets/logo-mark.png")}
+                source={require("../../assets/logo-mark.png")}
                 style={{ width: 36, height: 36 }}
                 resizeMode="contain"
               />
