@@ -48,3 +48,4 @@ secrets/*
 # Coverage
 coverage/
 build-latest.apk
+build-*.apk
