@@ -10,6 +10,9 @@ config.resolver.unstable_conditionNames = [
   "react-native",
 ];
 
+// Enable package exports to fix @noble/hashes resolution warnings
+config.resolver.unstable_enablePackageExports = true;
+
 // Also configure the resolver to prefer browser field in package.json
 config.resolver.resolverMainFields = ["react-native", "browser", "main"];
 
