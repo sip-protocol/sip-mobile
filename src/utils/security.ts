@@ -8,6 +8,24 @@ import { Platform, AppState, AppStateStatus } from "react-native"
 import * as SecureStore from "expo-secure-store"
 import * as Crypto from "expo-crypto"
 import * as Clipboard from "expo-clipboard"
+import {
+  SESSION_TIMEOUT_MS,
+  MAX_PIN_ATTEMPTS,
+  PIN_LOCKOUT_MS,
+  CLIPBOARD_CLEAR_TIMEOUT_MS,
+  MAX_SOL_AMOUNT,
+  MIN_SOL_AMOUNT,
+} from "@/constants/security"
+
+// Re-export for backwards compatibility
+export {
+  SESSION_TIMEOUT_MS,
+  MAX_PIN_ATTEMPTS,
+  PIN_LOCKOUT_MS,
+  CLIPBOARD_CLEAR_TIMEOUT_MS,
+  MAX_SOL_AMOUNT,
+  MIN_SOL_AMOUNT,
+}
 
 // ============================================================================
 // CONSTANTS
@@ -18,15 +36,6 @@ const SECURE_KEY_PREFIX = "sip_secure_"
 
 /** Hash salt for key derivation */
 const KEY_SALT = "sip-protocol-v1-salt"
-
-/** Session timeout in milliseconds (5 minutes) */
-export const SESSION_TIMEOUT_MS = 5 * 60 * 1000
-
-/** Max PIN attempts before lockout */
-export const MAX_PIN_ATTEMPTS = 5
-
-/** PIN lockout duration in milliseconds (5 minutes) */
-export const PIN_LOCKOUT_MS = 5 * 60 * 1000
 
 // ============================================================================
 // SECURE STORAGE
@@ -366,9 +375,6 @@ export async function secureLogout(): Promise<void> {
 // SECURE CLIPBOARD
 // ============================================================================
 
-/** Default clipboard auto-clear timeout (60 seconds) */
-export const CLIPBOARD_CLEAR_TIMEOUT_MS = 60 * 1000
-
 /** Active clipboard clear timers */
 const clipboardTimers = new Map<string, ReturnType<typeof setTimeout>>()
 
@@ -439,12 +445,6 @@ export function getClipboardClearRemaining(): number {
 // ============================================================================
 // TRANSACTION VALIDATION
 // ============================================================================
-
-/** Maximum SOL amount (to prevent overflow) */
-export const MAX_SOL_AMOUNT = 1_000_000_000 // 1 billion SOL
-
-/** Minimum SOL amount for a transaction */
-export const MIN_SOL_AMOUNT = 0.000001 // 1 lamport worth
 
 /**
  * Validate transaction amount

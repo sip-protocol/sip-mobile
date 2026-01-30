@@ -11,6 +11,12 @@
 import { create } from "zustand"
 import { persist, createJSONStorage } from "zustand/middleware"
 import AsyncStorage from "@react-native-async-storage/async-storage"
+import {
+  DEFAULT_AUTH_EXPIRY_MS,
+  MAX_PIN_ATTEMPTS,
+  PIN_LOCKOUT_MS,
+  AUTOLOCK_PRESETS,
+} from "@/constants/security"
 
 // ============================================================================
 // TYPES
@@ -90,10 +96,6 @@ export interface SecurityState extends SecuritySettings {
 // ============================================================================
 // CONSTANTS
 // ============================================================================
-
-const DEFAULT_AUTH_EXPIRY_MS = 5 * 60 * 1000 // 5 minutes
-const MAX_PIN_ATTEMPTS = 5
-const PIN_LOCKOUT_MS = 5 * 60 * 1000 // 5 minutes
 
 const initialSettings: SecuritySettings = {
   biometricsEnabled: false,
@@ -250,20 +252,7 @@ export const useSecurityStore = create<SecurityState>()(
 // ============================================================================
 
 export function getAutoLockMs(timeout: AutoLockTimeout): number {
-  switch (timeout) {
-    case "immediate":
-      return 0
-    case "1min":
-      return 60 * 1000
-    case "5min":
-      return 5 * 60 * 1000
-    case "15min":
-      return 15 * 60 * 1000
-    case "30min":
-      return 30 * 60 * 1000
-    case "never":
-      return Infinity
-  }
+  return AUTOLOCK_PRESETS[timeout]
 }
 
 export function formatAutoLockTimeout(timeout: AutoLockTimeout): string {

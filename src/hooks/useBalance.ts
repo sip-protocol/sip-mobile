@@ -15,6 +15,10 @@ import {
   type RpcConfig,
 } from "@/lib/rpc"
 import { getRpcApiKey } from "@/lib/config"
+import {
+  BALANCE_REFRESH_INTERVAL_MS,
+  PRICE_REFRESH_INTERVAL_MS,
+} from "@/constants/security"
 
 // ─── Types ─────────────────────────────────────────────────────────────────
 
@@ -36,11 +40,6 @@ export interface UseBalanceReturn {
   refresh: () => Promise<void>
   refreshSilently: () => Promise<void>
 }
-
-// ─── Constants ─────────────────────────────────────────────────────────────
-
-const REFRESH_INTERVAL = 30000 // 30 seconds
-const PRICE_REFRESH_INTERVAL = 60000 // 1 minute
 
 // ─── Hook ──────────────────────────────────────────────────────────────────
 
@@ -165,12 +164,12 @@ export function useBalance(): UseBalanceReturn {
       // Setup auto-refresh for balance
       refreshIntervalRef.current = setInterval(() => {
         fetchBalance(true)
-      }, REFRESH_INTERVAL)
+      }, BALANCE_REFRESH_INTERVAL_MS)
 
       // Setup auto-refresh for price
       priceIntervalRef.current = setInterval(() => {
         fetchPrice()
-      }, PRICE_REFRESH_INTERVAL)
+      }, PRICE_REFRESH_INTERVAL_MS)
     }
 
     return () => {

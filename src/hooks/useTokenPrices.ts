@@ -15,16 +15,14 @@ import { AppState, AppStateStatus } from "react-native"
 import { getTokenPrices, type TokenPriceData } from "@/lib/rpc"
 import { TOKEN_LIST } from "@/data/tokens"
 import { debug } from "@/utils/logger"
+import {
+  TOKEN_PRICE_REFRESH_MS,
+  PRICE_STALE_THRESHOLD_MS,
+} from "@/constants/security"
 
 // ============================================================================
 // CONSTANTS
 // ============================================================================
-
-/** Price refresh interval (30 seconds) */
-const PRICE_REFRESH_INTERVAL = 30 * 1000
-
-/** Stale price threshold (2 minutes) */
-const STALE_THRESHOLD = 2 * 60 * 1000
 
 /** Default/fallback prices for common tokens */
 const FALLBACK_PRICES: Record<string, number> = {
@@ -119,7 +117,7 @@ export function useTokenPrices(): UseTokenPricesResult {
       if (appStateRef.current === "active") {
         fetchPrices()
       }
-    }, PRICE_REFRESH_INTERVAL)
+    }, TOKEN_PRICE_REFRESH_MS)
 
     return () => {
       if (refreshIntervalRef.current) {
@@ -197,7 +195,7 @@ export function useTokenPrices(): UseTokenPricesResult {
   // Check if prices are stale
   const isStale = useMemo(() => {
     if (!lastUpdated) return true
-    return Date.now() - lastUpdated > STALE_THRESHOLD
+    return Date.now() - lastUpdated > PRICE_STALE_THRESHOLD_MS
   }, [lastUpdated])
 
   return {

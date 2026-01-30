@@ -2,6 +2,7 @@ import { create } from "zustand"
 import { persist, createJSONStorage } from "zustand/middleware"
 import AsyncStorage from "@react-native-async-storage/async-storage"
 import type { PrivacyLevel, PaymentRecord } from "@/types"
+import { MAX_CACHED_PAYMENTS } from "@/constants/security"
 
 interface PrivacyStore {
   // Current privacy level for new transactions
@@ -31,7 +32,7 @@ interface PrivacyStore {
   setLastScanTimestamp: (timestamp: number) => void
 }
 
-const MAX_PAYMENTS = 50
+const MAX_PAYMENTS = MAX_CACHED_PAYMENTS
 
 export const usePrivacyStore = create<PrivacyStore>()(
   persist(

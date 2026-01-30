@@ -1,6 +1,7 @@
 import { create } from "zustand"
 import { persist, createJSONStorage } from "zustand/middleware"
 import AsyncStorage from "@react-native-async-storage/async-storage"
+import { MAX_AUDIT_EVENTS, MAX_COMPLIANCE_REPORTS } from "@/constants/security"
 
 /**
  * Audit event types for compliance tracking
@@ -75,8 +76,7 @@ interface ComplianceStore {
   addReportToHistory: (config: ReportConfig) => void
 }
 
-const MAX_AUDIT_EVENTS = 100
-const MAX_REPORTS = 10
+const MAX_REPORTS = MAX_COMPLIANCE_REPORTS
 
 function generateId(): string {
   return `${Date.now()}_${Math.random().toString(36).slice(2, 9)}`

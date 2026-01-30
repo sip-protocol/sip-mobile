@@ -2,6 +2,7 @@ import { create } from "zustand"
 import { persist, createJSONStorage } from "zustand/middleware"
 import AsyncStorage from "@react-native-async-storage/async-storage"
 import type { SwapRecord } from "@/types"
+import { MAX_SWAP_HISTORY } from "@/constants/security"
 
 /**
  * Swap execution mode
@@ -23,7 +24,7 @@ interface SwapStore {
   clearHistory: () => void
 }
 
-const MAX_HISTORY = 20
+const MAX_HISTORY = MAX_SWAP_HISTORY
 
 export const useSwapStore = create<SwapStore>()(
   persist(

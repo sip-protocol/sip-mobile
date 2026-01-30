@@ -28,6 +28,10 @@ import { getRpcApiKey } from "@/lib/config"
 import { ed25519 } from "@noble/curves/ed25519"
 import { sha512 } from "@noble/hashes/sha512"
 import type { StealthKeysStorage } from "@/types"
+import {
+  MIN_BACKGROUND_SCAN_INTERVAL_SEC,
+  MAX_HASH_HISTORY,
+} from "@/constants/security"
 
 // ============================================================================
 // CONSTANTS
@@ -40,8 +44,8 @@ const SCAN_ENABLED_KEY = "background_scan_enabled"
 const FOUND_PAYMENTS_KEY = "background_scan_found_payments"
 const SETTINGS_STORAGE_KEY = "settings-storage"
 
-/** Minimum interval between background scans (15 minutes) */
-const MIN_INTERVAL = 15 * 60 // seconds
+/** Minimum interval between background scans */
+const MIN_INTERVAL = MIN_BACKGROUND_SCAN_INTERVAL_SEC
 
 // ============================================================================
 // NOTIFICATION SETUP
@@ -200,7 +204,7 @@ async function getExistingPaymentHashes(): Promise<Set<string>> {
  * Save found payment hashes
  */
 async function saveFoundPaymentHashes(hashes: Set<string>): Promise<void> {
-  const arr = Array.from(hashes).slice(-1000) // Keep last 1000
+  const arr = Array.from(hashes).slice(-MAX_HASH_HISTORY)
   await AsyncStorage.setItem(FOUND_PAYMENTS_KEY, JSON.stringify(arr))
 }
 

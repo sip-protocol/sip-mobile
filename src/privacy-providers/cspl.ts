@@ -292,10 +292,13 @@ export class CSPLAdapter implements PrivacyProviderAdapter {
       // Using simulated service that demonstrates the integration architecture.
       // When C-SPL launches fully, this will use real Token-2022 instructions.
       //
-      // TODO: Once CSPLTokenService is exported from @sip-protocol/sdk main entry,
-      // uncomment and use:
-      // const { CSPLTokenService } = await import("@sip-protocol/sdk")
-      // this.service = new CSPLTokenService({ rpcUrl: rpcEndpoint })
+      // The CSPLTokenService is now exported from @sip-protocol/sdk.
+      // To use the real service when available:
+      //   import { CSPLTokenService } from "@sip-protocol/sdk"
+      //   const service = new CSPLTokenService({ rpcUrl: rpcEndpoint })
+      //
+      // The SDK service requires adapting wrap/transfer methods to match
+      // this adapter's interface. For now, using SimulatedCSPLService.
 
       this.service = new SimulatedCSPLService(rpcEndpoint)
       await this.service.initialize()
