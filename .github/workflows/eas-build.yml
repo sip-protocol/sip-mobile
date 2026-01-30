@@ -1,82 +1,67 @@
-name: EAS Build
+# =============================================================================
+# EAS BUILD WORKFLOW - DISABLED
+# =============================================================================
+#
+# This workflow is disabled to preserve Expo free tier quota.
+# EAS builds should be run locally instead:
+#
+#   eas build --platform ios --profile production
+#   eas build --platform android --profile production
+#
+# If you have an Expo paid account and want to enable CI builds:
+# 1. Add EXPO_TOKEN secret to GitHub repository settings
+# 2. Uncomment the triggers below
+# =============================================================================
+
+name: EAS Build (Disabled)
+
+# DISABLED - uncomment to enable
+# on:
+#   push:
+#     tags:
+#       - 'v*'
+#   workflow_dispatch:
+#     inputs:
+#       profile:
+#         description: 'Build profile'
+#         required: true
+#         default: 'preview'
+#         type: choice
+#         options:
+#           - development
+#           - preview
+#           - production
+#       platform:
+#         description: 'Platform'
+#         required: true
+#         default: 'all'
+#         type: choice
+#         options:
+#           - all
+#           - ios
+#           - android
 
 on:
-  push:
-    tags:
-      - 'v*'
   workflow_dispatch:
     inputs:
-      profile:
-        description: 'Build profile'
+      confirm:
+        description: 'This workflow requires EXPO_TOKEN. Run locally instead with: eas build'
         required: true
-        default: 'preview'
-        type: choice
-        options:
-          - development
-          - preview
-          - production
-      platform:
-        description: 'Platform'
-        required: true
-        default: 'all'
-        type: choice
-        options:
-          - all
-          - ios
-          - android
+        type: boolean
+        default: false
 
 jobs:
-  eas-build:
-    name: EAS Build
+  disabled-notice:
+    name: EAS Build Disabled
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v4
-        with:
-          version: 9
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 20
-          cache: pnpm
-
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
-
-      - name: Setup EAS
-        uses: expo/expo-github-action@v8
-        with:
-          eas-version: latest
-          token: ${{ secrets.EXPO_TOKEN }}
-
-      - name: Determine build profile
-        id: profile
+      - name: Notice
         run: |
-          if [[ "${{ github.ref }}" == refs/tags/v* ]]; then
-            echo "profile=production" >> $GITHUB_OUTPUT
-          elif [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
-            echo "profile=${{ github.event.inputs.profile }}" >> $GITHUB_OUTPUT
-          else
-            echo "profile=preview" >> $GITHUB_OUTPUT
-          fi
-
-      - name: Determine platform
-        id: platform
-        run: |
-          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
-            echo "platform=${{ github.event.inputs.platform }}" >> $GITHUB_OUTPUT
-          else
-            echo "platform=all" >> $GITHUB_OUTPUT
-          fi
-
-      - name: Trigger EAS Build
-        run: |
-          eas build \
-            --profile ${{ steps.profile.outputs.profile }} \
-            --platform ${{ steps.platform.outputs.platform }} \
-            --no-wait \
-            --non-interactive
+          echo "⚠️ EAS builds are disabled in CI to preserve free tier quota."
+          echo ""
+          echo "Run builds locally instead:"
+          echo "  eas build --platform ios --profile production"
+          echo "  eas build --platform android --profile production"
+          echo ""
+          echo "See: https://docs.expo.dev/build/setup/"
+          exit 1
