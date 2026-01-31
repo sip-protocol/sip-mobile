@@ -11,14 +11,11 @@ export default function AuthLayout() {
           animation: "slide_from_right",
         }}
       >
-        {/* Native Wallet Screens (PRIMARY) */}
+        {/* Native Wallet Screens */}
         <Stack.Screen name="wallet-setup" />
         <Stack.Screen name="create-wallet" />
         <Stack.Screen name="import-wallet" />
-        {/* External Wallet Screens (OPTIONAL) */}
-        <Stack.Screen name="login" />
-        <Stack.Screen name="email" />
-        <Stack.Screen name="phone" />
+        <Stack.Screen name="seed-vault-setup" />
         <Stack.Screen name="onboarding" />
       </Stack>
     </View>

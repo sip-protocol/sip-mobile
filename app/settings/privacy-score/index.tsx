@@ -209,7 +209,7 @@ export default function PrivacyScoreScreen() {
             Connect your wallet to analyze privacy score
           </Text>
           <Button
-            onPress={() => router.push("/(auth)/login")}
+            onPress={() => router.push("/(auth)/wallet-setup")}
             style={{ marginTop: 24 }}
           >
             Connect Wallet

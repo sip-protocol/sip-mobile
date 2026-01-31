@@ -125,7 +125,7 @@ export default function ComplianceScreen() {
             Connect your wallet to access compliance features
           </Text>
           <Button
-            onPress={() => router.push("/(auth)/login")}
+            onPress={() => router.push("/(auth)/wallet-setup")}
             style={{ marginTop: 24 }}
           >
             Connect Wallet

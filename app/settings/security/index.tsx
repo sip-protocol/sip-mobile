@@ -317,7 +317,7 @@ export default function SecurityScreen() {
             Connect your wallet to configure security settings
           </Text>
           <Button
-            onPress={() => router.push("/(auth)/login")}
+            onPress={() => router.push("/(auth)/wallet-setup")}
             style={{ marginTop: 24 }}
           >
             Connect Wallet

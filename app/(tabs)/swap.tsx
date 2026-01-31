@@ -347,6 +347,9 @@ function SwapDetails({ quote, slippage }: SwapDetailsProps) {
 // ============================================================================
 
 export default function SwapScreen() {
+  // ============================================================================
+  // ALL HOOKS MUST BE CALLED UNCONDITIONALLY (Rules of Hooks)
+  // ============================================================================
   const params = useLocalSearchParams<{
     fromToken?: string
     toToken?: string
@@ -358,25 +361,39 @@ export default function SwapScreen() {
   const { addToast } = useToastStore()
   const { authenticateForOperation } = useBiometrics()
 
-  // Check if on mainnet - swap only works on mainnet
-  const isMainnet = network === "mainnet-beta"
-
-  // Show mainnet-only overlay if not on mainnet
-  if (!isMainnet) {
-    return (
-      <MainnetOnlyOverlay
-        network={network}
-        onSwitchNetwork={() => setNetwork("mainnet-beta")}
-        onGoBack={() => router.back()}
-      />
-    )
-  }
-
-  // Real balance from RPC
+  // Real balance from RPC (must be called unconditionally)
   const { balance: solBalance, tokenBalances, solPrice } = useBalance()
 
-  // Token prices from Jupiter API
+  // Token prices from Jupiter API (must be called unconditionally)
   const { getUsdValue } = useTokenPrices()
+
+  // Token state
+  const [fromToken, setFromToken] = useState<TokenInfo>(TOKENS.SOL)
+  const [toToken, setToToken] = useState<TokenInfo>(TOKENS.USDC)
+  const [fromAmount, setFromAmount] = useState("")
+
+  // Settings state
+  const [slippage, setSlippage] = useState(storedSlippage || DEFAULT_SLIPPAGE)
+  const [privacyLevel, setPrivacyLevel] = useState<PrivacyLevel>("shielded")
+
+  // Modal state
+  const [showTokenSelector, setShowTokenSelector] = useState(false)
+  const [tokenSelectorDirection, setTokenSelectorDirection] =
+    useState<SwapDirection>("from")
+  const [showSlippageModal, setShowSlippageModal] = useState(false)
+  const [showConfirmModal, setShowConfirmModal] = useState(false)
+  const [showExecutingModal, setShowExecutingModal] = useState(false)
+  const [showResultModal, setShowResultModal] = useState(false)
+
+  // Swap execution hook
+  const {
+    status: swapStatus,
+    txSignature,
+    explorerUrl,
+    error: swapError,
+    execute: executeSwap,
+    reset: resetSwap,
+  } = useSwap()
 
   // Helper to get balance for a token symbol
   const getTokenBalance = useCallback(
@@ -408,11 +425,6 @@ export default function SwapScreen() {
     [isConnected, solBalance, solPrice, tokenBalances, getUsdValue]
   )
 
-  // Token state
-  const [fromToken, setFromToken] = useState<TokenInfo>(TOKENS.SOL)
-  const [toToken, setToToken] = useState<TokenInfo>(TOKENS.USDC)
-  const [fromAmount, setFromAmount] = useState("")
-
   // Handle token selection from params (full-screen selector)
   useEffect(() => {
     if (params.fromToken && TOKENS[params.fromToken]) {
@@ -433,29 +445,6 @@ export default function SwapScreen() {
       setToToken(newToken)
     }
   }, [params.toToken])
-
-  // Settings state
-  const [slippage, setSlippage] = useState(storedSlippage || DEFAULT_SLIPPAGE)
-  const [privacyLevel, setPrivacyLevel] = useState<PrivacyLevel>("shielded")
-
-  // Modal state
-  const [showTokenSelector, setShowTokenSelector] = useState(false)
-  const [tokenSelectorDirection, setTokenSelectorDirection] =
-    useState<SwapDirection>("from")
-  const [showSlippageModal, setShowSlippageModal] = useState(false)
-  const [showConfirmModal, setShowConfirmModal] = useState(false)
-  const [showExecutingModal, setShowExecutingModal] = useState(false)
-  const [showResultModal, setShowResultModal] = useState(false)
-
-  // Swap execution hook
-  const {
-    status: swapStatus,
-    txSignature,
-    explorerUrl,
-    error: swapError,
-    execute: executeSwap,
-    reset: resetSwap,
-  } = useSwap()
 
   // Quote hook - handles fetching, auto-refresh, and freshness tracking
   const quoteParams = useMemo(
@@ -502,6 +491,24 @@ export default function SwapScreen() {
     return toBalance.usdValue * ratio
   }, [quote?.outputAmount, toBalance])
 
+  // ============================================================================
+  // EARLY RETURNS (after all hooks)
+  // ============================================================================
+
+  // Check if on mainnet - swap only works on mainnet
+  const isMainnet = network === "mainnet-beta"
+
+  // Show mainnet-only overlay if not on mainnet
+  if (!isMainnet) {
+    return (
+      <MainnetOnlyOverlay
+        network={network}
+        onSwitchNetwork={() => setNetwork("mainnet-beta")}
+        onGoBack={() => router.back()}
+      />
+    )
+  }
+
   const handleTokenPress = (direction: SwapDirection) => {
     setTokenSelectorDirection(direction)
     setShowTokenSelector(true)
@@ -534,7 +541,7 @@ export default function SwapScreen() {
 
   const handleSwap = async () => {
     if (!isConnected) {
-      router.push("/(auth)/login")
+      router.push("/(auth)/wallet-setup")
       return
     }
 

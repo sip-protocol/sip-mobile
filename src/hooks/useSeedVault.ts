@@ -25,14 +25,28 @@
 import { useState, useCallback, useEffect, useRef } from "react"
 import { Platform, PermissionsAndroid } from "react-native"
 import { PublicKey, Transaction, VersionedTransaction } from "@solana/web3.js"
-import {
-  SeedVault,
-  SeedVaultPermissionAndroid,
-  type Seed,
-  type Account,
-  type SeedVaultEvent,
-  type SeedVaultContentChange,
-  useSeedVault as useSeedVaultNative,
+// Conditionally import native module - may not be available on all builds
+let SeedVault: import("@solana-mobile/seed-vault-lib").SeedVaultAPI | undefined
+let SeedVaultPermissionAndroid: import("react-native").Permission | undefined
+let useSeedVaultNative: ((
+  handleEvent: (event: import("@solana-mobile/seed-vault-lib").SeedVaultEvent) => void,
+  handleChange: (event: import("@solana-mobile/seed-vault-lib").SeedVaultContentChange) => void
+) => void) | undefined
+
+try {
+  const seedVaultLib = require("@solana-mobile/seed-vault-lib")
+  SeedVault = seedVaultLib.SeedVault
+  SeedVaultPermissionAndroid = seedVaultLib.SeedVaultPermissionAndroid
+  useSeedVaultNative = seedVaultLib.useSeedVault
+} catch (e) {
+  console.warn("[SeedVault] Native module not available:", e)
+}
+
+import type {
+  Seed,
+  Account,
+  SeedVaultEvent,
+  SeedVaultContentChange,
 } from "@solana-mobile/seed-vault-lib"
 
 // ============================================================================
@@ -144,11 +158,16 @@ export function useSeedVault(
     console.log("[SeedVault] Content changed:", event.uris)
   }, [])
 
-  // Register event listeners (only on Android)
-  if (Platform.OS === "android") {
-    // eslint-disable-next-line react-hooks/rules-of-hooks
-    useSeedVaultNative(handleSeedVaultEvent, handleContentChange)
-  }
+  // Register event listeners (only on Android when native module is available)
+  useEffect(() => {
+    if (Platform.OS === "android" && useSeedVaultNative) {
+      try {
+        useSeedVaultNative(handleSeedVaultEvent, handleContentChange)
+      } catch (e) {
+        console.warn("[SeedVault] Failed to register event listeners:", e)
+      }
+    }
+  }, [handleSeedVaultEvent, handleContentChange])
 
   // Check availability on mount
   useEffect(() => {
@@ -163,8 +182,8 @@ export function useSeedVault(
    * Check if Seed Vault is available on this device
    */
   const checkAvailability = useCallback(async (): Promise<boolean> => {
-    // Seed Vault is Android-only
-    if (Platform.OS !== "android") {
+    // Seed Vault is Android-only and requires native module
+    if (Platform.OS !== "android" || !SeedVault) {
       setIsAvailable(false)
       return false
     }
@@ -184,7 +203,7 @@ export function useSeedVault(
    * Request permission to use Seed Vault
    */
   const requestPermission = useCallback(async (): Promise<boolean> => {
-    if (Platform.OS !== "android") {
+    if (Platform.OS !== "android" || !SeedVaultPermissionAndroid) {
       return false
     }
 
@@ -213,7 +232,7 @@ export function useSeedVault(
    * Opens system UI for user to select and authorize a seed
    */
   const authorizeNewSeed = useCallback(async (): Promise<{ authToken: number } | null> => {
-    if (!isAvailable) {
+    if (!isAvailable || !SeedVault) {
       setError(new Error("Seed Vault not available"))
       return null
     }
@@ -240,7 +259,7 @@ export function useSeedVault(
    * Opens system UI for user to create and back up a new seed
    */
   const createNewSeed = useCallback(async (): Promise<{ authToken: number } | null> => {
-    if (!isAvailable) {
+    if (!isAvailable || !SeedVault) {
       setError(new Error("Seed Vault not available"))
       return null
     }
@@ -267,7 +286,7 @@ export function useSeedVault(
    * Opens system UI for user to enter their seed phrase
    */
   const importExistingSeed = useCallback(async (): Promise<{ authToken: number } | null> => {
-    if (!isAvailable) {
+    if (!isAvailable || !SeedVault) {
       setError(new Error("Seed Vault not available"))
       return null
     }
@@ -293,7 +312,7 @@ export function useSeedVault(
    * Get list of seeds this app is authorized to use
    */
   const getAuthorizedSeeds = useCallback(async (): Promise<Seed[]> => {
-    if (!isAvailable) {
+    if (!isAvailable || !SeedVault) {
       return []
     }
 
@@ -310,7 +329,7 @@ export function useSeedVault(
    * Deauthorize a seed (revoke app access)
    */
   const deauthorizeSeed = useCallback((authToken: number): void => {
-    if (!isAvailable) return
+    if (!isAvailable || !SeedVault) return
 
     try {
       SeedVault.deauthorizeSeed(authToken)
@@ -329,7 +348,7 @@ export function useSeedVault(
    * Get accounts (derived addresses) for a seed
    */
   const getAccounts = useCallback(async (authToken: number): Promise<Account[]> => {
-    if (!isAvailable) {
+    if (!isAvailable || !SeedVault) {
       return []
     }
 
@@ -346,7 +365,7 @@ export function useSeedVault(
    * Select a seed and account to use as the active wallet
    */
   const selectSeed = useCallback(async (authToken: number, accountIndex: number = 0): Promise<void> => {
-    if (!isAvailable) {
+    if (!isAvailable || !SeedVault) {
       throw new Error("Seed Vault not available")
     }
 
@@ -412,7 +431,7 @@ export function useSeedVault(
    */
   const signTransaction = useCallback(
     async <T extends Transaction | VersionedTransaction>(tx: T): Promise<T> => {
-      if (!wallet) {
+      if (!wallet || !SeedVault) {
         throw new Error("No wallet connected")
       }
 
@@ -460,7 +479,7 @@ export function useSeedVault(
    */
   const signMessage = useCallback(
     async (message: Uint8Array): Promise<Uint8Array> => {
-      if (!wallet) {
+      if (!wallet || !SeedVault) {
         throw new Error("No wallet connected")
       }
 
@@ -496,7 +515,7 @@ export function useSeedVault(
    */
   const signAllTransactions = useCallback(
     async <T extends Transaction | VersionedTransaction>(txs: T[]): Promise<T[]> => {
-      if (!wallet) {
+      if (!wallet || !SeedVault) {
         throw new Error("No wallet connected")
       }
 
@@ -553,7 +572,7 @@ export function useSeedVault(
    * Show seed settings in system UI
    */
   const showSeedSettings = useCallback(async (authToken: number): Promise<void> => {
-    if (!isAvailable) return
+    if (!isAvailable || !SeedVault) return
 
     try {
       await SeedVault.showSeedSettings(authToken)

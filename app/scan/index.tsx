@@ -180,7 +180,7 @@ export default function ScanScreen() {
             Connect your wallet to scan for incoming payments
           </Text>
           <Button
-            onPress={() => router.push("/(auth)/login")}
+            onPress={() => router.push("/(auth)/wallet-setup")}
             style={{ marginTop: 24 }}
           >
             Connect Wallet

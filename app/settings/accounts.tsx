@@ -20,6 +20,7 @@ import { SafeAreaView } from "react-native-safe-area-context"
 import { router } from "expo-router"
 import { useState } from "react"
 import { useWalletStore, formatAddress } from "@/stores/wallet"
+import { useNativeWallet } from "@/hooks"
 import { Button, Modal } from "@/components/ui"
 import type { StoredAccount } from "@/types"
 import {
@@ -43,6 +44,7 @@ export default function AccountsScreen() {
     removeAccount,
     updateAccountNickname,
   } = useWalletStore()
+  const { deleteWallet } = useNativeWallet()
 
   const [editingAccount, setEditingAccount] = useState<StoredAccount | null>(null)
   const [editNickname, setEditNickname] = useState("")
@@ -62,10 +64,11 @@ export default function AccountsScreen() {
 
   const handleRemoveAccount = (account: StoredAccount) => {
     const isActive = account.id === activeAccountId
+    const isLastAccount = accounts.length <= 1
     const message = isActive
-      ? accounts.length > 1
-        ? "This is your active account. Removing it will switch to another account."
-        : "This is your only account. Removing it will log you out."
+      ? isLastAccount
+        ? "This is your only account. Removing it will log you out."
+        : "This is your active account. Removing it will switch to another account."
       : "Are you sure you want to remove this account?"
 
     Alert.alert(
@@ -76,10 +79,21 @@ export default function AccountsScreen() {
         {
           text: "Remove",
           style: "destructive",
-          onPress: () => {
+          onPress: async () => {
+            // For native wallets, also delete from SecureStore
+            if (account.providerType === "native" || account.providerType === "seed-vault") {
+              try {
+                await deleteWallet()
+              } catch {
+                // deleteWallet handles its own errors, just proceed
+              }
+            }
+
             removeAccount(account.id)
-            if (accounts.length <= 1) {
-              router.replace("/(auth)/login")
+
+            if (isLastAccount) {
+              // Navigate to wallet setup so user can create new wallet
+              router.replace("/(auth)/wallet-setup")
             }
           },
         },
@@ -247,7 +261,7 @@ export default function AccountsScreen() {
           <Button
             fullWidth
             variant="secondary"
-            onPress={() => router.push("/(auth)/login")}
+            onPress={() => router.push("/(auth)/wallet-setup")}
           >
             + Add Another Account
           </Button>

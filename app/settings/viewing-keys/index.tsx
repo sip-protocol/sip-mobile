@@ -472,7 +472,7 @@ export default function ViewingKeysScreen() {
             Connect your wallet to manage viewing keys
           </Text>
           <Button
-            onPress={() => router.push("/(auth)/login")}
+            onPress={() => router.push("/(auth)/wallet-setup")}
             style={{ marginTop: 24 }}
           >
             Connect Wallet

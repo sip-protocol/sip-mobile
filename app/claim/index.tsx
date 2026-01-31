@@ -342,7 +342,7 @@ export default function ClaimScreen() {
             Connect your wallet to claim payments
           </Text>
           <Button
-            onPress={() => router.push("/(auth)/login")}
+            onPress={() => router.push("/(auth)/wallet-setup")}
             style={{ marginTop: 24 }}
           >
             Connect Wallet
