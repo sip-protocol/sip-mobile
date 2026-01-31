@@ -24,10 +24,10 @@ import {
   GlobeHemisphereWest,
   Fire,
   Lightning,
-  Trash,
   ArrowsClockwise,
   Info,
   BookOpen,
+  Plugs,
   Bug,
   Check,
   Warning,
@@ -38,8 +38,6 @@ import { ICON_COLORS } from '@/constants/icons'
 import { useWalletStore, formatAddress } from '@/stores/wallet'
 import { useViewingKeys } from '@/hooks/useViewingKeys'
 import { useBackgroundScan } from '@/hooks/useBackgroundScan'
-import { usePrivacyStore } from '@/stores/privacy'
-import { useSwapStore } from '@/stores/swap'
 import { useSettingsStore } from '@/stores/settings'
 import { useToastStore } from '@/stores/toast'
 import { PRIVACY_PROVIDERS } from '@/privacy-providers'
@@ -86,7 +84,7 @@ const PRIVACY_LEVELS: PrivacyLevelOption[] = [
 // ============================================================================
 
 const PROVIDER_ICONS: Record<string, { Icon: PhosphorIcon; color: string }> = {
-  'sip-native': { Icon: ShieldCheck, color: ICON_COLORS.brand },
+  'sip-native': { Icon: Plugs, color: ICON_COLORS.brand },
   'privacy-cash': { Icon: Shield, color: ICON_COLORS.success },
   'shadowwire': { Icon: Lightning, color: ICON_COLORS.yellow },
 }
@@ -216,8 +214,6 @@ function SettingsToggle({ Icon, iconColor = ICON_COLORS.muted, title, subtitle, 
 export default function SettingsScreen() {
   const { isConnected, address } = useWalletStore()
   const { getActiveDisclosures } = useViewingKeys()
-  const { payments, clearPayments } = usePrivacyStore()
-  const { swaps, clearHistory: clearSwapHistory } = useSwapStore()
   const {
     rpcProvider,
     setRpcProvider,
@@ -231,6 +227,7 @@ export default function SettingsScreen() {
     setDefaultPrivacyLevel,
     privacyProvider,
     setPrivacyProvider,
+    resetOnboarding,
   } = useSettingsStore()
   const { addToast } = useToastStore()
 
@@ -359,43 +356,20 @@ export default function SettingsScreen() {
     }
   }
 
-  const handleClearPaymentHistory = () => {
+  const handleResetOnboarding = () => {
     Alert.alert(
-      'Clear Payment History',
-      `This will remove ${payments.length} payment records from your device. On-chain data is not affected. You can rescan to recover.`,
+      'Reset Onboarding',
+      'This will show the onboarding screens again on next app launch.',
       [
         { text: 'Cancel', style: 'cancel' },
         {
-          text: 'Clear',
-          style: 'destructive',
+          text: 'Reset',
           onPress: () => {
-            clearPayments()
+            resetOnboarding()
             addToast({
               type: 'success',
-              title: 'History Cleared',
-              message: 'Payment history has been cleared. Rescan to recover.',
-            })
-          },
-        },
-      ]
-    )
-  }
-
-  const handleClearSwapHistory = () => {
-    Alert.alert(
-      'Clear Swap History',
-      `This will remove ${swaps.length} swap records from your device.`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Clear',
-          style: 'destructive',
-          onPress: () => {
-            clearSwapHistory()
-            addToast({
-              type: 'success',
-              title: 'History Cleared',
-              message: 'Swap history has been cleared.',
+              title: 'Onboarding Reset',
+              message: 'Restart app to see onboarding.',
             })
           },
         },
@@ -517,25 +491,18 @@ export default function SettingsScreen() {
           </View>
         </View>
 
-        {/* Data & Storage Section */}
+        {/* App Section */}
         <View className="mt-6">
           <Text className="text-dark-400 text-sm px-4 mb-2 uppercase">
-            Data & Storage
+            App
           </Text>
           <View className="rounded-xl overflow-hidden mx-4">
             <SettingsItem
-              Icon={Trash}
-              iconColor={ICON_COLORS.error}
-              title="Clear Payment History"
-              subtitle={`${payments.length} records`}
-              onPress={handleClearPaymentHistory}
-            />
-            <SettingsItem
               Icon={ArrowsClockwise}
-              iconColor={ICON_COLORS.muted}
-              title="Clear Swap History"
-              subtitle={`${swaps.length} records`}
-              onPress={handleClearSwapHistory}
+              iconColor={ICON_COLORS.warning}
+              title="Reset Onboarding"
+              subtitle="Show education screens again"
+              onPress={handleResetOnboarding}
             />
           </View>
         </View>

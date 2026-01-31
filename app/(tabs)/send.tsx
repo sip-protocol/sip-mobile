@@ -33,7 +33,6 @@ import {
   Eye,
   QrCode,
   AddressBook,
-  Flask,
   Warning,
   CheckCircle,
   type Icon as PhosphorIcon,
@@ -453,22 +452,6 @@ export default function SendScreen() {
                   <AddressBook size={16} color={ICON_COLORS.muted} weight="regular" />
                   <Text className="text-dark-400 text-sm ml-1">Contacts</Text>
                 </TouchableOpacity>
-                {/* DEBUG: Test stealth address button */}
-                {__DEV__ && (
-                  <TouchableOpacity
-                    className="flex-row items-center bg-cyan-800 rounded-lg px-3 py-2"
-                    onPress={() => {
-                      // Valid ed25519 test keys for testing
-                      const testStealth =
-                        "sip:solana:9qi3ir8FT4pP48b9VAbkqVt5XSc9LoLTXC5X7nfPvNLb:BZFQo2BsXgRca6wcbnQkDB3XLiaFwDpz6uMz4NkCxRVQ"
-                      setRecipient(testStealth)
-                      handleRecipientChange(testStealth)
-                    }}
-                  >
-                    <Flask size={16} color="#67e8f9" weight="regular" />
-                    <Text className="text-cyan-300 text-sm ml-1">Test Stealth</Text>
-                  </TouchableOpacity>
-                )}
               </View>
             </View>
 
