@@ -17,6 +17,7 @@ import { useToastStore } from "@/stores/toast"
 import { useWalletStore } from "@/stores/wallet"
 import { useWallet } from "./useWallet"
 import { useSettingsStore } from "@/stores/settings"
+import { getExplorerTxUrl } from "@/utils/explorer"
 import type { JupiterQuoteResponse } from "./useQuote"
 
 // ============================================================================
@@ -58,8 +59,6 @@ export interface SwapResult {
 // CONSTANTS
 // ============================================================================
 
-const SOLANA_EXPLORER_URL = "https://explorer.solana.com/tx"
-
 // ============================================================================
 // HELPERS
 // ============================================================================
@@ -69,13 +68,6 @@ const SOLANA_EXPLORER_URL = "https://explorer.solana.com/tx"
  */
 function generateSwapId(): string {
   return `swap-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`
-}
-
-/**
- * Get explorer URL for transaction
- */
-function getExplorerUrl(signature: string): string {
-  return `${SOLANA_EXPLORER_URL}/${signature}`
 }
 
 /**
@@ -302,7 +294,7 @@ async function waitForConfirmation(
  */
 export function useSwap(): SwapResult {
   const { isConnected, address } = useWalletStore()
-  const { network } = useSettingsStore()
+  const { network, defaultExplorer } = useSettingsStore()
   const { signTransaction } = useWallet()
   const { addSwap, isPreviewMode } = useSwapStore()
   const { addToast } = useToastStore()
@@ -439,7 +431,7 @@ export function useSwap(): SwapResult {
           status: "completed",
           timestamp: Date.now(),
           txSignature: signature,
-          explorerUrl: getExplorerUrl(signature),
+          explorerUrl: getExplorerTxUrl(signature, network, defaultExplorer),
         })
 
         addToast({
@@ -478,11 +470,11 @@ export function useSwap(): SwapResult {
         return false
       }
     },
-    [isConnected, address, network, signTransaction, isPreviewMode, addSwap, addToast]
+    [isConnected, address, network, defaultExplorer, signTransaction, isPreviewMode, addSwap, addToast]
   )
 
   // Generate explorer URL
-  const explorerUrl = txSignature ? getExplorerUrl(txSignature) : null
+  const explorerUrl = txSignature ? getExplorerTxUrl(txSignature, network, defaultExplorer) : null
 
   return {
     status,

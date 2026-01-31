@@ -381,7 +381,6 @@ export class SipNativeAdapter implements PrivacyProviderAdapter {
       return {
         success: true,
         txHash: signature,
-        explorerUrl: `https://explorer.solana.com/tx/${signature}`,
       }
     } catch (err) {
       setStatus("error")

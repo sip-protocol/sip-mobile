@@ -57,3 +57,11 @@ export type { A11yLabelProps, LiveRegionType } from "./accessibility"
 
 // Logger utilities
 export { logger, log, info, warn, error, debug } from "./logger"
+
+// Explorer utilities
+export {
+  getExplorerTxUrl,
+  getExplorerAccountUrl,
+  getExplorerName,
+} from "./explorer"
+export type { Network } from "./explorer"

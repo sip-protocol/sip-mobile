@@ -32,6 +32,7 @@ import {
   Check,
   Warning,
   Sparkle,
+  Binoculars,
 } from 'phosphor-react-native'
 import type { Icon as PhosphorIcon } from 'phosphor-react-native'
 import { ICON_COLORS } from '@/constants/icons'
@@ -227,12 +228,15 @@ export default function SettingsScreen() {
     setDefaultPrivacyLevel,
     privacyProvider,
     setPrivacyProvider,
+    defaultExplorer,
+    setDefaultExplorer,
     resetOnboarding,
   } = useSettingsStore()
   const { addToast } = useToastStore()
 
   const [showRpcModal, setShowRpcModal] = useState(false)
   const [showNetworkModal, setShowNetworkModal] = useState(false)
+  const [showExplorerModal, setShowExplorerModal] = useState(false)
   const [showPrivacyLevelModal, setShowPrivacyLevelModal] = useState(false)
   const [showPrivacyProviderModal, setShowPrivacyProviderModal] = useState(false)
   const [showAboutModal, setShowAboutModal] = useState(false)
@@ -487,6 +491,13 @@ export default function SettingsScreen() {
               title="RPC Provider"
               subtitle={currentProvider.name}
               onPress={() => setShowRpcModal(true)}
+            />
+            <SettingsItem
+              Icon={Binoculars}
+              iconColor={ICON_COLORS.info}
+              title="Default Explorer"
+              subtitle={defaultExplorer === 'solscan' ? 'Solscan' : 'Solana Explorer'}
+              onPress={() => setShowExplorerModal(true)}
             />
           </View>
         </View>
@@ -938,6 +949,73 @@ export default function SettingsScreen() {
             <TouchableOpacity
               className="p-4 border-t border-dark-800"
               onPress={() => setShowPrivacyProviderModal(false)}
+            >
+              <Text className="text-dark-400 text-center font-medium">Cancel</Text>
+            </TouchableOpacity>
+          </Pressable>
+        </Pressable>
+      </Modal>
+
+      {/* Explorer Modal */}
+      <Modal
+        visible={showExplorerModal}
+        animationType="slide"
+        transparent
+        onRequestClose={() => setShowExplorerModal(false)}
+      >
+        <Pressable
+          className="flex-1 justify-end bg-black/50"
+          onPress={() => setShowExplorerModal(false)}
+        >
+          <Pressable className="bg-dark-900 rounded-t-3xl" onPress={(e) => e.stopPropagation()}>
+            <View className="p-4 border-b border-dark-800">
+              <Text className="text-xl font-bold text-white text-center">
+                Default Explorer
+              </Text>
+              <Text className="text-dark-400 text-center text-sm mt-1">
+                Choose your preferred block explorer
+              </Text>
+            </View>
+
+            <View className="p-4">
+              {[
+                { id: 'solscan' as const, name: 'Solscan', desc: 'Popular Solana explorer' },
+                { id: 'solana-explorer' as const, name: 'Solana Explorer', desc: 'Official Solana explorer' },
+              ].map((explorer) => (
+                <TouchableOpacity
+                  key={explorer.id}
+                  className={`flex-row items-center p-4 rounded-xl mb-2 ${
+                    defaultExplorer === explorer.id
+                      ? 'bg-brand-600/20 border border-brand-500'
+                      : 'bg-dark-800'
+                  }`}
+                  onPress={() => {
+                    setDefaultExplorer(explorer.id)
+                    setShowExplorerModal(false)
+                    addToast({
+                      type: 'success',
+                      title: 'Explorer Changed',
+                      message: `Now using ${explorer.name}`,
+                    })
+                  }}
+                >
+                  <View className="w-8 items-center mr-3">
+                    <Binoculars size={24} color={ICON_COLORS.info} weight="regular" />
+                  </View>
+                  <View className="flex-1">
+                    <Text className="text-white font-medium">{explorer.name}</Text>
+                    <Text className="text-dark-400 text-sm">{explorer.desc}</Text>
+                  </View>
+                  {defaultExplorer === explorer.id && (
+                    <Check size={20} color={ICON_COLORS.brand} weight="bold" />
+                  )}
+                </TouchableOpacity>
+              ))}
+            </View>
+
+            <TouchableOpacity
+              className="p-4 border-t border-dark-800"
+              onPress={() => setShowExplorerModal(false)}
             >
               <Text className="text-dark-400 text-center font-medium">Cancel</Text>
             </TouchableOpacity>

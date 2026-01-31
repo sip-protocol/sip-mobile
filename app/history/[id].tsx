@@ -23,6 +23,8 @@ import { router, useLocalSearchParams } from "expo-router"
 import * as Clipboard from "expo-clipboard"
 import { usePrivacyStore } from "@/stores/privacy"
 import { useToastStore } from "@/stores/toast"
+import { useSettingsStore } from "@/stores/settings"
+import { getExplorerTxUrl } from "@/utils/explorer"
 import { Button } from "@/components/ui"
 import type { PaymentRecord, PrivacyLevel } from "@/types"
 import {
@@ -96,6 +98,7 @@ export default function TransactionDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>()
   const { getPayment, updatePayment } = usePrivacyStore()
   const { addToast } = useToastStore()
+  const { network, defaultExplorer } = useSettingsStore()
 
   const payment = id ? getPayment(id) : undefined
 
@@ -146,7 +149,7 @@ export default function TransactionDetailScreen() {
 
   const handleViewOnExplorer = () => {
     if (payment.txHash) {
-      const explorerUrl = `https://explorer.solana.com/tx/${payment.txHash}?cluster=devnet`
+      const explorerUrl = getExplorerTxUrl(payment.txHash, network, defaultExplorer)
       Linking.openURL(explorerUrl)
     }
   }

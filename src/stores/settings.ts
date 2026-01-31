@@ -12,6 +12,8 @@ export const SLIPPAGE_PRESETS = [0.1, 0.5, 1.0, 3.0] as const
 // Re-export PrivacyProviderType for convenience
 export type { PrivacyProviderType } from "@/privacy-providers"
 
+export type ExplorerType = "solscan" | "solana-explorer"
+
 interface SettingsStore {
   // Hydration tracking (for gate logic)
   _hasHydrated: boolean
@@ -45,6 +47,10 @@ interface SettingsStore {
   // RPC Provider
   rpcProvider: "helius" | "quicknode" | "triton" | "publicnode"
   setRpcProvider: (provider: "helius" | "quicknode" | "triton" | "publicnode") => void
+
+  // Explorer preference
+  defaultExplorer: ExplorerType
+  setDefaultExplorer: (explorer: ExplorerType) => void
 
   // API Keys (user overrides)
   heliusApiKey: string | null
@@ -96,6 +102,10 @@ export const useSettingsStore = create<SettingsStore>()(
       rpcProvider: "helius",
       setRpcProvider: (provider) => set({ rpcProvider: provider }),
 
+      // Explorer preference
+      defaultExplorer: "solscan",
+      setDefaultExplorer: (explorer) => set({ defaultExplorer: explorer }),
+
       // API Keys (user overrides)
       heliusApiKey: null,
       setHeliusApiKey: (key) => set({ heliusApiKey: key }),
@@ -115,6 +125,7 @@ export const useSettingsStore = create<SettingsStore>()(
         biometricsEnabled: state.biometricsEnabled,
         network: state.network,
         rpcProvider: state.rpcProvider,
+        defaultExplorer: state.defaultExplorer,
         heliusApiKey: state.heliusApiKey,
         quicknodeApiKey: state.quicknodeApiKey,
         tritonEndpoint: state.tritonEndpoint,
