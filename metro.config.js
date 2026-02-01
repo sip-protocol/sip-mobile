@@ -16,6 +16,11 @@ config.resolver.unstable_enablePackageExports = true;
 // Also configure the resolver to prefer browser field in package.json
 config.resolver.resolverMainFields = ["react-native", "browser", "main"];
 
+// Block problematic packages that use import.meta (incompatible with Hermes)
+config.resolver.blockList = [
+  /node_modules\/privacycash\/.*/,
+];
+
 // Performance optimizations
 config.transformer.minifierConfig = {
   keep_classnames: false,
