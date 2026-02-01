@@ -37,7 +37,6 @@
     "@scure/bip39": "^2.0.1",
     "@sip-protocol/sdk": "^0.7.3",
     "@solana-mobile/mobile-wallet-adapter-protocol-web3js": "^2.2.5",
-    "@solana-mobile/seed-vault-lib": "^0.4.0",
     "@solana/web3.js": "^1.98.4",
     "bs58": "^6.0.0",
     "buffer": "^6.0.3",
@@ -110,8 +109,6 @@
     "overrides": {
       "@expo/metro-runtime": "5.0.4"
     },
-    "patchedDependencies": {
-      "@solana-mobile/seed-vault-lib": "patches/@solana-mobile__seed-vault-lib.patch"
-    }
+    "patchedDependencies": {}
   }
 }

@@ -7,11 +7,6 @@ settings:
 overrides:
   '@expo/metro-runtime': 5.0.4
 
-patchedDependencies:
-  '@solana-mobile/seed-vault-lib':
-    hash: 326d8962676ccbe19bfd8feb17ff5b051ccf55686b9486f01828952f62ea602d
-    path: patches/@solana-mobile__seed-vault-lib.patch
-
 importers:
 
   .:
@@ -61,9 +56,6 @@ importers:
       '@solana-mobile/mobile-wallet-adapter-protocol-web3js':
         specifier: ^2.2.5
         version: 2.2.5(@solana/wallet-adapter-base@0.9.27(@solana/web3.js@1.98.4(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)))(@solana/web3.js@1.98.4(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10))(fastestsmallesttextencoderdecoder@1.0.22)(react-native@0.81.5(@babel/core@7.28.6)(@types/react@19.1.17)(bufferutil@4.1.0)(react@19.1.0)(utf-8-validate@5.0.10))(react@19.1.0)(typescript@5.9.3)
-      '@solana-mobile/seed-vault-lib':
-        specifier: ^0.4.0
-        version: 0.4.0(patch_hash=326d8962676ccbe19bfd8feb17ff5b051ccf55686b9486f01828952f62ea602d)(react-native@0.81.5(@babel/core@7.28.6)(@types/react@19.1.17)(bufferutil@4.1.0)(react@19.1.0)(utf-8-validate@5.0.10))
       '@solana/web3.js':
         specifier: ^1.98.4
         version: 1.98.4(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)
@@ -1971,11 +1963,6 @@ packages:
 
   '@solana-mobile/mobile-wallet-adapter-protocol@2.2.5':
     resolution: {integrity: sha512-kCI+0/umWm98M9g12ndpS56U6wBzq4XdhobCkDPF8qRDYX/iTU8CD+QMcalh7VgRT7GWEmySQvQdaugM0Chf0g==}
-    peerDependencies:
-      react-native: '>0.69'
-
-  '@solana-mobile/seed-vault-lib@0.4.0':
-    resolution: {integrity: sha512-eByvrdM9DY/06dYRyCGl3F2FcwnmJ/vn4+wpD9o1G9gPHpb9I9iMV8UTSSOeMuG9g1hj68FmB06mvfonShurmw==}
     peerDependencies:
       react-native: '>0.69'
 
@@ -8755,10 +8742,6 @@ snapshots:
       - fastestsmallesttextencoderdecoder
       - react
       - typescript
-
-  '@solana-mobile/seed-vault-lib@0.4.0(patch_hash=326d8962676ccbe19bfd8feb17ff5b051ccf55686b9486f01828952f62ea602d)(react-native@0.81.5(@babel/core@7.28.6)(@types/react@19.1.17)(bufferutil@4.1.0)(react@19.1.0)(utf-8-validate@5.0.10))':
-    dependencies:
-      react-native: 0.81.5(@babel/core@7.28.6)(@types/react@19.1.17)(bufferutil@4.1.0)(react@19.1.0)(utf-8-validate@5.0.10)
 
   '@solana/buffer-layout-utils@0.2.0(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)':
     dependencies:
