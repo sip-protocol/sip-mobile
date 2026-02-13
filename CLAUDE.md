@@ -1,6 +1,6 @@
 # CLAUDE.md - SIP Mobile
 
-> **Ecosystem:** [sip-protocol/CLAUDE.md](https://github.com/sip-protocol/sip-protocol/blob/main/CLAUDE.md)
+> **Ecosystem Hub:** See [sip-protocol/CLAUDE.md](https://github.com/sip-protocol/sip-protocol/blob/main/CLAUDE.md) for full ecosystem context
 
 **Tagline:** "Privacy in Your Pocket"
 **Purpose:** Daily privacy wallet for Solana — native key management, quick payments, on-the-go swaps
