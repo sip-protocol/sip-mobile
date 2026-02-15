@@ -14,7 +14,7 @@ concurrency:
 jobs:
   e2e-ios:
     name: E2E iOS
-    runs-on: macos-14
+    runs-on: macos-15
     if: |
       github.event_name == 'workflow_dispatch' ||
       github.event_name == 'schedule' ||
