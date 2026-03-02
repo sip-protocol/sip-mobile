@@ -28,13 +28,13 @@ import { useState, useCallback, useEffect } from "react"
 import { router, useLocalSearchParams } from "expo-router"
 import * as Clipboard from "expo-clipboard"
 import {
-  ShieldCheck,
-  Lock,
-  Eye,
-  QrCode,
-  AddressBook,
-  Warning,
-  CheckCircle,
+  ShieldCheckIcon,
+  LockIcon,
+  EyeIcon,
+  QrCodeIcon,
+  AddressBookIcon,
+  WarningIcon,
+  CheckCircleIcon,
   type Icon as PhosphorIcon,
 } from "phosphor-react-native"
 import { ICON_COLORS } from "@/constants/icons"
@@ -317,7 +317,7 @@ export default function SendScreen() {
     switch (level) {
       case "shielded":
         return {
-          Icon: ShieldCheck,
+          Icon: ShieldCheckIcon,
           iconColor: ICON_COLORS.brand,
           title: "Private Transfer",
           description: "Amount and recipient hidden on-chain",
@@ -325,7 +325,7 @@ export default function SendScreen() {
         }
       case "compliant":
         return {
-          Icon: Lock,
+          Icon: LockIcon,
           iconColor: ICON_COLORS.cyan,
           title: "Compliant Transfer",
           description: "Private with viewing key for auditors",
@@ -333,7 +333,7 @@ export default function SendScreen() {
         }
       case "transparent":
         return {
-          Icon: Eye,
+          Icon: EyeIcon,
           iconColor: ICON_COLORS.muted,
           title: "Public Transfer",
           description: "Fully visible on-chain",
@@ -483,14 +483,14 @@ export default function SendScreen() {
                   className="flex-row items-center bg-dark-800 rounded-lg px-3 py-2"
                   onPress={() => router.push("/send/scanner")}
                 >
-                  <QrCode size={16} color={ICON_COLORS.muted} weight="regular" />
+                  <QrCodeIcon size={16} color={ICON_COLORS.muted} weight="regular" />
                   <Text className="text-dark-400 text-sm ml-1">Scan QR</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
                   className="flex-row items-center bg-dark-800 rounded-lg px-3 py-2"
                   onPress={() => router.push("/contacts")}
                 >
-                  <AddressBook size={16} color={ICON_COLORS.muted} weight="regular" />
+                  <AddressBookIcon size={16} color={ICON_COLORS.muted} weight="regular" />
                   <Text className="text-dark-400 text-sm ml-1">Contacts</Text>
                 </TouchableOpacity>
               </View>
@@ -546,7 +546,7 @@ export default function SendScreen() {
               !addressError && (
                 <View className="mt-4 bg-yellow-900/20 border border-yellow-700/50 rounded-xl p-3">
                   <View className="flex-row items-start gap-2">
-                    <Warning size={20} color={ICON_COLORS.warning} weight="fill" />
+                    <WarningIcon size={20} color={ICON_COLORS.warning} weight="fill" />
                     <Text className="text-yellow-400 text-sm flex-1">
                       For full privacy, ask the recipient for their stealth address
                       (sip:...). Regular addresses can still receive private transfers
@@ -683,7 +683,7 @@ export default function SendScreen() {
         <View className="gap-4">
           <View testID="transaction-success" className="items-center py-6">
             <View className="w-20 h-20 bg-green-600/20 rounded-full items-center justify-center mb-4">
-              <CheckCircle size={48} color={ICON_COLORS.success} weight="fill" />
+              <CheckCircleIcon size={48} color={ICON_COLORS.success} weight="fill" />
             </View>
             <Text className="text-2xl font-bold text-white">{amount} SOL</Text>
             <Text className="text-green-400 mt-1">Successfully sent!</Text>
