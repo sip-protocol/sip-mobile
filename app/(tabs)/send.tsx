@@ -41,6 +41,7 @@ import { ICON_COLORS } from "@/constants/icons"
 import { usePrivacyProvider } from "@/hooks/usePrivacyProvider"
 import { useWalletStore } from "@/stores/wallet"
 import { useSettingsStore } from "@/stores/settings"
+import { useContactsStore } from "@/stores/contacts"
 import { useToastStore } from "@/stores/toast"
 import { useBalance } from "@/hooks/useBalance"
 import { Button, Modal, EmptyState } from "@/components/ui"
@@ -118,8 +119,12 @@ function formatUsdValue(amount: string, solPrice: number): string {
 // ============================================================================
 
 export default function SendScreen() {
-  // Handle scanned address from QR scanner
-  const { scannedAddress } = useLocalSearchParams<{ scannedAddress?: string }>()
+  // Handle params from QR scanner or contacts
+  const { scannedAddress, recipient: recipientParam, contactName } = useLocalSearchParams<{
+    scannedAddress?: string
+    recipient?: string
+    contactName?: string
+  }>()
 
   // Privacy Provider (supports Arcium, Privacy Cash, ShadowWire, etc.)
   const {
@@ -150,13 +155,19 @@ export default function SendScreen() {
   const [addressError, setAddressError] = useState<string | null>(null)
   const [amountError, setAmountError] = useState<string | null>(null)
 
-  // Reset on success
+  // Reset on success + record payment for contacts
   useEffect(() => {
     if (status === "confirmed" && txHash) {
       setShowConfirmModal(false)
       setShowSuccessModal(true)
+
+      // Record payment if recipient is a saved contact
+      const contact = useContactsStore.getState().getContactByAddress(recipient)
+      if (contact) {
+        useContactsStore.getState().recordPayment(contact.id)
+      }
     }
-  }, [status, txHash])
+  }, [status, txHash, recipient])
 
   const handleAmountChange = useCallback(
     (value: string) => {
@@ -191,6 +202,14 @@ export default function SendScreen() {
       handleRecipientChange(scannedAddress)
     }
   }, [scannedAddress, handleRecipientChange])
+
+  // Handle recipient param from contacts
+  useEffect(() => {
+    if (recipientParam) {
+      setRecipient(recipientParam)
+      handleRecipientChange(recipientParam)
+    }
+  }, [recipientParam, handleRecipientChange])
 
   const handleMaxAmount = useCallback(() => {
     const maxAmount = Math.max(0, balance - 0.001).toFixed(6) // Leave for fees
@@ -416,6 +435,15 @@ export default function SendScreen() {
               )}
             </View>
 
+            {/* Contact Name Banner */}
+            {contactName && (
+              <View testID="contact-name-banner" className="mt-6 bg-brand-900/20 border border-brand-700/50 rounded-xl p-3">
+                <Text className="text-brand-400 font-semibold text-base">
+                  Sending to {contactName}
+                </Text>
+              </View>
+            )}
+
             {/* Recipient Input */}
             <View className="mt-6">
               <View className="flex-row items-center justify-between mb-2">
@@ -460,7 +488,7 @@ export default function SendScreen() {
                 </TouchableOpacity>
                 <TouchableOpacity
                   className="flex-row items-center bg-dark-800 rounded-lg px-3 py-2"
-                  onPress={() => router.push("/settings/accounts")}
+                  onPress={() => router.push("/contacts")}
                 >
                   <AddressBook size={16} color={ICON_COLORS.muted} weight="regular" />
                   <Text className="text-dark-400 text-sm ml-1">Contacts</Text>
