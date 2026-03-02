@@ -110,6 +110,12 @@ export const TOKEN_LIST: TokenInfo[] = Object.values(TOKENS)
 
 export const POPULAR_TOKENS = ["SOL", "USDC", "USDT", "BONK", "JUP", "SKR"]
 
+/**
+ * Featured tokens displayed prominently on the Home dashboard.
+ * SOL (native) and SKR (Seeker) for MONOLITH hackathon bonus track.
+ */
+export const FEATURED_TOKENS = ["SOL", "SKR"]
+
 // ============================================================================
 // HELPERS
 // ============================================================================
