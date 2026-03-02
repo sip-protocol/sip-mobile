@@ -87,6 +87,9 @@ function FoundPaymentRow({ payment, onPress }: FoundPaymentRowProps) {
     <TouchableOpacity
       className="flex-row items-center py-3 border-b border-dark-800"
       onPress={onPress}
+      accessibilityRole="button"
+      accessibilityLabel={`New payment found, ${parseFloat(payment.amount).toFixed(4)} ${payment.token}`}
+      accessibilityHint="Opens payment details to claim"
     >
       <View className="w-10 h-10 bg-green-900/30 rounded-full items-center justify-center">
         <Coins size={20} color={ICON_COLORS.success} weight="fill" />
@@ -166,6 +169,8 @@ export default function ScanScreen() {
           <TouchableOpacity
             className="flex-row items-center"
             onPress={() => router.back()}
+            accessibilityRole="button"
+            accessibilityLabel="Go back"
           >
             <ArrowLeft size={24} color={ICON_COLORS.white} weight="bold" />
             <Text className="text-white ml-4 text-lg">Back</Text>
@@ -197,6 +202,8 @@ export default function ScanScreen() {
         <TouchableOpacity
           className="flex-row items-center"
           onPress={() => router.back()}
+          accessibilityRole="button"
+          accessibilityLabel="Go back"
         >
           <ArrowLeft size={24} color={ICON_COLORS.white} weight="bold" />
           <Text className="text-white ml-4 text-lg">Back</Text>
@@ -313,6 +320,9 @@ export default function ScanScreen() {
               <TouchableOpacity
                 className="mt-4 bg-green-900/20 border border-green-700 rounded-xl p-4"
                 onPress={() => router.push("/claim")}
+                accessibilityRole="button"
+                accessibilityLabel={`${unclaimedCount} unclaimed payment${unclaimedCount !== 1 ? "s" : ""}, ${unclaimedAmount.toFixed(4)} SOL`}
+                accessibilityHint="Opens the claim payments screen"
               >
                 <View className="flex-row items-center justify-between">
                   <View className="flex-row items-center gap-3">
@@ -357,7 +367,11 @@ export default function ScanScreen() {
                   <Text className="text-white font-semibold text-lg">
                     Newly Found Payments
                   </Text>
-                  <TouchableOpacity onPress={() => router.push("/claim")}>
+                  <TouchableOpacity
+                    onPress={() => router.push("/claim")}
+                    accessibilityRole="button"
+                    accessibilityLabel="Claim all found payments"
+                  >
                     <Text className="text-green-400 font-medium">
                       Claim All →
                     </Text>
@@ -375,6 +389,9 @@ export default function ScanScreen() {
                 <TouchableOpacity
                   className="mt-4 items-center"
                   onPress={() => router.push("/history")}
+                  accessibilityRole="button"
+                  accessibilityLabel="View all in history"
+                  accessibilityHint="Opens the full transaction history"
                 >
                   <Text className="text-brand-400">View All in History →</Text>
                 </TouchableOpacity>

@@ -76,6 +76,10 @@ function ClaimablePaymentRow({
       }`}
       onPress={onToggle}
       disabled={disabled}
+      accessibilityRole="checkbox"
+      accessibilityLabel={`Stealth payment, ${parseFloat(payment.amount).toFixed(4)} ${payment.token}`}
+      accessibilityHint="Toggles selection of this payment for claiming"
+      accessibilityState={{ checked: isSelected, disabled }}
     >
       {/* Selection Checkbox */}
       <View
@@ -328,6 +332,8 @@ export default function ClaimScreen() {
           <TouchableOpacity
             className="flex-row items-center"
             onPress={() => router.back()}
+            accessibilityRole="button"
+            accessibilityLabel="Go back"
           >
             <ArrowLeft size={24} color={ICON_COLORS.white} weight="bold" />
             <Text className="text-white ml-4 text-lg">Back</Text>
@@ -359,6 +365,8 @@ export default function ClaimScreen() {
         <TouchableOpacity
           className="flex-row items-center"
           onPress={() => router.back()}
+          accessibilityRole="button"
+          accessibilityLabel="Go back"
         >
           <ArrowLeft size={24} color={ICON_COLORS.white} weight="bold" />
           <Text className="text-white ml-4 text-lg">Back</Text>
@@ -430,6 +438,9 @@ export default function ClaimScreen() {
               <TouchableOpacity
                 className="mt-3 bg-red-800 rounded-lg py-2 items-center"
                 onPress={reset}
+                accessibilityRole="button"
+                accessibilityLabel="Try again"
+                accessibilityHint="Resets the claim process to try again"
               >
                 <Text className="text-white font-medium">Try Again</Text>
               </TouchableOpacity>
@@ -450,6 +461,8 @@ export default function ClaimScreen() {
                       : selectAll
                   }
                   disabled={isClaiming}
+                  accessibilityRole="button"
+                  accessibilityLabel={selectedIds.size === unclaimedPayments.length ? "Deselect all payments" : "Select all payments"}
                 >
                   <Text className="text-brand-400">
                     {selectedIds.size === unclaimedPayments.length

@@ -36,6 +36,9 @@ export function Toggle({
       onPress={() => !disabled && onValueChange(!value)}
       activeOpacity={0.7}
       disabled={disabled}
+      accessibilityRole="switch"
+      accessibilityLabel={label || "Toggle"}
+      accessibilityState={{ checked: value, disabled }}
     >
       {(label || description) && (
         <View className="flex-1 mr-4">
@@ -86,6 +89,10 @@ export function PrivacyToggle({
       onPress={() => !disabled && onValueChange(!value)}
       activeOpacity={0.7}
       disabled={disabled}
+      accessibilityRole="switch"
+      accessibilityLabel={value ? "Private mode enabled" : "Private mode disabled"}
+      accessibilityHint="Toggles privacy for this transaction"
+      accessibilityState={{ checked: value, disabled }}
     >
       <View className="flex-row items-center justify-between">
         <View className="flex-row items-center gap-3">

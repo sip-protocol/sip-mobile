@@ -117,6 +117,9 @@ function TransactionItem({ payment, onPress }: TransactionItemProps) {
     <TouchableOpacity
       className="flex-row items-center py-4 px-4 border-b border-dark-900"
       onPress={onPress}
+      accessibilityRole="button"
+      accessibilityLabel={`${isReceive ? "Received" : "Sent"} ${formatAmount(payment.amount, payment.type)} ${payment.token}, ${payment.status}`}
+      accessibilityHint="Opens transaction details"
     >
       {/* Icon */}
       <View
@@ -181,6 +184,9 @@ function FilterChip({ label, isActive, onPress }: FilterChipProps) {
         isActive ? "bg-brand-600" : "bg-dark-800"
       }`}
       onPress={onPress}
+      accessibilityRole="button"
+      accessibilityLabel={`Filter: ${label}`}
+      accessibilityState={{ selected: isActive }}
     >
       <Text className={isActive ? "text-white font-medium" : "text-dark-400"}>
         {label}
@@ -288,7 +294,11 @@ export default function HistoryScreen() {
           autoCorrect={false}
         />
         {searchQuery.length > 0 && (
-          <TouchableOpacity onPress={() => setSearchQuery("")}>
+          <TouchableOpacity
+            onPress={() => setSearchQuery("")}
+            accessibilityRole="button"
+            accessibilityLabel="Clear search"
+          >
             <X size={18} color={ICON_COLORS.inactive} weight="bold" />
           </TouchableOpacity>
         )}
@@ -373,6 +383,8 @@ export default function HistoryScreen() {
         <TouchableOpacity
           className="flex-row items-center"
           onPress={() => router.back()}
+          accessibilityRole="button"
+          accessibilityLabel="Go back"
         >
           <ArrowLeft size={24} color={ICON_COLORS.white} weight="bold" />
           <Text className="text-white ml-4 text-lg">Back</Text>

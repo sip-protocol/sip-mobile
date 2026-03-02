@@ -412,7 +412,13 @@ export default function SendScreen() {
             <View className="mt-6">
               <View className="flex-row items-center justify-between mb-2">
                 <Text className="text-dark-400 text-sm">Amount</Text>
-                <TouchableOpacity testID="max-button" onPress={handleMaxAmount}>
+                <TouchableOpacity
+                  testID="max-button"
+                  onPress={handleMaxAmount}
+                  accessibilityRole="button"
+                  accessibilityLabel="Use maximum amount"
+                  accessibilityHint="Sets the amount to your full available balance"
+                >
                   <Text className="text-brand-400 text-sm">MAX</Text>
                 </TouchableOpacity>
               </View>
@@ -487,6 +493,9 @@ export default function SendScreen() {
                   testID="scan-qr-button"
                   className="flex-row items-center bg-dark-800 rounded-lg px-3 py-2"
                   onPress={() => router.push("/send/scanner")}
+                  accessibilityRole="button"
+                  accessibilityLabel="Scan QR code"
+                  accessibilityHint="Opens the QR scanner to scan a recipient address"
                 >
                   <QrCodeIcon size={16} color={ICON_COLORS.muted} weight="regular" />
                   <Text className="text-dark-400 text-sm ml-1">Scan QR</Text>
@@ -494,6 +503,9 @@ export default function SendScreen() {
                 <TouchableOpacity
                   className="flex-row items-center bg-dark-800 rounded-lg px-3 py-2"
                   onPress={() => router.push("/contacts")}
+                  accessibilityRole="button"
+                  accessibilityLabel="Choose from contacts"
+                  accessibilityHint="Opens your contact list to select a recipient"
                 >
                   <AddressBookIcon size={16} color={ICON_COLORS.muted} weight="regular" />
                   <Text className="text-dark-400 text-sm ml-1">Contacts</Text>
@@ -510,6 +522,9 @@ export default function SendScreen() {
                 router.push("/(tabs)/settings")
               }}
               activeOpacity={0.7}
+              accessibilityRole="button"
+              accessibilityLabel={`Privacy level: ${getPrivacyLevelInfo(defaultPrivacyLevel).title}`}
+              accessibilityHint="Opens settings to change privacy level"
             >
               <Text className="text-dark-400 text-sm mb-3">Privacy Level</Text>
               {(() => {
@@ -704,6 +719,9 @@ export default function SendScreen() {
                 await Clipboard.setStringAsync(txHash)
                 addToast({ title: "Copied!", type: "success" })
               }}
+              accessibilityRole="button"
+              accessibilityLabel="Copy transaction hash"
+              accessibilityHint="Copies the transaction hash to clipboard"
             >
               <View className="flex-row justify-between items-center mb-1">
                 <Text className="text-dark-500 text-sm">Transaction Hash</Text>

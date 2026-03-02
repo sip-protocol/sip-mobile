@@ -134,6 +134,9 @@ function QuickAction({
         hapticLight()
         onPress()
       }}
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      accessibilityHint={sublabel}
     >
       <Icon
         size={28}
@@ -178,6 +181,9 @@ function TransactionRow({ payment, onPress }: TransactionRowProps) {
     <TouchableOpacity
       className="flex-row items-center py-3 border-b border-dark-900"
       onPress={onPress}
+      accessibilityRole="button"
+      accessibilityLabel={`${isReceive ? "Received" : "Sent"} ${parseFloat(payment.amount).toFixed(4)} ${payment.token}, ${payment.status}`}
+      accessibilityHint="Opens transaction details"
     >
       <View
         className={`w-10 h-10 rounded-full items-center justify-center ${
@@ -338,6 +344,9 @@ export default function HomeScreen() {
                 className="flex-row items-center mt-3 pt-3 border-t border-dark-800"
                 onPress={handleCopyAddress}
                 activeOpacity={0.7}
+                accessibilityRole="button"
+                accessibilityLabel="Copy wallet address"
+                accessibilityHint="Copies your wallet address to clipboard"
               >
                 <Text className="text-dark-500 text-sm">
                   {formatAddress(address)}
@@ -353,6 +362,9 @@ export default function HomeScreen() {
                 testID="setup-wallet-button"
                 className="mt-4 bg-brand-600 rounded-xl py-3 items-center"
                 onPress={() => router.push("/wallet-setup")}
+                accessibilityRole="button"
+                accessibilityLabel="Set up wallet"
+                accessibilityHint="Opens the wallet setup flow"
               >
                 <Text className="text-white font-semibold">Set Up Wallet</Text>
               </TouchableOpacity>
@@ -433,6 +445,9 @@ export default function HomeScreen() {
           <TouchableOpacity
             className="mt-6 bg-green-900/20 border border-green-700/50 rounded-xl p-4 flex-row items-center"
             onPress={() => router.push("/claim")}
+            accessibilityRole="button"
+            accessibilityLabel={`${unclaimedCount} unclaimed payment${unclaimedCount !== 1 ? "s" : ""}, ${unclaimedAmount.toFixed(4)} SOL`}
+            accessibilityHint="Opens the claim payments screen"
           >
             <View className="w-12 h-12 bg-green-900/30 rounded-full items-center justify-center">
               <CoinsIcon size={24} weight="duotone" color="#4ade80" />
@@ -489,7 +504,12 @@ export default function HomeScreen() {
               Recent Activity
             </Text>
             {privacyStats.total > 0 && (
-              <TouchableOpacity onPress={() => router.push("/history")}>
+              <TouchableOpacity
+                onPress={() => router.push("/history")}
+                accessibilityRole="button"
+                accessibilityLabel="View all transactions"
+                accessibilityHint="Opens the full transaction history"
+              >
                 <Text className="text-brand-400">View All</Text>
               </TouchableOpacity>
             )}

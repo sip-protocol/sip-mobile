@@ -155,6 +155,8 @@ function SettingsItem({ Icon, iconColor = ICON_COLORS.muted, title, subtitle, on
     <TouchableOpacity
       className="flex-row items-center p-4 bg-dark-900 border-b border-dark-800"
       onPress={onPress}
+      accessibilityRole="button"
+      accessibilityLabel={`${title}${subtitle ? `, ${subtitle}` : ""}`}
     >
       <View className="w-8 items-center mr-3">
         <Icon size={24} color={iconColor} weight="regular" />
@@ -203,6 +205,9 @@ function SettingsToggle({ Icon, iconColor = ICON_COLORS.muted, title, subtitle, 
         disabled={disabled}
         trackColor={{ false: '#3f3f46', true: '#8b5cf6' }}
         thumbColor={value ? '#fff' : '#71717a'}
+        accessibilityLabel={title}
+        accessibilityRole="switch"
+        accessibilityState={{ checked: value, disabled }}
       />
     </View>
   )

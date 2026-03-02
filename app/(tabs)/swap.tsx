@@ -147,6 +147,8 @@ function MainnetOnlyOverlay({ network, onSwitchNetwork, onGoBack }: MainnetOnlyO
           <TouchableOpacity
             className="py-3 items-center"
             onPress={onGoBack}
+            accessibilityRole="button"
+            accessibilityLabel="Go back"
           >
             <Text className="text-dark-400">Go Back</Text>
           </TouchableOpacity>
@@ -212,6 +214,9 @@ function TokenInput({
               <TouchableOpacity
                 className="ml-2 bg-brand-900/30 px-2 py-0.5 rounded"
                 onPress={handleMaxPress}
+                accessibilityRole="button"
+                accessibilityLabel="Use maximum balance"
+                accessibilityHint="Sets the input to your full available balance"
               >
                 <Text className="text-brand-400 text-xs font-medium">MAX</Text>
               </TouchableOpacity>
@@ -224,6 +229,9 @@ function TokenInput({
         <TouchableOpacity
           className="flex-row items-center bg-dark-800 rounded-xl px-3 py-2.5 mr-3"
           onPress={onTokenPress}
+          accessibilityRole="button"
+          accessibilityLabel={`Select ${direction === "from" ? "input" : "output"} token, currently ${token.symbol}`}
+          accessibilityHint="Opens the token selector"
         >
           <Text className="text-2xl mr-2">{getTokenIcon(token.symbol)}</Text>
           <Text className="text-white font-semibold text-lg">{token.symbol}</Text>
@@ -632,12 +640,18 @@ export default function SwapScreen() {
               <TouchableOpacity
                 className="bg-dark-800 p-2 rounded-lg"
                 onPress={() => router.push("/swap/history")}
+                accessibilityRole="button"
+                accessibilityLabel="Swap history"
+                accessibilityHint="Opens your swap transaction history"
               >
                 <ChartBar size={20} color={ICON_COLORS.muted} weight="regular" />
               </TouchableOpacity>
               <TouchableOpacity
                 className="bg-dark-800 p-2 rounded-lg"
                 onPress={() => setShowSlippageModal(true)}
+                accessibilityRole="button"
+                accessibilityLabel="Swap settings"
+                accessibilityHint="Opens slippage and swap settings"
               >
                 <GearSix size={20} color={ICON_COLORS.muted} weight="regular" />
               </TouchableOpacity>
@@ -660,6 +674,9 @@ export default function SwapScreen() {
             <TouchableOpacity
               className="bg-dark-800 border-4 border-dark-950 rounded-xl p-2"
               onPress={handleSwapDirection}
+              accessibilityRole="button"
+              accessibilityLabel="Swap token direction"
+              accessibilityHint="Swaps the input and output tokens"
             >
               <ArrowsDownUp size={24} color={ICON_COLORS.white} weight="bold" />
             </TouchableOpacity>
@@ -691,6 +708,10 @@ export default function SwapScreen() {
                 privacyLevel === "shielded" ? "transparent" : "shielded"
               )
             }
+            accessibilityRole="switch"
+            accessibilityLabel={privacyLevel === "shielded" ? "Private swap enabled" : "Public swap"}
+            accessibilityHint="Toggles between private and public swap"
+            accessibilityState={{ checked: privacyLevel === "shielded" }}
           >
             <View className="flex-row items-center justify-between">
               <View className="flex-row items-center">
@@ -759,6 +780,9 @@ export default function SwapScreen() {
                 onPress={refreshQuote}
                 disabled={isQuoteLoading}
                 className="px-3 py-1 bg-dark-800 rounded-lg"
+                accessibilityRole="button"
+                accessibilityLabel="Refresh quote"
+                accessibilityHint="Fetches a fresh swap quote"
               >
                 <Text className="text-dark-400 text-xs">
                   {isQuoteLoading ? "Loading..." : "Refresh"}
@@ -847,6 +871,9 @@ export default function SwapScreen() {
                   isSelected ? "bg-brand-900/30 border border-brand-700" : "bg-dark-800"
                 }`}
                 onPress={() => handleTokenSelect(token)}
+                accessibilityRole="button"
+                accessibilityLabel={`${token.symbol}, ${token.name}${isSelected ? ", selected" : ""}`}
+                accessibilityHint="Selects this token for the swap"
               >
                 <Text className="text-2xl mr-3">{getTokenIcon(symbol)}</Text>
                 <View className="flex-1">
@@ -871,6 +898,9 @@ export default function SwapScreen() {
                 params: { direction: tokenSelectorDirection, selected },
               })
             }}
+            accessibilityRole="button"
+            accessibilityLabel="View all tokens"
+            accessibilityHint="Opens the full token list"
           >
             <Text className="text-brand-400">View all tokens →</Text>
           </TouchableOpacity>
@@ -893,6 +923,9 @@ export default function SwapScreen() {
                   slippage === option ? "bg-brand-600" : "bg-dark-800"
                 }`}
                 onPress={() => setSlippage(option)}
+                accessibilityRole="button"
+                accessibilityLabel={`${option}% slippage`}
+                accessibilityState={{ selected: slippage === option }}
               >
                 <Text
                   className={`text-center font-medium ${
@@ -1025,12 +1058,16 @@ export default function SwapScreen() {
             <TouchableOpacity
               className="flex-1 bg-dark-800 py-3 rounded-xl items-center"
               onPress={() => setShowConfirmModal(false)}
+              accessibilityRole="button"
+              accessibilityLabel="Cancel swap"
             >
               <Text className="text-white font-medium">Cancel</Text>
             </TouchableOpacity>
             <TouchableOpacity
               className="flex-1 bg-brand-600 py-3 rounded-xl items-center"
               onPress={confirmSwap}
+              accessibilityRole="button"
+              accessibilityLabel="Confirm swap"
             >
               <Text className="text-white font-medium">Confirm Swap</Text>
             </TouchableOpacity>
@@ -1148,6 +1185,9 @@ export default function SwapScreen() {
               <TouchableOpacity
                 className="bg-dark-800 py-3 rounded-xl items-center"
                 onPress={handleViewExplorer}
+                accessibilityRole="link"
+                accessibilityLabel="View on Explorer"
+                accessibilityHint="Opens the transaction in a block explorer"
               >
                 <Text className="text-brand-400 font-medium">
                   View on Explorer
@@ -1159,6 +1199,8 @@ export default function SwapScreen() {
                 swapStatus === "success" ? "bg-brand-600" : "bg-dark-800"
               }`}
               onPress={handleResultClose}
+              accessibilityRole="button"
+              accessibilityLabel={swapStatus === "success" ? "Done" : "Close"}
             >
               <Text className="text-white font-medium">
                 {swapStatus === "success" ? "Done" : "Close"}
