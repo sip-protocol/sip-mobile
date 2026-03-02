@@ -32,9 +32,9 @@ import { useWalletStore } from "@/stores/wallet"
 import { useCustomTokensStore } from "@/stores/customTokens"
 import type { TokenInfo } from "@/types"
 import {
-  ArrowLeft,
-  MagnifyingGlass,
-  X,
+  ArrowLeftIcon,
+  MagnifyingGlassIcon,
+  XIcon,
 } from "phosphor-react-native"
 import { ICON_COLORS } from "@/constants/icons"
 
@@ -365,7 +365,7 @@ export default function TokenSelectorScreen() {
           className="p-2 -ml-2"
           onPress={() => router.back()}
         >
-          <ArrowLeft size={24} color={ICON_COLORS.white} weight="bold" />
+          <ArrowLeftIcon size={24} color={ICON_COLORS.white} weight="bold" />
         </TouchableOpacity>
         <Text className="flex-1 text-xl font-bold text-white text-center mr-8">
           Select Token
@@ -375,7 +375,7 @@ export default function TokenSelectorScreen() {
       {/* Search Input */}
       <View className="px-4 py-3">
         <View className="flex-row items-center bg-dark-900 border border-dark-800 rounded-xl px-4">
-          <MagnifyingGlass size={18} color={ICON_COLORS.inactive} weight="bold" />
+          <MagnifyingGlassIcon size={18} color={ICON_COLORS.inactive} weight="bold" />
           <TextInput
             className="flex-1 py-3 text-white text-base ml-2"
             placeholder="Search by name, symbol, or address"
@@ -388,7 +388,7 @@ export default function TokenSelectorScreen() {
           />
           {searchQuery.length > 0 && (
             <TouchableOpacity onPress={() => setSearchQuery("")}>
-              <X size={18} color={ICON_COLORS.inactive} weight="bold" />
+              <XIcon size={18} color={ICON_COLORS.inactive} weight="bold" />
             </TouchableOpacity>
           )}
         </View>
@@ -404,7 +404,7 @@ export default function TokenSelectorScreen() {
           ListEmptyComponent={
             <View className="items-center py-12">
               <View className="w-20 h-20 rounded-full bg-dark-800 items-center justify-center mb-4">
-                <MagnifyingGlass size={40} color={ICON_COLORS.inactive} weight="bold" />
+                <MagnifyingGlassIcon size={40} color={ICON_COLORS.inactive} weight="bold" />
               </View>
               <Text className="text-white font-medium">No tokens found</Text>
               <Text className="text-dark-500 text-sm mt-1">

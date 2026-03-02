@@ -22,21 +22,21 @@ import { SafeAreaView } from "react-native-safe-area-context"
 import { router } from "expo-router"
 import { useState } from "react"
 import {
-  ArrowLeft,
-  Camera,
-  Clock,
-  Eye,
-  EyeSlash,
-  FaceMask,
-  Fingerprint,
-  Key,
-  Lock,
-  Numpad,
-  PaperPlaneTilt,
-  Shield,
-  Timer,
-  Trash,
-  Coins,
+  ArrowLeftIcon,
+  CameraIcon,
+  ClockIcon,
+  EyeIcon,
+  EyeSlashIcon,
+  FaceMaskIcon,
+  FingerprintIcon,
+  KeyIcon,
+  LockIcon,
+  NumpadIcon,
+  PaperPlaneTiltIcon,
+  ShieldIcon,
+  TimerIcon,
+  TrashIcon,
+  CoinsIcon,
 } from "phosphor-react-native"
 import type { Icon as PhosphorIcon } from "phosphor-react-native"
 import { ICON_COLORS } from "@/constants/icons"
@@ -63,13 +63,13 @@ type BiometricIconType = "facial" | "fingerprint" | "iris" | "none"
 function getBiometricIcon(type: BiometricIconType): PhosphorIcon {
   switch (type) {
     case "facial":
-      return FaceMask
+      return FaceMaskIcon
     case "fingerprint":
-      return Fingerprint
+      return FingerprintIcon
     case "iris":
-      return Eye
+      return EyeIcon
     default:
-      return Lock
+      return LockIcon
   }
 }
 
@@ -304,13 +304,13 @@ export default function SecurityScreen() {
             className="flex-row items-center"
             onPress={() => router.back()}
           >
-            <ArrowLeft size={24} color={ICON_COLORS.white} weight="regular" />
+            <ArrowLeftIcon size={24} color={ICON_COLORS.white} weight="regular" />
             <Text className="text-white ml-4 text-lg">Back</Text>
           </TouchableOpacity>
         </View>
         <View className="flex-1 items-center justify-center px-6">
           <View className="w-20 h-20 bg-brand-900/30 rounded-full items-center justify-center mb-4">
-            <Lock size={40} color={ICON_COLORS.brand} weight="fill" />
+            <LockIcon size={40} color={ICON_COLORS.brand} weight="fill" />
           </View>
           <Text className="text-white font-semibold text-lg">Connect Wallet</Text>
           <Text className="text-dark-500 text-center mt-2">
@@ -346,7 +346,7 @@ export default function SecurityScreen() {
           className="flex-row items-center"
           onPress={() => router.back()}
         >
-          <ArrowLeft size={24} color={ICON_COLORS.white} weight="regular" />
+          <ArrowLeftIcon size={24} color={ICON_COLORS.white} weight="regular" />
           <Text className="text-white ml-4 text-lg">Back</Text>
         </TouchableOpacity>
         <Text className="text-xl font-bold text-white">Security</Text>
@@ -380,7 +380,7 @@ export default function SecurityScreen() {
               {biometricsEnabled && (
                 <>
                   <SettingRow
-                    Icon={PaperPlaneTilt}
+                    Icon={PaperPlaneTiltIcon}
                     iconColor={ICON_COLORS.cyan}
                     title="Require for sending"
                     subtitle="Authenticate before sending payments"
@@ -388,7 +388,7 @@ export default function SecurityScreen() {
                     onValueChange={(v) => setRequireBiometrics("send", v)}
                   />
                   <SettingRow
-                    Icon={Coins}
+                    Icon={CoinsIcon}
                     iconColor={ICON_COLORS.warning}
                     title="Require for claiming"
                     subtitle="Authenticate before claiming payments"
@@ -396,7 +396,7 @@ export default function SecurityScreen() {
                     onValueChange={(v) => setRequireBiometrics("claim", v)}
                   />
                   <SettingRow
-                    Icon={Key}
+                    Icon={KeyIcon}
                     iconColor={ICON_COLORS.orange}
                     title="Require for key export"
                     subtitle="Authenticate before exporting viewing keys"
@@ -411,11 +411,11 @@ export default function SecurityScreen() {
           {/* PIN Section */}
           <View className="mt-6">
             <Text className="text-dark-400 text-sm mb-2 uppercase">
-              PIN Lock
+              PIN LockIcon
             </Text>
             <View className="bg-dark-900 rounded-xl border border-dark-800 px-4">
               <SettingRow
-                Icon={Numpad}
+                Icon={NumpadIcon}
                 iconColor={ICON_COLORS.info}
                 title={pinEnabled ? "Change PIN" : "Set PIN"}
                 subtitle={
@@ -427,7 +427,7 @@ export default function SecurityScreen() {
               />
               {pinEnabled && (
                 <SettingRow
-                  Icon={Trash}
+                  Icon={TrashIcon}
                   iconColor={ICON_COLORS.error}
                   title="Remove PIN"
                   subtitle="Disable PIN authentication"
@@ -444,7 +444,7 @@ export default function SecurityScreen() {
             </Text>
             <View className="bg-dark-900 rounded-xl border border-dark-800 px-4">
               <SettingRow
-                Icon={Timer}
+                Icon={TimerIcon}
                 iconColor={ICON_COLORS.cyan}
                 title="Auto-lock"
                 subtitle="Lock app after inactivity"
@@ -453,7 +453,7 @@ export default function SecurityScreen() {
               />
               {autoLockEnabled && (
                 <SettingRow
-                  Icon={Clock}
+                  Icon={ClockIcon}
                   iconColor={ICON_COLORS.muted}
                   title="Lock after"
                   subtitle={formatAutoLockTimeout(autoLockTimeout)}
@@ -470,7 +470,7 @@ export default function SecurityScreen() {
             </Text>
             <View className="bg-dark-900 rounded-xl border border-dark-800 px-4">
               <SettingRow
-                Icon={EyeSlash}
+                Icon={EyeSlashIcon}
                 iconColor={ICON_COLORS.warning}
                 title="Hide balance in background"
                 subtitle="Blur balance when app is in background"
@@ -478,7 +478,7 @@ export default function SecurityScreen() {
                 onValueChange={setHideBalanceOnBackground}
               />
               <SettingRow
-                Icon={Camera}
+                Icon={CameraIcon}
                 iconColor={ICON_COLORS.error}
                 title="Screenshot protection"
                 subtitle="Prevent screenshots of sensitive screens"
@@ -491,7 +491,7 @@ export default function SecurityScreen() {
           {/* Info Card */}
           <View className="mt-6 mb-8 bg-brand-900/10 border border-brand-800/30 rounded-xl p-4">
             <View className="flex-row items-start gap-3">
-              <Shield size={24} color={ICON_COLORS.brand} weight="fill" />
+              <ShieldIcon size={24} color={ICON_COLORS.brand} weight="fill" />
               <View className="flex-1">
                 <Text className="text-brand-400 font-medium">
                   Your keys are secure

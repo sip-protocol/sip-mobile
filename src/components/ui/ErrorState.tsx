@@ -8,10 +8,10 @@
 import React from "react"
 import { View, Text, Pressable } from "react-native"
 import {
-  WarningCircle,
-  CloudSlash,
-  LockKey,
-  XCircle,
+  WarningCircleIcon,
+  CloudSlashIcon,
+  LockKeyIcon,
+  XCircleIcon,
 } from "phosphor-react-native"
 import type { Icon as PhosphorIcon } from "phosphor-react-native"
 import { ICONS, ICON_COLORS } from "@/constants/icons"
@@ -57,7 +57,7 @@ export function ErrorState({
   className = "",
 }: ErrorStateProps) {
   // Resolve icon component
-  const Icon = IconComponent || ICONS.status[iconName] || WarningCircle
+  const Icon = IconComponent || ICONS.status[iconName] || WarningCircleIcon
 
   // Resolve color
   const resolvedColor =
@@ -111,7 +111,7 @@ export function NetworkError({ onRetry }: { onRetry?: () => void }) {
     <ErrorState
       title="No Connection"
       message="Please check your internet connection and try again."
-      IconComponent={CloudSlash}
+      IconComponent={CloudSlashIcon}
       iconColor="warning"
       onRetry={onRetry}
     />
@@ -132,7 +132,7 @@ export function PermissionDenied({
     <ErrorState
       title="Permission Required"
       message={`Please grant ${permission} permission to continue.`}
-      IconComponent={LockKey}
+      IconComponent={LockKeyIcon}
       iconColor="brand"
       onRetry={onRetry}
     />
@@ -153,7 +153,7 @@ export function TransactionFailed({
     <ErrorState
       title="Transaction Failed"
       message={message || "The transaction could not be completed. Please try again."}
-      IconComponent={XCircle}
+      IconComponent={XCircleIcon}
       iconColor="error"
       onRetry={onRetry}
     />

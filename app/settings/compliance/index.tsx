@@ -16,18 +16,18 @@ import { usePrivacyStore } from "@/stores/privacy"
 import { useViewingKeys } from "@/hooks/useViewingKeys"
 import { Button } from "@/components/ui"
 import {
-  ArrowLeft,
-  MagnifyingGlass,
-  Bank,
-  CheckCircle,
-  Key,
-  ChartBar,
-  Eye,
-  ClipboardText,
-  Gear,
-  Link,
-  Briefcase,
-  CaretRight,
+  ArrowLeftIcon,
+  MagnifyingGlassIcon,
+  BankIcon,
+  CheckCircleIcon,
+  KeyIcon,
+  ChartBarIcon,
+  EyeIcon,
+  ClipboardTextIcon,
+  GearIcon,
+  LinkIcon,
+  BriefcaseIcon,
+  CaretRightIcon,
 } from "phosphor-react-native"
 import type { Icon as PhosphorIcon } from "phosphor-react-native"
 import { ICON_COLORS } from "@/constants/icons"
@@ -77,7 +77,7 @@ function FeatureCard({ icon: IconComponent, title, description, onPress, disable
           <Text className="text-white font-medium">{title}</Text>
           <Text className="text-dark-500 text-sm mt-1">{description}</Text>
         </View>
-        {!disabled && <CaretRight size={20} color={ICON_COLORS.inactive} weight="bold" />}
+        {!disabled && <CaretRightIcon size={20} color={ICON_COLORS.inactive} weight="bold" />}
         {disabled && (
           <View className="bg-dark-800 px-2 py-1 rounded">
             <Text className="text-dark-500 text-xs">Soon</Text>
@@ -112,13 +112,13 @@ export default function ComplianceScreen() {
             className="flex-row items-center"
             onPress={() => router.back()}
           >
-            <ArrowLeft size={24} color={ICON_COLORS.white} weight="bold" />
+            <ArrowLeftIcon size={24} color={ICON_COLORS.white} weight="bold" />
             <Text className="text-white ml-4 text-lg">Back</Text>
           </TouchableOpacity>
         </View>
         <View className="flex-1 items-center justify-center px-6">
           <View className="w-20 h-20 rounded-full bg-dark-800 items-center justify-center mb-4">
-            <MagnifyingGlass size={40} color={ICON_COLORS.inactive} weight="bold" />
+            <MagnifyingGlassIcon size={40} color={ICON_COLORS.inactive} weight="bold" />
           </View>
           <Text className="text-white font-semibold text-lg">Connect Wallet</Text>
           <Text className="text-dark-500 text-center mt-2">
@@ -170,13 +170,13 @@ export default function ComplianceScreen() {
           {/* Stats Row */}
           <View className="flex-row gap-3 mb-6">
             <StatCard
-              icon={CheckCircle}
+              icon={CheckCircleIcon}
               title="Compliant"
               value={compliantTxns}
               subtitle="transactions"
             />
             <StatCard
-              icon={Key}
+              icon={KeyIcon}
               title="Disclosures"
               value={activeDisclosures.length}
               subtitle="active keys"
@@ -185,13 +185,13 @@ export default function ComplianceScreen() {
 
           <View className="flex-row gap-3 mb-6">
             <StatCard
-              icon={ChartBar}
+              icon={ChartBarIcon}
               title="Compliance"
               value={`${complianceRate}%`}
               subtitle="rate"
             />
             <StatCard
-              icon={Eye}
+              icon={EyeIcon}
               title="Viewing Keys"
               value={disclosures.length}
               subtitle="generated"
@@ -204,28 +204,28 @@ export default function ComplianceScreen() {
           </Text>
 
           <FeatureCard
-            icon={Key}
+            icon={KeyIcon}
             title="Manage Viewing Keys"
             description="Create and share viewing keys with auditors"
             onPress={() => router.push("/settings/viewing-keys")}
           />
 
           <FeatureCard
-            icon={ClipboardText}
+            icon={ClipboardTextIcon}
             title="Export Audit Report"
             description="Generate PDF report of compliant transactions"
             disabled
           />
 
           <FeatureCard
-            icon={Gear}
+            icon={GearIcon}
             title="Disclosure Policies"
             description="Configure automatic disclosure rules"
             disabled
           />
 
           <FeatureCard
-            icon={Link}
+            icon={LinkIcon}
             title="Auditor Integration"
             description="Connect with verified audit providers"
             disabled
@@ -234,7 +234,7 @@ export default function ComplianceScreen() {
           {/* Info Card */}
           <View className="mt-6 mb-8 bg-green-900/10 border border-green-800/30 rounded-xl p-4">
             <View className="flex-row items-start gap-3">
-              <Briefcase size={24} color={ICON_COLORS.success} weight="fill" />
+              <BriefcaseIcon size={24} color={ICON_COLORS.success} weight="fill" />
               <View className="flex-1">
                 <Text className="text-green-400 font-medium">
                   Privacy + Compliance

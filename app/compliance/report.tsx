@@ -22,10 +22,10 @@ import { useCompliance } from "@/hooks"
 import { useToastStore } from "@/stores/toast"
 import type { ReportConfig } from "@/stores"
 import {
-  ArrowLeft,
-  CurrencyDollar,
-  Key,
-  ClipboardText,
+  ArrowLeftIcon,
+  CurrencyDollarIcon,
+  KeyIcon,
+  ClipboardTextIcon,
 } from "phosphor-react-native"
 import { ICON_COLORS } from "@/constants/icons"
 
@@ -213,7 +213,7 @@ export default function ReportGenerationScreen() {
       {/* Header */}
       <View className="flex-row items-center px-4 py-3 border-b border-dark-800">
         <TouchableOpacity onPress={() => router.back()} className="mr-3 p-2 -ml-2">
-          <ArrowLeft size={24} color={ICON_COLORS.white} weight="bold" />
+          <ArrowLeftIcon size={24} color={ICON_COLORS.white} weight="bold" />
         </TouchableOpacity>
         <Text className="text-white text-xl font-bold">Generate Report</Text>
       </View>
@@ -270,21 +270,21 @@ export default function ReportGenerationScreen() {
 
             <View className="bg-dark-900 rounded-xl px-4">
               <ToggleOption
-                icon={<CurrencyDollar size={24} color={ICON_COLORS.muted} weight="fill" />}
+                icon={<CurrencyDollarIcon size={24} color={ICON_COLORS.muted} weight="fill" />}
                 label="Transactions"
                 description="Payment and swap history"
                 enabled={includeTransactions}
                 onToggle={() => setIncludeTransactions(!includeTransactions)}
               />
               <ToggleOption
-                icon={<Key size={24} color={ICON_COLORS.muted} weight="fill" />}
+                icon={<KeyIcon size={24} color={ICON_COLORS.muted} weight="fill" />}
                 label="Disclosures"
                 description="Viewing key sharing history"
                 enabled={includeDisclosures}
                 onToggle={() => setIncludeDisclosures(!includeDisclosures)}
               />
               <ToggleOption
-                icon={<ClipboardText size={24} color={ICON_COLORS.muted} weight="fill" />}
+                icon={<ClipboardTextIcon size={24} color={ICON_COLORS.muted} weight="fill" />}
                 label="Audit Trail"
                 description="All compliance events"
                 enabled={includeAuditTrail}

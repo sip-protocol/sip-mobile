@@ -16,13 +16,13 @@ import { useToastStore } from "@/stores/toast"
 import { Modal } from "@/components/ui"
 import type { ViewingKeyDisclosure } from "@/types"
 import {
-  ArrowLeft,
-  ClipboardText,
-  MagnifyingGlass,
-  User,
-  FileText,
-  Key,
-  Prohibit,
+  ArrowLeftIcon,
+  ClipboardTextIcon,
+  MagnifyingGlassIcon,
+  UserIcon,
+  FileTextIcon,
+  KeyIcon,
+  ProhibitIcon,
 } from "phosphor-react-native"
 import type { Icon as PhosphorIcon } from "phosphor-react-native"
 import { ICON_COLORS } from "@/constants/icons"
@@ -33,10 +33,10 @@ import { ICON_COLORS } from "@/constants/icons"
 
 function getPurposeIcon(purpose: ViewingKeyDisclosure["purpose"]): PhosphorIcon {
   const icons: Record<ViewingKeyDisclosure["purpose"], PhosphorIcon> = {
-    compliance: ClipboardText,
-    audit: MagnifyingGlass,
-    personal: User,
-    other: FileText,
+    compliance: ClipboardTextIcon,
+    audit: MagnifyingGlassIcon,
+    personal: UserIcon,
+    other: FileTextIcon,
   }
   return icons[purpose]
 }
@@ -290,7 +290,7 @@ export default function DisclosuresScreen() {
     () => (
       <View className="items-center py-16">
         <View className="w-24 h-24 rounded-full bg-dark-800 items-center justify-center mb-4">
-          <Key size={48} color={ICON_COLORS.inactive} weight="fill" />
+          <KeyIcon size={48} color={ICON_COLORS.inactive} weight="fill" />
         </View>
         <Text className="text-white text-xl font-semibold mb-2">
           No Disclosures
@@ -321,7 +321,7 @@ export default function DisclosuresScreen() {
       <View className="flex-row items-center justify-between px-4 py-3 border-b border-dark-800">
         <View className="flex-row items-center">
           <TouchableOpacity onPress={() => router.back()} className="mr-3 p-2 -ml-2">
-            <ArrowLeft size={24} color={ICON_COLORS.white} weight="bold" />
+            <ArrowLeftIcon size={24} color={ICON_COLORS.white} weight="bold" />
           </TouchableOpacity>
           <Text className="text-white text-xl font-bold">Disclosures</Text>
         </View>
@@ -506,7 +506,7 @@ export default function DisclosuresScreen() {
       >
         <View className="items-center py-4">
           <View className="w-24 h-24 rounded-full bg-red-900/30 items-center justify-center mb-4">
-            <Prohibit size={48} color={ICON_COLORS.error} weight="fill" />
+            <ProhibitIcon size={48} color={ICON_COLORS.error} weight="fill" />
           </View>
           <Text className="text-white text-lg font-semibold text-center mb-2">
             Revoke Viewing Key Access?

@@ -16,13 +16,13 @@ import { useWalletStore, formatAddress } from "@/stores/wallet"
 import { usePrivacyStore } from "@/stores/privacy"
 import { Button } from "@/components/ui"
 import {
-  ArrowLeft,
-  ChartBar,
-  ShieldCheck,
-  Link,
-  MapPin,
-  FileText,
-  Lightbulb,
+  ArrowLeftIcon,
+  ChartBarIcon,
+  ShieldCheckIcon,
+  LinkIcon,
+  MapPinIcon,
+  FileTextIcon,
+  LightbulbIcon,
 } from "phosphor-react-native"
 import type { Icon as PhosphorIcon } from "phosphor-react-native"
 import { ICON_COLORS } from "@/constants/icons"
@@ -196,13 +196,13 @@ export default function PrivacyScoreScreen() {
             className="flex-row items-center"
             onPress={() => router.back()}
           >
-            <ArrowLeft size={24} color={ICON_COLORS.white} weight="bold" />
+            <ArrowLeftIcon size={24} color={ICON_COLORS.white} weight="bold" />
             <Text className="text-white ml-4 text-lg">Back</Text>
           </TouchableOpacity>
         </View>
         <View className="flex-1 items-center justify-center px-6">
           <View className="w-20 h-20 rounded-full bg-dark-800 items-center justify-center mb-4">
-            <ChartBar size={40} color={ICON_COLORS.inactive} weight="fill" />
+            <ChartBarIcon size={40} color={ICON_COLORS.inactive} weight="fill" />
           </View>
           <Text className="text-white font-semibold text-lg">Connect Wallet</Text>
           <Text className="text-dark-500 text-center mt-2">
@@ -227,7 +227,7 @@ export default function PrivacyScoreScreen() {
             className="flex-row items-center"
             onPress={() => router.back()}
           >
-            <ArrowLeft size={24} color={ICON_COLORS.white} weight="bold" />
+            <ArrowLeftIcon size={24} color={ICON_COLORS.white} weight="bold" />
             <Text className="text-white ml-4 text-lg">Back</Text>
           </TouchableOpacity>
         </View>
@@ -273,14 +273,14 @@ export default function PrivacyScoreScreen() {
           {/* Metrics Grid */}
           <View className="flex-row gap-3 mt-6">
             <MetricCard
-              icon={ShieldCheck}
+              icon={ShieldCheckIcon}
               title="Shielded"
               value={`${metrics.shieldedRatio}%`}
               subtitle="of transactions"
               valueColor={metrics.shieldedRatio >= 80 ? "text-green-400" : "text-yellow-400"}
             />
             <MetricCard
-              icon={Link}
+              icon={LinkIcon}
               title="Linkability"
               value={metrics.linkabilityRisk.charAt(0).toUpperCase() + metrics.linkabilityRisk.slice(1)}
               subtitle="risk level"
@@ -290,14 +290,14 @@ export default function PrivacyScoreScreen() {
 
           <View className="flex-row gap-3 mt-3">
             <MetricCard
-              icon={MapPin}
+              icon={MapPinIcon}
               title="Reused"
               value={metrics.addressReuse.toString()}
               subtitle="addresses"
               valueColor={metrics.addressReuse === 0 ? "text-green-400" : "text-orange-400"}
             />
             <MetricCard
-              icon={FileText}
+              icon={FileTextIcon}
               title="Total Txns"
               value={payments.length.toString()}
               subtitle="recorded"
@@ -317,7 +317,7 @@ export default function PrivacyScoreScreen() {
           {/* Info Card */}
           <View className="mt-6 mb-8 bg-brand-900/10 border border-brand-800/30 rounded-xl p-4">
             <View className="flex-row items-start gap-3">
-              <Lightbulb size={24} color={ICON_COLORS.brand} weight="fill" />
+              <LightbulbIcon size={24} color={ICON_COLORS.brand} weight="fill" />
               <View className="flex-1">
                 <Text className="text-brand-400 font-medium">
                   Why Privacy Matters

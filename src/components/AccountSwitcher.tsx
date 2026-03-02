@@ -8,14 +8,14 @@
 import { View, Text, TouchableOpacity, ScrollView } from "react-native"
 import { useState } from "react"
 import {
-  ShieldCheck,
-  DeviceMobile,
-  Ghost,
-  Wallet,
-  Check,
-  Plus,
-  GearSix,
-  CaretDown,
+  ShieldCheckIcon,
+  DeviceMobileIcon,
+  GhostIcon,
+  WalletIcon,
+  CheckIcon,
+  PlusIcon,
+  GearSixIcon,
+  CaretDownIcon,
 } from "phosphor-react-native"
 import type { Icon as PhosphorIcon } from "phosphor-react-native"
 import { useWalletStore, formatAddress } from "@/stores/wallet"
@@ -42,13 +42,13 @@ export function AccountSwitcher({ onAddAccount, onManageAccounts }: AccountSwitc
   const getProviderIcon = (providerType: string): PhosphorIcon => {
     switch (providerType) {
       case "privy":
-        return ShieldCheck
+        return ShieldCheckIcon
       case "mwa":
-        return DeviceMobile
+        return DeviceMobileIcon
       case "phantom":
-        return Ghost
+        return GhostIcon
       default:
-        return Wallet
+        return WalletIcon
     }
   }
 
@@ -93,7 +93,7 @@ export function AccountSwitcher({ onAddAccount, onManageAccounts }: AccountSwitc
           </View>
         )}
         <View className="ml-2">
-          <CaretDown size={16} color={ICON_COLORS.dark} weight="bold" />
+          <CaretDownIcon size={16} color={ICON_COLORS.dark} weight="bold" />
         </View>
       </TouchableOpacity>
 
@@ -132,7 +132,7 @@ export function AccountSwitcher({ onAddAccount, onManageAccounts }: AccountSwitc
                   </Text>
                 </View>
                 {account.id === activeAccountId && (
-                  <Check size={24} color={ICON_COLORS.brand} weight="bold" />
+                  <CheckIcon size={24} color={ICON_COLORS.brand} weight="bold" />
                 )}
               </TouchableOpacity>
             )
@@ -150,7 +150,7 @@ export function AccountSwitcher({ onAddAccount, onManageAccounts }: AccountSwitc
               }}
             >
               <View className="w-8 h-8 bg-brand-600/20 rounded-lg items-center justify-center">
-                <Plus size={20} color={ICON_COLORS.brand} weight="bold" />
+                <PlusIcon size={20} color={ICON_COLORS.brand} weight="bold" />
               </View>
               <Text className="text-brand-400 font-medium ml-3">Add Another Account</Text>
             </TouchableOpacity>
@@ -165,7 +165,7 @@ export function AccountSwitcher({ onAddAccount, onManageAccounts }: AccountSwitc
               }}
             >
               <View className="w-8 h-8 bg-dark-800 rounded-lg items-center justify-center">
-                <GearSix size={20} color={ICON_COLORS.muted} weight="regular" />
+                <GearSixIcon size={20} color={ICON_COLORS.muted} weight="regular" />
               </View>
               <Text className="text-dark-400 font-medium ml-3">Manage Accounts</Text>
             </TouchableOpacity>

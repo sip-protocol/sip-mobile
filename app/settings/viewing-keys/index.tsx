@@ -22,18 +22,18 @@ import { SafeAreaView } from "react-native-safe-area-context"
 import { router } from "expo-router"
 import { useState, useCallback } from "react"
 import {
-  ArrowLeft,
-  CheckCircle,
-  ClipboardText,
-  Export,
-  Eye,
-  FileText,
-  Info,
-  Key,
-  Lock,
-  MagnifyingGlass,
-  Plus,
-  User,
+  ArrowLeftIcon,
+  CheckCircleIcon,
+  ClipboardTextIcon,
+  ExportIcon,
+  EyeIcon,
+  FileTextIcon,
+  InfoIcon,
+  KeyIcon,
+  LockIcon,
+  MagnifyingGlassIcon,
+  PlusIcon,
+  UserIcon,
 } from "phosphor-react-native"
 import type { Icon as PhosphorIcon } from "phosphor-react-native"
 import { ICON_COLORS } from "@/constants/icons"
@@ -89,10 +89,10 @@ function getPurposeLabel(purpose: DisclosurePurpose): string {
 
 function getPurposeIcon(purpose: DisclosurePurpose): PhosphorIcon {
   const icons: Record<DisclosurePurpose, PhosphorIcon> = {
-    compliance: ClipboardText,
-    audit: MagnifyingGlass,
-    personal: User,
-    other: FileText,
+    compliance: ClipboardTextIcon,
+    audit: MagnifyingGlassIcon,
+    personal: UserIcon,
+    other: FileTextIcon,
   }
   return icons[purpose]
 }
@@ -191,7 +191,7 @@ function ImportedKeyRow({ importedKey, onRemove, onScan }: ImportedKeyRowProps) 
     <View className="py-4 border-b border-dark-800">
       <View className="flex-row items-start">
         <View className="w-10 h-10 bg-brand-900/30 rounded-full items-center justify-center">
-          <Key size={20} color={ICON_COLORS.brand} weight="fill" />
+          <KeyIcon size={20} color={ICON_COLORS.brand} weight="fill" />
         </View>
         <View className="flex-1 ml-3">
           <Text className="text-white font-medium">{importedKey.label}</Text>
@@ -218,7 +218,7 @@ function ImportedKeyRow({ importedKey, onRemove, onScan }: ImportedKeyRowProps) 
           className="bg-brand-900/20 px-3 py-1.5 rounded-lg flex-row items-center gap-1"
           onPress={onScan}
         >
-          <MagnifyingGlass size={14} color={ICON_COLORS.brand} weight="regular" />
+          <MagnifyingGlassIcon size={14} color={ICON_COLORS.brand} weight="regular" />
           <Text className="text-brand-400 text-sm">Scan</Text>
         </TouchableOpacity>
         <TouchableOpacity
@@ -459,13 +459,13 @@ export default function ViewingKeysScreen() {
             className="flex-row items-center"
             onPress={() => router.back()}
           >
-            <ArrowLeft size={24} color={ICON_COLORS.white} weight="regular" />
+            <ArrowLeftIcon size={24} color={ICON_COLORS.white} weight="regular" />
             <Text className="text-white ml-4 text-lg">Back</Text>
           </TouchableOpacity>
         </View>
         <View className="flex-1 items-center justify-center px-6">
           <View className="w-20 h-20 bg-brand-900/30 rounded-full items-center justify-center mb-4">
-            <Key size={40} color={ICON_COLORS.brand} weight="fill" />
+            <KeyIcon size={40} color={ICON_COLORS.brand} weight="fill" />
           </View>
           <Text className="text-white font-semibold text-lg">Connect Wallet</Text>
           <Text className="text-dark-500 text-center mt-2">
@@ -501,7 +501,7 @@ export default function ViewingKeysScreen() {
           className="flex-row items-center"
           onPress={() => router.back()}
         >
-          <ArrowLeft size={24} color={ICON_COLORS.white} weight="regular" />
+          <ArrowLeftIcon size={24} color={ICON_COLORS.white} weight="regular" />
           <Text className="text-white ml-4 text-lg">Back</Text>
         </TouchableOpacity>
         <Text className="text-xl font-bold text-white">Viewing Keys</Text>
@@ -521,7 +521,7 @@ export default function ViewingKeysScreen() {
               activeTab === "export" ? "text-white" : "text-dark-400"
             }`}
           >
-            Export
+            ExportIcon
           </Text>
         </TouchableOpacity>
         <TouchableOpacity
@@ -569,7 +569,7 @@ export default function ViewingKeysScreen() {
               <View className="bg-dark-900 rounded-2xl border border-dark-800 p-6">
                 <View className="items-center">
                   <View className="w-16 h-16 bg-brand-900/30 rounded-full items-center justify-center mb-4">
-                    <Key size={32} color={ICON_COLORS.brand} weight="fill" />
+                    <KeyIcon size={32} color={ICON_COLORS.brand} weight="fill" />
                   </View>
                   <Text className="text-white font-semibold text-lg">
                     Export Viewing Key
@@ -606,7 +606,7 @@ export default function ViewingKeysScreen() {
                       <ActivityIndicator size="small" color="#8b5cf6" />
                     ) : (
                       <>
-                        <ClipboardText size={18} color={ICON_COLORS.white} weight="regular" />
+                        <ClipboardTextIcon size={18} color={ICON_COLORS.white} weight="regular" />
                         <Text className="text-white font-medium">Copy</Text>
                       </>
                     )}
@@ -616,7 +616,7 @@ export default function ViewingKeysScreen() {
                     onPress={handleShare}
                     disabled={isExporting}
                   >
-                    <Export size={18} color={ICON_COLORS.white} weight="regular" />
+                    <ExportIcon size={18} color={ICON_COLORS.white} weight="regular" />
                     <Text className="text-white font-medium">Share</Text>
                   </TouchableOpacity>
                 </View>
@@ -626,7 +626,7 @@ export default function ViewingKeysScreen() {
               {activeDisclosures.length > 0 && (
                 <View className="mt-6 bg-green-900/10 border border-green-800/30 rounded-xl p-4">
                   <View className="flex-row items-center gap-3">
-                    <CheckCircle size={24} color={ICON_COLORS.success} weight="fill" />
+                    <CheckCircleIcon size={24} color={ICON_COLORS.success} weight="fill" />
                     <View className="flex-1">
                       <Text className="text-green-400 font-medium">
                         {activeDisclosures.length} Active Disclosure
@@ -644,7 +644,7 @@ export default function ViewingKeysScreen() {
               {/* Info Card */}
               <View className="mt-6 mb-8 bg-brand-900/10 border border-brand-800/30 rounded-xl p-4">
                 <View className="flex-row items-start gap-3">
-                  <Info size={24} color={ICON_COLORS.brand} weight="fill" />
+                  <InfoIcon size={24} color={ICON_COLORS.brand} weight="fill" />
                   <View className="flex-1">
                     <Text className="text-brand-400 font-medium">
                       What is a viewing key?
@@ -680,7 +680,7 @@ export default function ViewingKeysScreen() {
               ) : (
                 <View className="items-center py-12">
                   <View className="w-20 h-20 bg-dark-800 rounded-full items-center justify-center mb-4">
-                    <ClipboardText size={40} color={ICON_COLORS.muted} weight="regular" />
+                    <ClipboardTextIcon size={40} color={ICON_COLORS.muted} weight="regular" />
                   </View>
                   <Text className="text-white font-semibold text-lg">
                     No Disclosures Yet
@@ -695,7 +695,7 @@ export default function ViewingKeysScreen() {
               {/* Info Card */}
               <View className="mt-6 mb-8 bg-brand-900/10 border border-brand-800/30 rounded-xl p-4">
                 <View className="flex-row items-start gap-3">
-                  <Lock size={24} color={ICON_COLORS.brand} weight="fill" />
+                  <LockIcon size={24} color={ICON_COLORS.brand} weight="fill" />
                   <View className="flex-1">
                     <Text className="text-brand-400 font-medium">
                       Disclosure Records
@@ -718,7 +718,7 @@ export default function ViewingKeysScreen() {
                 className="bg-dark-800 py-3 rounded-xl items-center flex-row justify-center gap-2 mb-4"
                 onPress={() => setShowImportModal(true)}
               >
-                <Plus size={18} color={ICON_COLORS.white} weight="bold" />
+                <PlusIcon size={18} color={ICON_COLORS.white} weight="bold" />
                 <Text className="text-white font-medium">Import Viewing Key</Text>
               </TouchableOpacity>
 
@@ -736,7 +736,7 @@ export default function ViewingKeysScreen() {
               ) : (
                 <View className="items-center py-12">
                   <View className="w-20 h-20 bg-dark-800 rounded-full items-center justify-center mb-4">
-                    <MagnifyingGlass size={40} color={ICON_COLORS.muted} weight="regular" />
+                    <MagnifyingGlassIcon size={40} color={ICON_COLORS.muted} weight="regular" />
                   </View>
                   <Text className="text-white font-semibold text-lg">
                     No Imported Keys
@@ -751,7 +751,7 @@ export default function ViewingKeysScreen() {
               {/* Info Card */}
               <View className="mt-6 mb-8 bg-brand-900/10 border border-brand-800/30 rounded-xl p-4">
                 <View className="flex-row items-start gap-3">
-                  <Eye size={24} color={ICON_COLORS.brand} weight="fill" />
+                  <EyeIcon size={24} color={ICON_COLORS.brand} weight="fill" />
                   <View className="flex-1">
                     <Text className="text-brand-400 font-medium">
                       Imported Keys

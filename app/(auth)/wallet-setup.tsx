@@ -18,10 +18,10 @@ import { useEffect, useMemo, useState, useRef } from "react"
 import { useSettingsStore } from "@/stores/settings"
 import type { Icon as PhosphorIcon } from "phosphor-react-native"
 import {
-  Sparkle,
-  DownloadSimple,
-  LockKey,
-  ShieldCheck,
+  SparkleIcon,
+  DownloadSimpleIcon,
+  LockKeyIcon,
+  ShieldCheckIcon,
 } from "phosphor-react-native"
 import { ICON_COLORS } from "@/constants/icons"
 
@@ -40,7 +40,7 @@ interface SetupOption {
 const BASE_SETUP_OPTIONS: SetupOption[] = [
   {
     id: "create",
-    icon: Sparkle,
+    icon: SparkleIcon,
     title: "Create New Wallet",
     description: "Generate a new wallet with a secure seed phrase",
     route: "/create-wallet",
@@ -48,7 +48,7 @@ const BASE_SETUP_OPTIONS: SetupOption[] = [
   },
   {
     id: "import",
-    icon: DownloadSimple,
+    icon: DownloadSimpleIcon,
     title: "Import Existing Wallet",
     description: "Restore from seed phrase or private key",
     route: "/import-wallet",
@@ -57,7 +57,7 @@ const BASE_SETUP_OPTIONS: SetupOption[] = [
 
 const SEED_VAULT_OPTION: SetupOption = {
   id: "seed-vault",
-  icon: ShieldCheck,
+  icon: ShieldCheckIcon,
   title: "Use Seed Vault",
   description: "Hardware-backed security via TEE (Saga/Seeker)",
   route: "/seed-vault-setup" as Href,
@@ -227,7 +227,7 @@ export default function WalletSetupScreen() {
       <View className="px-6 pb-8">
         <View className="bg-dark-900 rounded-xl p-4 border border-dark-800">
           <View className="flex-row items-start">
-            <LockKey size={24} color={ICON_COLORS.brand} weight="fill" />
+            <LockKeyIcon size={24} color={ICON_COLORS.brand} weight="fill" />
             <View className="flex-1 ml-3">
               <Text className="text-white font-medium mb-1">
                 Your keys, your crypto

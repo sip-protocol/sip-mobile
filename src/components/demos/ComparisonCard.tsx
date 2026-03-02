@@ -12,7 +12,10 @@ import Animated, {
   withTiming,
   Easing,
 } from "react-native-reanimated"
-import { Eye, EyeSlash } from "phosphor-react-native"
+import {
+  EyeIcon,
+  EyeSlashIcon,
+} from "phosphor-react-native"
 import { usePrefersReducedMotion } from "@/hooks"
 import { ICON_COLORS } from "@/constants/icons"
 
@@ -57,7 +60,7 @@ export function ComparisonCard({
   }))
 
   const data = isPrivate ? privateData : publicData
-  const IconComponent = isPrivate ? EyeSlash : Eye
+  const IconComponent = isPrivate ? EyeSlashIcon : EyeIcon
   const iconColor = isPrivate ? ICON_COLORS.brand : ICON_COLORS.warning
 
   return (

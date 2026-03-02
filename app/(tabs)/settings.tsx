@@ -10,29 +10,29 @@ import { SafeAreaView } from 'react-native-safe-area-context'
 import { router } from 'expo-router'
 import Constants from 'expo-constants'
 import {
-  Wallet,
-  Key,
-  LockKey,
-  Shield,
-  ShieldCheck,
-  Eye,
-  Lock,
-  ChartBar,
-  MagnifyingGlass,
-  Bell,
-  Globe,
-  GlobeHemisphereWest,
-  Fire,
-  Lightning,
-  ArrowsClockwise,
-  Info,
-  BookOpen,
-  Plugs,
-  Bug,
-  Check,
-  Warning,
-  Sparkle,
-  Binoculars,
+  WalletIcon,
+  KeyIcon,
+  LockKeyIcon,
+  ShieldIcon,
+  ShieldCheckIcon,
+  EyeIcon,
+  LockIcon,
+  ChartBarIcon,
+  MagnifyingGlassIcon,
+  BellIcon,
+  GlobeIcon,
+  GlobeHemisphereWestIcon,
+  FireIcon,
+  LightningIcon,
+  ArrowsClockwiseIcon,
+  InfoIcon,
+  BookOpenIcon,
+  PlugsIcon,
+  BugIcon,
+  CheckIcon,
+  WarningIcon,
+  SparkleIcon,
+  BinocularsIcon,
 } from 'phosphor-react-native'
 import type { Icon as PhosphorIcon } from 'phosphor-react-native'
 import { ICON_COLORS } from '@/constants/icons'
@@ -61,21 +61,21 @@ const PRIVACY_LEVELS: PrivacyLevelOption[] = [
     id: 'shielded',
     name: 'Shielded',
     description: 'Full privacy - hidden sender, amount, recipient',
-    Icon: ShieldCheck,
+    Icon: ShieldCheckIcon,
     color: ICON_COLORS.brand,
   },
   {
     id: 'compliant',
     name: 'Compliant',
     description: 'Privacy with viewing key for auditors',
-    Icon: Lock,
+    Icon: LockIcon,
     color: ICON_COLORS.cyan,
   },
   {
     id: 'transparent',
     name: 'Transparent',
     description: 'No privacy - public transaction',
-    Icon: Eye,
+    Icon: EyeIcon,
     color: ICON_COLORS.muted,
   },
 ]
@@ -85,9 +85,9 @@ const PRIVACY_LEVELS: PrivacyLevelOption[] = [
 // ============================================================================
 
 const PROVIDER_ICONS: Record<string, { Icon: PhosphorIcon; color: string }> = {
-  'sip-native': { Icon: Plugs, color: ICON_COLORS.brand },
-  'privacy-cash': { Icon: Shield, color: ICON_COLORS.success },
-  'shadowwire': { Icon: Lightning, color: ICON_COLORS.yellow },
+  'sip-native': { Icon: PlugsIcon, color: ICON_COLORS.brand },
+  'privacy-cash': { Icon: ShieldIcon, color: ICON_COLORS.success },
+  'shadowwire': { Icon: LightningIcon, color: ICON_COLORS.yellow },
 }
 
 // ============================================================================
@@ -108,7 +108,7 @@ const RPC_PROVIDERS: RpcProviderOption[] = [
     id: 'helius',
     name: 'Helius',
     description: 'Fast RPC with DAS support',
-    Icon: Fire,
+    Icon: FireIcon,
     color: ICON_COLORS.orange,
     needsKey: false,
   },
@@ -116,7 +116,7 @@ const RPC_PROVIDERS: RpcProviderOption[] = [
     id: 'quicknode',
     name: 'QuickNode',
     description: 'Bring your own API key',
-    Icon: Lightning,
+    Icon: LightningIcon,
     color: ICON_COLORS.yellow,
     needsKey: true,
   },
@@ -124,7 +124,7 @@ const RPC_PROVIDERS: RpcProviderOption[] = [
     id: 'triton',
     name: 'Triton',
     description: 'Bring your own endpoint',
-    Icon: GlobeHemisphereWest,
+    Icon: GlobeHemisphereWestIcon,
     color: ICON_COLORS.blue,
     needsKey: true,
   },
@@ -132,7 +132,7 @@ const RPC_PROVIDERS: RpcProviderOption[] = [
     id: 'publicnode',
     name: 'PublicNode',
     description: 'Free public RPC',
-    Icon: Globe,
+    Icon: GlobeIcon,
     color: ICON_COLORS.muted,
     needsKey: false,
   },
@@ -253,7 +253,7 @@ export default function SettingsScreen() {
 
   // Get current privacy provider info (#73)
   const currentPrivacyProvider = PRIVACY_PROVIDERS.find((p) => p.id === privacyProvider) || PRIVACY_PROVIDERS[0]
-  const providerIconInfo = PROVIDER_ICONS[currentPrivacyProvider.id] || { Icon: Shield, color: ICON_COLORS.muted }
+  const providerIconInfo = PROVIDER_ICONS[currentPrivacyProvider.id] || { Icon: ShieldIcon, color: ICON_COLORS.muted }
 
   // Get app version
   const appVersion = Constants.expoConfig?.version || '0.1.0'
@@ -404,21 +404,21 @@ export default function SettingsScreen() {
           </Text>
           <View className="rounded-xl overflow-hidden mx-4">
             <SettingsItem
-              Icon={Wallet}
+              Icon={WalletIcon}
               iconColor={ICON_COLORS.brand}
               title="Accounts"
               subtitle={isConnected ? formatAddress(address) : 'Not connected'}
               onPress={() => router.push('/settings/accounts')}
             />
             <SettingsItem
-              Icon={Key}
+              Icon={KeyIcon}
               iconColor={ICON_COLORS.warning}
               title="Viewing Keys"
               subtitle={disclosureSubtitle}
               onPress={() => router.push('/settings/viewing-keys')}
             />
             <SettingsItem
-              Icon={LockKey}
+              Icon={LockKeyIcon}
               iconColor={ICON_COLORS.cyan}
               title="Security"
               subtitle="Biometrics & PIN"
@@ -448,14 +448,14 @@ export default function SettingsScreen() {
               onPress={() => setShowPrivacyLevelModal(true)}
             />
             <SettingsItem
-              Icon={ChartBar}
+              Icon={ChartBarIcon}
               iconColor={ICON_COLORS.purple}
               title="Privacy Score"
               subtitle="Check wallet exposure"
               onPress={() => router.push('/settings/privacy-score')}
             />
             <SettingsItem
-              Icon={MagnifyingGlass}
+              Icon={MagnifyingGlassIcon}
               iconColor={ICON_COLORS.blue}
               title="Compliance Dashboard"
               subtitle="For institutions"
@@ -463,7 +463,7 @@ export default function SettingsScreen() {
             />
             <SettingsToggle
               testID="background-scan-toggle"
-              Icon={Bell}
+              Icon={BellIcon}
               iconColor={backgroundScanEnabled ? ICON_COLORS.brand : ICON_COLORS.muted}
               title="Background Scanning"
               subtitle={backgroundScanEnabled ? `Active (${backgroundScanStatus})` : 'Notify when payments arrive'}
@@ -481,7 +481,7 @@ export default function SettingsScreen() {
           </Text>
           <View className="rounded-xl overflow-hidden mx-4">
             <SettingsItem
-              Icon={Globe}
+              Icon={GlobeIcon}
               iconColor={ICON_COLORS.success}
               title="Network"
               subtitle={
@@ -498,7 +498,7 @@ export default function SettingsScreen() {
               onPress={() => setShowRpcModal(true)}
             />
             <SettingsItem
-              Icon={Binoculars}
+              Icon={BinocularsIcon}
               iconColor={ICON_COLORS.info}
               title="Default Explorer"
               subtitle={defaultExplorer === 'solscan' ? 'Solscan' : 'Solana Explorer'}
@@ -514,7 +514,7 @@ export default function SettingsScreen() {
           </Text>
           <View className="rounded-xl overflow-hidden mx-4">
             <SettingsItem
-              Icon={ArrowsClockwise}
+              Icon={ArrowsClockwiseIcon}
               iconColor={ICON_COLORS.warning}
               title="Reset Onboarding"
               subtitle="Show education screens again"
@@ -530,21 +530,21 @@ export default function SettingsScreen() {
           </Text>
           <View className="rounded-xl overflow-hidden mx-4">
             <SettingsItem
-              Icon={Info}
+              Icon={InfoIcon}
               iconColor={ICON_COLORS.info}
               title="About SIP"
               subtitle={`v${appVersion}`}
               onPress={() => setShowAboutModal(true)}
             />
             <SettingsItem
-              Icon={BookOpen}
+              Icon={BookOpenIcon}
               iconColor={ICON_COLORS.brand}
               title="Documentation"
               subtitle="docs.sip-protocol.org"
               onPress={() => openUrl('https://docs.sip-protocol.org')}
             />
             <SettingsItem
-              Icon={Bug}
+              Icon={BugIcon}
               iconColor={ICON_COLORS.warning}
               title="Report Issue"
               subtitle="GitHub"
@@ -606,7 +606,7 @@ export default function SettingsScreen() {
                       <Text className="text-dark-400 text-sm">{provider.description}</Text>
                     </View>
                     {rpcProvider === provider.id && (
-                      <Check size={20} color={ICON_COLORS.brand} weight="bold" />
+                      <CheckIcon size={20} color={ICON_COLORS.brand} weight="bold" />
                     )}
                   </TouchableOpacity>
                 ))}
@@ -716,7 +716,7 @@ export default function SettingsScreen() {
                     <Text className="text-dark-400 text-sm">{net.desc}</Text>
                   </View>
                   {network === net.id && (
-                    <Check size={20} color={ICON_COLORS.brand} weight="bold" />
+                    <CheckIcon size={20} color={ICON_COLORS.brand} weight="bold" />
                   )}
                 </TouchableOpacity>
               ))}
@@ -724,7 +724,7 @@ export default function SettingsScreen() {
 
             {/* Warning for test networks */}
             <View className="mx-4 mb-4 p-3 bg-yellow-900/20 border border-yellow-700/30 rounded-xl flex-row items-start gap-2">
-              <Warning size={20} color={ICON_COLORS.warning} weight="fill" />
+              <WarningIcon size={20} color={ICON_COLORS.warning} weight="fill" />
               <Text className="text-yellow-500 text-sm flex-1">
                 Tokens on test networks (Devnet/Testnet) have no monetary value. Use Mainnet for real transactions.
               </Text>
@@ -795,7 +795,7 @@ export default function SettingsScreen() {
                     <Text className="text-dark-400 text-sm">{level.description}</Text>
                   </View>
                   {defaultPrivacyLevel === level.id && (
-                    <Check size={20} color={ICON_COLORS.brand} weight="bold" />
+                    <CheckIcon size={20} color={ICON_COLORS.brand} weight="bold" />
                   )}
                 </TouchableOpacity>
               ))}
@@ -825,7 +825,7 @@ export default function SettingsScreen() {
           <Pressable className="bg-dark-900 rounded-t-3xl" onPress={(e) => e.stopPropagation()}>
             <View className="p-6 items-center">
               <View className="w-20 h-20 bg-brand-900/30 rounded-full items-center justify-center mb-4">
-                <ShieldCheck size={48} color={ICON_COLORS.brand} weight="fill" />
+                <ShieldCheckIcon size={48} color={ICON_COLORS.brand} weight="fill" />
               </View>
               <Text className="text-2xl font-bold text-white">SIP Privacy</Text>
               <Text className="text-dark-400 mt-1">Version {appVersion}</Text>
@@ -897,7 +897,7 @@ export default function SettingsScreen() {
 
             <View className="p-4">
               {PRIVACY_PROVIDERS.map((provider) => {
-                const iconInfo = PROVIDER_ICONS[provider.id] || { Icon: Shield, color: ICON_COLORS.muted }
+                const iconInfo = PROVIDER_ICONS[provider.id] || { Icon: ShieldIcon, color: ICON_COLORS.muted }
                 return (
                   <TouchableOpacity
                     key={provider.id}
@@ -936,7 +936,7 @@ export default function SettingsScreen() {
                       <Text className="text-dark-400 text-sm">{provider.description}</Text>
                     </View>
                     {privacyProvider === provider.id && (
-                      <Check size={20} color={ICON_COLORS.brand} weight="bold" />
+                      <CheckIcon size={20} color={ICON_COLORS.brand} weight="bold" />
                     )}
                   </TouchableOpacity>
                 )
@@ -945,7 +945,7 @@ export default function SettingsScreen() {
 
             {/* Info about viewing keys */}
             <View className="mx-4 mb-4 p-3 bg-brand-900/20 border border-brand-700/30 rounded-xl flex-row items-start gap-2">
-              <Sparkle size={20} color={ICON_COLORS.brand} weight="fill" />
+              <SparkleIcon size={20} color={ICON_COLORS.brand} weight="fill" />
               <Text className="text-brand-400 text-sm flex-1">
                 SIP adds viewing keys to ALL providers for compliance-ready privacy.
               </Text>
@@ -1005,14 +1005,14 @@ export default function SettingsScreen() {
                   }}
                 >
                   <View className="w-8 items-center mr-3">
-                    <Binoculars size={24} color={ICON_COLORS.info} weight="regular" />
+                    <BinocularsIcon size={24} color={ICON_COLORS.info} weight="regular" />
                   </View>
                   <View className="flex-1">
                     <Text className="text-white font-medium">{explorer.name}</Text>
                     <Text className="text-dark-400 text-sm">{explorer.desc}</Text>
                   </View>
                   {defaultExplorer === explorer.id && (
-                    <Check size={20} color={ICON_COLORS.brand} weight="bold" />
+                    <CheckIcon size={20} color={ICON_COLORS.brand} weight="bold" />
                   )}
                 </TouchableOpacity>
               ))}

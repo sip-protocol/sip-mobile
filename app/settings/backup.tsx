@@ -12,12 +12,12 @@ import { Button, LoadingState } from "@/components/ui"
 import { useNativeWallet } from "@/hooks"
 import { copyToClipboardSecure, clearClipboard } from "@/utils/security"
 import {
-  ArrowLeft,
-  Warning,
-  LockKey,
-  CopySimple,
-  Check,
-  DeviceMobileCamera,
+  ArrowLeftIcon,
+  WarningIcon,
+  LockKeyIcon,
+  CopySimpleIcon,
+  CheckIcon,
+  DeviceMobileCameraIcon,
 } from "phosphor-react-native"
 import { ICON_COLORS } from "@/constants/icons"
 
@@ -92,7 +92,7 @@ export default function BackupWalletScreen() {
       {/* Header */}
       <View className="px-6 pt-4">
         <TouchableOpacity onPress={handleBack} className="mb-4 flex-row items-center">
-          <ArrowLeft size={20} color={ICON_COLORS.brand} weight="bold" />
+          <ArrowLeftIcon size={20} color={ICON_COLORS.brand} weight="bold" />
           <Text className="text-brand-500 ml-1">Back</Text>
         </TouchableOpacity>
 
@@ -112,7 +112,7 @@ export default function BackupWalletScreen() {
             {/* Security Warning */}
             <View className="bg-red-500/10 border border-red-500/30 rounded-xl p-4 mb-6">
               <View className="flex-row items-start">
-                <Warning size={20} color={ICON_COLORS.error} weight="fill" />
+                <WarningIcon size={20} color={ICON_COLORS.error} weight="fill" />
                 <View className="flex-1 ml-2">
                   <Text className="text-red-400 font-medium mb-1">
                     Do not share your recovery phrase
@@ -146,9 +146,9 @@ export default function BackupWalletScreen() {
                 className="mt-4 py-3 rounded-xl bg-dark-800 items-center flex-row justify-center"
               >
                 {copied ? (
-                  <Check size={18} color={ICON_COLORS.success} weight="bold" />
+                  <CheckIcon size={18} color={ICON_COLORS.success} weight="bold" />
                 ) : (
-                  <CopySimple size={18} color={ICON_COLORS.muted} weight="fill" />
+                  <CopySimpleIcon size={18} color={ICON_COLORS.muted} weight="fill" />
                 )}
                 <Text className="text-dark-300 ml-2">
                   {copied ? "Copied to clipboard" : "Copy to clipboard"}
@@ -169,7 +169,7 @@ export default function BackupWalletScreen() {
             {/* Hidden State */}
             <View className="bg-dark-900 rounded-2xl p-6 border border-dark-800 items-center">
               <View className="w-20 h-20 rounded-full bg-dark-800 items-center justify-center mb-4">
-                <LockKey size={40} color={ICON_COLORS.brand} weight="fill" />
+                <LockKeyIcon size={40} color={ICON_COLORS.brand} weight="fill" />
               </View>
               <Text className="text-white font-medium text-lg mb-2">
                 Protected Content
@@ -201,7 +201,7 @@ export default function BackupWalletScreen() {
       <View className="px-6 pb-8">
         <View className="bg-dark-900 rounded-xl p-4 border border-dark-800">
           <View className="flex-row items-center justify-center">
-            <DeviceMobileCamera size={18} color={ICON_COLORS.inactive} weight="fill" />
+            <DeviceMobileCameraIcon size={18} color={ICON_COLORS.inactive} weight="fill" />
             <Text className="text-dark-500 text-sm ml-2">
               Never take a screenshot of your recovery phrase
             </Text>

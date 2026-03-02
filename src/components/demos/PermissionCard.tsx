@@ -14,7 +14,9 @@ import Animated, {
   Easing,
 } from "react-native-reanimated"
 import type { Icon as PhosphorIcon } from "phosphor-react-native"
-import { CaretDown } from "phosphor-react-native"
+import {
+  CaretDownIcon,
+} from "phosphor-react-native"
 import { usePrefersReducedMotion } from "@/hooks"
 import { ICON_COLORS } from "@/constants/icons"
 
@@ -137,7 +139,7 @@ export function PermissionCard({
 
             {hasExpandable && (
               <Animated.View style={caretStyle}>
-                <CaretDown size={16} color={ICON_COLORS.muted} />
+                <CaretDownIcon size={16} color={ICON_COLORS.muted} />
               </Animated.View>
             )}
           </View>

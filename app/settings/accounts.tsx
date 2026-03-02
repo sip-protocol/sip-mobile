@@ -24,14 +24,14 @@ import { useNativeWallet } from "@/hooks"
 import { Button, Modal } from "@/components/ui"
 import type { StoredAccount } from "@/types"
 import {
-  ArrowLeft,
-  LockKey,
-  DeviceMobile,
-  Ghost,
-  CreditCard,
-  Check,
-  PencilSimple,
-  Trash,
+  ArrowLeftIcon,
+  LockKeyIcon,
+  DeviceMobileIcon,
+  GhostIcon,
+  CreditCardIcon,
+  CheckIcon,
+  PencilSimpleIcon,
+  TrashIcon,
 } from "phosphor-react-native"
 import type { Icon as PhosphorIcon } from "phosphor-react-native"
 import { ICON_COLORS } from "@/constants/icons"
@@ -110,13 +110,13 @@ export default function AccountsScreen() {
   const getProviderIcon = (providerType: string): PhosphorIcon => {
     switch (providerType) {
       case "privy":
-        return LockKey
+        return LockKeyIcon
       case "mwa":
-        return DeviceMobile
+        return DeviceMobileIcon
       case "phantom":
-        return Ghost
+        return GhostIcon
       default:
-        return CreditCard
+        return CreditCardIcon
     }
   }
 
@@ -149,7 +149,7 @@ export default function AccountsScreen() {
           className="flex-row items-center"
           onPress={() => router.back()}
         >
-          <ArrowLeft size={24} color={ICON_COLORS.white} weight="bold" />
+          <ArrowLeftIcon size={24} color={ICON_COLORS.white} weight="bold" />
           <Text className="text-white ml-4 text-lg">Back</Text>
         </TouchableOpacity>
       </View>
@@ -203,7 +203,7 @@ export default function AccountsScreen() {
                   </Text>
                 </View>
                 {account.id === activeAccountId && (
-                  <Check size={24} color={ICON_COLORS.brand} weight="bold" />
+                  <CheckIcon size={24} color={ICON_COLORS.brand} weight="bold" />
                 )}
               </TouchableOpacity>
 
@@ -241,14 +241,14 @@ export default function AccountsScreen() {
                   className="flex-1 flex-row items-center justify-center py-2 bg-dark-800 rounded-lg"
                   onPress={() => handleStartEdit(account)}
                 >
-                  <PencilSimple size={16} color={ICON_COLORS.inactive} weight="fill" />
+                  <PencilSimpleIcon size={16} color={ICON_COLORS.inactive} weight="fill" />
                   <Text className="text-dark-400 font-medium ml-2">Rename</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
                   className="flex-1 flex-row items-center justify-center py-2 bg-red-900/20 rounded-lg"
                   onPress={() => handleRemoveAccount(account)}
                 >
-                  <Trash size={16} color={ICON_COLORS.error} weight="fill" />
+                  <TrashIcon size={16} color={ICON_COLORS.error} weight="fill" />
                   <Text className="text-red-400 font-medium ml-2">Remove</Text>
                 </TouchableOpacity>
               </View>
