@@ -77,9 +77,9 @@ function getEventColor(type: AuditEventType): string {
 function getEventLabel(type: AuditEventType): string {
   const labels: Record<AuditEventType, string> = {
     key_export: "Key Export",
-    key_disclosure: "KeyIcon Disclosure",
-    key_revocation: "KeyIcon Revocation",
-    key_import: "KeyIcon Import",
+    key_disclosure: "Key Disclosure",
+    key_revocation: "Key Revocation",
+    key_import: "Key Import",
     payment_sent: "Payment Sent",
     payment_received: "Payment Received",
     payment_claimed: "Payment Claimed",
@@ -189,7 +189,7 @@ function EventItem({ event, onPress }: EventItemProps) {
 // ============================================================================
 
 export default function AuditTrailScreen() {
-  const { auditEvents } = useCompliance()
+  const { auditEvents, clearAuditTrail } = useCompliance()
   const { addToast } = useToastStore()
 
   const [filter, setFilter] = useState<FilterType>("all")
@@ -197,8 +197,6 @@ export default function AuditTrailScreen() {
   const [selectedEvent, setSelectedEvent] = useState<AuditEvent | null>(null)
   const [showDetailModal, setShowDetailModal] = useState(false)
   const [showClearConfirm, setShowClearConfirm] = useState(false)
-
-  const { clearAuditTrail } = useCompliance()
 
   const filteredEvents = useMemo(
     () => filterEvents(auditEvents, filter),

@@ -72,7 +72,7 @@ function ScoreCard({ score, label, colorClass, breakdown }: ScoreCardProps) {
       </View>
 
       {/* Breakdown */}
-      <View className="space-y-3">
+      <View className="gap-3">
         <BreakdownItem
           label="Transaction Privacy"
           value={breakdown.transactionPrivacy}

@@ -14,6 +14,7 @@ import { router } from "expo-router"
 import { useState, useEffect } from "react"
 import { Button, LoadingState } from "@/components/ui"
 import { useNativeWallet } from "@/hooks"
+import { deleteWallet as deleteWalletStorage } from "@/utils/keyStorage"
 import { copyToClipboardSecure } from "@/utils/security"
 import {
   ArrowLeftIcon,
@@ -61,10 +62,28 @@ export default function CreateWalletScreen() {
         setVerifyIndices(getVerificationIndices())
         setStep("display")
       } catch (err) {
+        const walletError = err as { code?: string; message?: string }
+
+        // If wallet already exists (stale state from incomplete setup),
+        // clear storage and retry once
+        if (walletError.code === "WALLET_EXISTS") {
+          try {
+            await deleteWalletStorage()
+            const result = await createWallet(12)
+            const words = result.mnemonic.split(" ")
+            setMnemonic(words)
+            setVerifyIndices(getVerificationIndices())
+            setStep("display")
+            return
+          } catch {
+            // Fall through to error handling
+          }
+        }
+
         setGenerateError(true)
         Alert.alert(
           "Error",
-          "Failed to create wallet. Please try again.",
+          walletError.message || "Failed to create wallet. Please try again.",
           [{ text: "Go Back", onPress: () => router.back() }]
         )
       }

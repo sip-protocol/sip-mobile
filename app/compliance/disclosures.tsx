@@ -146,10 +146,8 @@ function DisclosureItem({ disclosure, onPress, onRevoke }: DisclosureItemProps) 
           {isActive && (
             <TouchableOpacity
               className="mt-2 bg-red-500/20 px-2 py-1 rounded"
-              onPress={(e) => {
-                e.stopPropagation()
-                onRevoke()
-              }}
+              onPress={onRevoke}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
             >
               <Text className="text-red-400 text-xs">Revoke</Text>
             </TouchableOpacity>

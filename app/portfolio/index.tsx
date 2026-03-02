@@ -9,6 +9,7 @@
 
 import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator } from "react-native"
 import { SafeAreaView } from "react-native-safe-area-context"
+import { router } from "expo-router"
 import { ShieldCheckIcon } from "phosphor-react-native"
 import { ICON_COLORS } from "@/constants/icons"
 import { usePortfolioStore } from "@/stores/portfolio"
@@ -65,6 +66,7 @@ function TokenRow({
         <TouchableOpacity
           className="bg-brand-600 px-3 py-1.5 rounded-lg"
           activeOpacity={0.7}
+          onPress={() => router.push("/(tabs)/send")}
           accessibilityLabel={`Shield ${symbol}`}
           accessibilityHint="Navigate to shield this token for better privacy"
           accessibilityRole="button"

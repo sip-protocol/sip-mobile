@@ -143,7 +143,7 @@ export default function ComplianceScreen() {
           className="flex-row items-center"
           onPress={() => router.back()}
         >
-          <Text className="text-2xl text-white">←</Text>
+          <ArrowLeftIcon size={24} color={ICON_COLORS.white} weight="bold" />
           <Text className="text-white ml-4 text-lg">Back</Text>
         </TouchableOpacity>
         <Text className="text-xl font-bold text-white">Compliance</Text>

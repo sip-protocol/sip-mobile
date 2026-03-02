@@ -274,7 +274,7 @@ export default function ViewingKeysScreen() {
     setIsExporting(true)
     try {
       const exportString = await getExportString({
-        expiresInDays: expiresInDays ? parseInt(expiresInDays) : undefined,
+        expiresInDays: expiresInDays && !isNaN(parseInt(expiresInDays)) ? parseInt(expiresInDays) : undefined,
       })
 
       if (exportString) {
@@ -302,7 +302,7 @@ export default function ViewingKeysScreen() {
     setIsExporting(true)
     try {
       const exportString = await getExportString({
-        expiresInDays: expiresInDays ? parseInt(expiresInDays) : undefined,
+        expiresInDays: expiresInDays && !isNaN(parseInt(expiresInDays)) ? parseInt(expiresInDays) : undefined,
       })
 
       if (exportString) {
@@ -337,7 +337,7 @@ export default function ViewingKeysScreen() {
       recipientName: recipientName.trim(),
       purpose,
       note: note.trim() || undefined,
-      expiresInDays: expiresInDays ? parseInt(expiresInDays) : undefined,
+      expiresInDays: expiresInDays && !isNaN(parseInt(expiresInDays)) ? parseInt(expiresInDays) : undefined,
     })
 
     addToast({
@@ -521,7 +521,7 @@ export default function ViewingKeysScreen() {
               activeTab === "export" ? "text-white" : "text-dark-400"
             }`}
           >
-            ExportIcon
+            Export
           </Text>
         </TouchableOpacity>
         <TouchableOpacity

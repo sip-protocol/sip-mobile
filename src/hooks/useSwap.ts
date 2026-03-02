@@ -399,10 +399,7 @@ export function useSwap(): SwapResult {
         // Step 2: Request wallet signature
         setStatus("signing")
 
-        // Step 3: Submit transaction
-        setStatus("submitting")
-
-        // Execute real Jupiter swap
+        // Execute real Jupiter swap (transitions to submitting after signing)
         const signature = await executeJupiterSwap(
           jupiterQuote,
           address,
@@ -411,6 +408,8 @@ export function useSwap(): SwapResult {
             if (!signed) {
               throw new Error("Transaction signing rejected")
             }
+            // Step 3: Signed — now submitting
+            setStatus("submitting")
             return signed
           },
           network

@@ -411,7 +411,7 @@ export default function SecurityScreen() {
           {/* PIN Section */}
           <View className="mt-6">
             <Text className="text-dark-400 text-sm mb-2 uppercase">
-              PIN LockIcon
+              PIN Lock
             </Text>
             <View className="bg-dark-900 rounded-xl border border-dark-800 px-4">
               <SettingRow

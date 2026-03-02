@@ -26,6 +26,7 @@ import type { StoredAccount } from "@/types"
 import {
   ArrowLeftIcon,
   LockKeyIcon,
+  KeyIcon,
   DeviceMobileIcon,
   GhostIcon,
   CreditCardIcon,
@@ -109,7 +110,9 @@ export default function AccountsScreen() {
 
   const getProviderIcon = (providerType: string): PhosphorIcon => {
     switch (providerType) {
-      case "privy":
+      case "native":
+        return KeyIcon
+      case "seed-vault":
         return LockKeyIcon
       case "mwa":
         return DeviceMobileIcon
@@ -122,8 +125,10 @@ export default function AccountsScreen() {
 
   const getProviderLabel = (providerType: string): string => {
     switch (providerType) {
-      case "privy":
-        return "Embedded Wallet"
+      case "native":
+        return "Native Wallet"
+      case "seed-vault":
+        return "Saga Seed Vault"
       case "mwa":
         return "Mobile Wallet Adapter"
       case "phantom":

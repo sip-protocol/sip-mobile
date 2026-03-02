@@ -193,9 +193,16 @@ function TokenInput({
   isOutput,
   isLoading,
 }: TokenInputProps) {
+  const SOL_FEE_RESERVE = 0.01
   const handleMaxPress = () => {
     if (balance && onAmountChange) {
-      onAmountChange(balance)
+      // Reserve SOL for transaction fees when swapping SOL
+      if (token.symbol === "SOL") {
+        const maxAmount = Math.max(0, parseFloat(balance) - SOL_FEE_RESERVE)
+        onAmountChange(maxAmount > 0 ? maxAmount.toString() : "0")
+      } else {
+        onAmountChange(balance)
+      }
     }
   }
 
@@ -291,7 +298,10 @@ function SwapDetails({ quote, slippage }: SwapDetailsProps) {
         <Text className="text-dark-400 text-sm">Rate</Text>
         <Text className="text-white text-sm">
           1 {inputToken.symbol} ≈{" "}
-          {(parseFloat(quote.outputAmount) / parseFloat(quote.inputAmount || "1")).toFixed(4)}{" "}
+          {(parseFloat(quote.inputAmount) > 0
+            ? (parseFloat(quote.outputAmount) / parseFloat(quote.inputAmount)).toFixed(4)
+            : "0.0000"
+          )}{" "}
           {outputToken.symbol}
         </Text>
       </View>
@@ -393,6 +403,14 @@ export default function SwapScreen() {
   const [showExecutingModal, setShowExecutingModal] = useState(false)
   const [showResultModal, setShowResultModal] = useState(false)
 
+  // Saved swap details for result modal (prevents stale data after form reset)
+  const [completedSwap, setCompletedSwap] = useState<{
+    fromAmount: string
+    fromSymbol: string
+    toAmount: string
+    toSymbol: string
+  } | null>(null)
+
   // Swap execution hook
   const {
     status: swapStatus,
@@ -488,14 +506,18 @@ export default function SwapScreen() {
   // Calculate USD values
   const fromUsdValue = useMemo(() => {
     if (!fromAmount || !fromBalance?.usdValue) return 0
-    const ratio = parseFloat(fromAmount) / parseFloat(fromBalance.balance)
+    const bal = parseFloat(fromBalance.balance)
+    if (bal === 0) return 0
+    const ratio = parseFloat(fromAmount) / bal
     return fromBalance.usdValue * ratio
   }, [fromAmount, fromBalance])
 
   const toUsdValue = useMemo(() => {
     if (!quote?.outputAmount || quote.outputAmount === "0") return 0
     if (!toBalance?.usdValue) return 0
-    const ratio = parseFloat(quote.outputAmount) / parseFloat(toBalance.balance)
+    const bal = parseFloat(toBalance.balance)
+    if (bal === 0) return 0
+    const ratio = parseFloat(quote.outputAmount) / bal
     return toBalance.usdValue * ratio
   }, [quote?.outputAmount, toBalance])
 
@@ -538,6 +560,12 @@ export default function SwapScreen() {
     }
     setShowTokenSelector(false)
   }
+
+  const handleAmountChange = useCallback((text: string) => {
+    // Sanitize: allow only digits and one decimal point
+    const sanitized = text.replace(/[^0-9.]/g, "").replace(/(\..*)\./g, "$1")
+    setFromAmount(sanitized)
+  }, [])
 
   const handleSwapDirection = () => {
     const tempToken = fromToken
@@ -583,6 +611,14 @@ export default function SwapScreen() {
       privacyLevel,
     })
 
+    // Save swap details before resetting form
+    setCompletedSwap({
+      fromAmount,
+      fromSymbol: fromToken.symbol,
+      toAmount: quote?.outputAmount ?? "0",
+      toSymbol: toToken.symbol,
+    })
+
     // Show result modal
     setShowExecutingModal(false)
     setShowResultModal(true)
@@ -595,6 +631,7 @@ export default function SwapScreen() {
 
   const handleResultClose = () => {
     setShowResultModal(false)
+    setCompletedSwap(null)
     resetSwap()
   }
 
@@ -663,7 +700,7 @@ export default function SwapScreen() {
             direction="from"
             token={fromToken}
             amount={fromAmount}
-            onAmountChange={setFromAmount}
+            onAmountChange={handleAmountChange}
             onTokenPress={() => handleTokenPress("from")}
             balance={fromBalance?.balance}
             usdValue={fromUsdValue}
@@ -1008,8 +1045,9 @@ export default function SwapScreen() {
               <Text className="text-dark-400">Rate</Text>
               <Text className="text-white">
                 1 {fromToken.symbol} ={" "}
-                {(parseFloat(quote?.outputAmount ?? "1") / parseFloat(fromAmount || "1")).toFixed(
-                  4
+                {(parseFloat(fromAmount) > 0
+                  ? (parseFloat(quote?.outputAmount ?? "0") / parseFloat(fromAmount)).toFixed(4)
+                  : "0.0000"
                 )}{" "}
                 {toToken.symbol}
               </Text>
@@ -1142,11 +1180,11 @@ export default function SwapScreen() {
               </Text>
               <View className="flex-row items-center mt-2">
                 <Text className="text-dark-400">
-                  {fromAmount} {fromToken.symbol}
+                  {completedSwap?.fromAmount ?? fromAmount} {completedSwap?.fromSymbol ?? fromToken.symbol}
                 </Text>
                 <Text className="text-dark-500 mx-2">→</Text>
                 <Text className="text-green-400">
-                  {quote?.outputAmount ?? "0"} {toToken.symbol}
+                  {completedSwap?.toAmount ?? quote?.outputAmount ?? "0"} {completedSwap?.toSymbol ?? toToken.symbol}
                 </Text>
               </View>
 
