@@ -92,6 +92,14 @@ export const TOKENS: Record<string, TokenInfo> = {
     logoUri: "https://raw.githubusercontent.com/solana-labs/token-list/main/assets/mainnet/orcaEKTdK7LKz57vaAYr9QeNsVEPfiu6QeMU1kektZE/logo.png",
     coingeckoId: "orca",
   },
+  SKR: {
+    symbol: "SKR",
+    name: "Seeker",
+    mint: "SKRbvo6Gf7GondiT3BbTfuRDPqLWei4j2Qy2NPGZhW3",
+    decimals: 6,
+    logoUri: "https://coin-images.coingecko.com/coins/images/70974/small/seeker-logo.jpg",
+    coingeckoId: "seeker",
+  },
 }
 
 // ============================================================================
@@ -100,7 +108,7 @@ export const TOKENS: Record<string, TokenInfo> = {
 
 export const TOKEN_LIST: TokenInfo[] = Object.values(TOKENS)
 
-export const POPULAR_TOKENS = ["SOL", "USDC", "USDT", "BONK", "JUP"]
+export const POPULAR_TOKENS = ["SOL", "USDC", "USDT", "BONK", "JUP", "SKR"]
 
 // ============================================================================
 // HELPERS
