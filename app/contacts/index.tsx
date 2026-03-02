@@ -11,7 +11,7 @@
 import { View, Text, ScrollView, TouchableOpacity } from "react-native"
 import { SafeAreaView } from "react-native-safe-area-context"
 import { router } from "expo-router"
-import { Plus, Star, PaperPlaneTilt, UserCircle } from "phosphor-react-native"
+import { PlusIcon, StarIcon, PaperPlaneTiltIcon, UserCircleIcon } from "phosphor-react-native"
 import { ICON_COLORS } from "@/constants/icons"
 import { useContactsStore } from "@/stores/contacts"
 import { sortContacts, truncateAddress } from "@/utils/contacts"
@@ -44,7 +44,7 @@ function ContactRow({ contact }: { contact: Contact }) {
     >
       {/* Avatar */}
       <View className="w-11 h-11 bg-dark-800 rounded-full items-center justify-center mr-3">
-        <UserCircle size={28} color={ICON_COLORS.muted} weight="regular" />
+        <UserCircleIcon size={28} color={ICON_COLORS.muted} weight="regular" />
       </View>
 
       {/* Name + Address */}
@@ -54,7 +54,7 @@ function ContactRow({ contact }: { contact: Contact }) {
             {contact.name}
           </Text>
           {contact.isFavorite && (
-            <Star size={14} color={ICON_COLORS.warning} weight="fill" />
+            <StarIcon size={14} color={ICON_COLORS.warning} weight="fill" />
           )}
         </View>
         <Text className="text-dark-400 text-sm mt-0.5" numberOfLines={1}>
@@ -65,7 +65,7 @@ function ContactRow({ contact }: { contact: Contact }) {
       {/* Payment count badge */}
       {contact.paymentCount > 0 && (
         <View className="flex-row items-center gap-1 bg-dark-800 px-2.5 py-1 rounded-lg">
-          <PaperPlaneTilt size={12} color={ICON_COLORS.brand} weight="fill" />
+          <PaperPlaneTiltIcon size={12} color={ICON_COLORS.brand} weight="fill" />
           <Text className="text-dark-300 text-xs font-medium">
             {contact.paymentCount}
           </Text>
@@ -99,7 +99,7 @@ export default function ContactListScreen() {
           accessibilityHint="Opens the add contact form"
           accessibilityRole="button"
         >
-          <Plus size={20} color="#ffffff" weight="bold" />
+          <PlusIcon size={20} color="#ffffff" weight="bold" />
         </TouchableOpacity>
       </View>
 
@@ -123,7 +123,7 @@ export default function ContactListScreen() {
           {favorites.length > 0 && (
             <View className="mb-4">
               <View className="flex-row items-center gap-1.5 mb-3">
-                <Star size={16} color={ICON_COLORS.warning} weight="fill" />
+                <StarIcon size={16} color={ICON_COLORS.warning} weight="fill" />
                 <Text className="text-dark-400 text-sm font-medium">Favorites</Text>
               </View>
               {favorites.map((contact) => (

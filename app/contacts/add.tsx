@@ -13,7 +13,7 @@ import { View, Text, ScrollView, KeyboardAvoidingView, Platform, Keyboard } from
 import { SafeAreaView } from "react-native-safe-area-context"
 import { useState, useCallback } from "react"
 import { router } from "expo-router"
-import { ArrowLeft, UserPlus } from "phosphor-react-native"
+import { ArrowLeftIcon, UserPlusIcon } from "phosphor-react-native"
 import { TouchableOpacity } from "react-native"
 import { ICON_COLORS } from "@/constants/icons"
 import { useContactsStore } from "@/stores/contacts"
@@ -135,7 +135,7 @@ export default function AddContactScreen() {
             accessibilityLabel="Go back"
             accessibilityRole="button"
           >
-            <ArrowLeft size={20} color="#ffffff" weight="bold" />
+            <ArrowLeftIcon size={20} color="#ffffff" weight="bold" />
           </TouchableOpacity>
           <View className="flex-1">
             <Text className="text-2xl font-bold text-white">Add Contact</Text>
@@ -144,7 +144,7 @@ export default function AddContactScreen() {
             </Text>
           </View>
           <View className="w-10 h-10 bg-brand-900/30 rounded-full items-center justify-center">
-            <UserPlus size={20} color={ICON_COLORS.brand} weight="regular" />
+            <UserPlusIcon size={20} color={ICON_COLORS.brand} weight="regular" />
           </View>
         </View>
 
