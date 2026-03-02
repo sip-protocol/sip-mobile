@@ -72,3 +72,10 @@ export {
   calculateWalletPrivacyScore,
 } from "./privacyScore"
 export type { TokenPrivacyInput, TokenScoreEntry } from "./privacyScore"
+
+// Payment request utilities
+export {
+  createPaymentRequest,
+  parsePaymentRequest,
+} from "./paymentRequest"
+export type { PaymentRequestParams } from "./paymentRequest"
