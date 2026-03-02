@@ -65,3 +65,10 @@ export {
   getExplorerName,
 } from "./explorer"
 export type { Network } from "./explorer"
+
+// Privacy score utilities
+export {
+  calculateTokenPrivacyScore,
+  calculateWalletPrivacyScore,
+} from "./privacyScore"
+export type { TokenPrivacyInput, TokenScoreEntry } from "./privacyScore"
