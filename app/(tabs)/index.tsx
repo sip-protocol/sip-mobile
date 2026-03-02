@@ -12,6 +12,7 @@ import { SafeAreaView } from "react-native-safe-area-context"
 import { router } from "expo-router"
 import { useCallback, useState, useMemo, useEffect } from "react"
 import { markPerformance } from "@/utils/performance"
+import { hapticLight } from "@/utils/haptics"
 
 // Mark when home screen module loads
 markPerformance("home_module_load")
@@ -129,7 +130,10 @@ function QuickAction({
           ? "bg-brand-900/20 border border-brand-800/30"
           : "bg-dark-900 border border-dark-800"
       }`}
-      onPress={onPress}
+      onPress={() => {
+        hapticLight()
+        onPress()
+      }}
     >
       <Icon
         size={28}

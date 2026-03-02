@@ -79,3 +79,15 @@ export {
   parsePaymentRequest,
 } from "./paymentRequest"
 export type { PaymentRequestParams } from "./paymentRequest"
+
+// Haptics utilities
+export {
+  hapticLight,
+  hapticMedium,
+  hapticHeavy,
+  hapticSuccess,
+  hapticWarning,
+  hapticError,
+  triggerHaptic,
+} from "./haptics"
+export type { HapticType } from "./haptics"

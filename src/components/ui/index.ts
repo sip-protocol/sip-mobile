@@ -1,3 +1,5 @@
+export { AnimatedPressable, DEFAULT_SCALE_VALUE } from "./AnimatedPressable"
+export type { AnimatedPressableProps } from "./AnimatedPressable"
 export { Button } from "./Button"
 export { Card } from "./Card"
 export { Icon, getIcon, renderIcon } from "./Icon"

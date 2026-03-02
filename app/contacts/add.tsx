@@ -16,6 +16,7 @@ import { router } from "expo-router"
 import { ArrowLeftIcon, UserPlusIcon } from "phosphor-react-native"
 import { TouchableOpacity } from "react-native"
 import { ICON_COLORS } from "@/constants/icons"
+import { hapticSuccess } from "@/utils/haptics"
 import { useContactsStore } from "@/stores/contacts"
 import { useToastStore } from "@/stores/toast"
 import { validateContactName, validateContactAddress } from "@/utils/contacts"
@@ -111,6 +112,7 @@ export default function AddContactScreen() {
       message: `${name.trim()} has been added to your contacts.`,
     })
 
+    hapticSuccess()
     router.back()
   }, [name, address, stealthMeta, isFavorite, addContact, addToast])
 

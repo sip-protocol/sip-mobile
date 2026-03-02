@@ -38,6 +38,7 @@ import {
   type Icon as PhosphorIcon,
 } from "phosphor-react-native"
 import { ICON_COLORS } from "@/constants/icons"
+import { hapticMedium, hapticSuccess, hapticError, hapticLight } from "@/utils/haptics"
 import { usePrivacyProvider } from "@/hooks/usePrivacyProvider"
 import { useWalletStore } from "@/stores/wallet"
 import { useSettingsStore } from "@/stores/settings"
@@ -160,6 +161,7 @@ export default function SendScreen() {
     if (status === "confirmed" && txHash) {
       setShowConfirmModal(false)
       setShowSuccessModal(true)
+      hapticSuccess()
 
       // Record payment if recipient is a saved contact
       const contact = useContactsStore.getState().getContactByAddress(recipient)
@@ -243,6 +245,7 @@ export default function SendScreen() {
       return
     }
 
+    hapticMedium()
     setShowConfirmModal(true)
   }, [recipient, amount, balance, providerReady, providerError, addToast])
 
@@ -272,6 +275,7 @@ export default function SendScreen() {
         console.error("[Send] Transaction failed:", result.error)
         setTxError(result.error || "Transaction failed")
         setStatus("error")
+        hapticError()
         addToast({
           type: "error",
           title: "Transaction failed",
@@ -284,6 +288,7 @@ export default function SendScreen() {
       const errorMessage = err instanceof Error ? err.message : "Unexpected error occurred"
       setTxError(errorMessage)
       setStatus("error")
+      hapticError()
       addToast({
         type: "error",
         title: "Transaction failed",
@@ -500,7 +505,10 @@ export default function SendScreen() {
             <TouchableOpacity
               testID="privacy-toggle"
               className="mt-6"
-              onPress={() => router.push("/(tabs)/settings")}
+              onPress={() => {
+                hapticLight()
+                router.push("/(tabs)/settings")
+              }}
               activeOpacity={0.7}
             >
               <Text className="text-dark-400 text-sm mb-3">Privacy Level</Text>

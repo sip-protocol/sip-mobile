@@ -13,6 +13,7 @@ import { SafeAreaView } from "react-native-safe-area-context"
 import { router } from "expo-router"
 import { PlusIcon, StarIcon, PaperPlaneTiltIcon, UserCircleIcon } from "phosphor-react-native"
 import { ICON_COLORS } from "@/constants/icons"
+import { hapticLight } from "@/utils/haptics"
 import { useContactsStore } from "@/stores/contacts"
 import { sortContacts, truncateAddress } from "@/utils/contacts"
 import { EmptyState } from "@/components/ui/EmptyState"
@@ -24,6 +25,7 @@ import type { Contact } from "@/types/contacts"
 
 function ContactRow({ contact }: { contact: Contact }) {
   const handlePress = () => {
+    hapticLight()
     router.push({
       pathname: "/(tabs)/send",
       params: {
