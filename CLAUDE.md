@@ -388,9 +388,32 @@ publishing/           # APK builds, dApp Store config
 
 ---
 
-## Debug Workflow
+## Local Build Prerequisites (macOS)
 
 > **⚠️ NEVER use Expo cloud builds** — Free tier quota limited. Local only.
+
+**Required for `eas build --local`:**
+
+| Dependency | Install | Verify |
+|-----------|---------|--------|
+| **JDK 21** | `brew install openjdk@21` + symlink* | `java -version` |
+| **Android Studio** | `brew install --cask android-studio` | Open once → Standard setup |
+| **Android SDK** | Via Android Studio setup wizard | `ls ~/Library/Android/sdk` |
+| **ANDROID_HOME** | Add to `~/.zshrc` | `echo $ANDROID_HOME` |
+
+*JDK symlink: `sudo ln -sfn /opt/homebrew/opt/openjdk@21/libexec/openjdk.jdk /Library/Java/JavaVirtualMachines/openjdk-21.jdk`
+
+**~/.zshrc env vars:**
+```bash
+export ANDROID_HOME=$HOME/Library/Android/sdk
+export PATH=$PATH:$ANDROID_HOME/emulator:$ANDROID_HOME/platform-tools:$ANDROID_HOME/cmdline-tools/latest/bin
+```
+
+**Expo 54 SDK requirements:** compileSdk 36, Build-Tools 36.1, NDK 27.1.12297006
+
+---
+
+## Debug Workflow
 
 ```bash
 # Build (ALWAYS --local)
