@@ -23,13 +23,13 @@ import * as Clipboard from "expo-clipboard"
 import { useState, useCallback } from "react"
 import QRCode from "react-native-qrcode-svg"
 import {
-  ArrowsClockwise,
-  Check,
-  ClipboardText,
-  Export,
-  LockKey,
-  MagnifyingGlass,
-  ArrowRight,
+  ArrowsClockwiseIcon,
+  CheckIcon,
+  ClipboardTextIcon,
+  ExportIcon,
+  LockKeyIcon,
+  MagnifyingGlassIcon,
+  ArrowRightIcon,
 } from "phosphor-react-native"
 import { ICON_COLORS } from "@/constants/icons"
 import { useStealth } from "@/hooks/useStealth"
@@ -195,6 +195,9 @@ export default function ReceiveScreen() {
                 activeTab === "address" ? "bg-brand-600" : ""
               }`}
               onPress={() => setActiveTab("address")}
+              accessibilityRole="tab"
+              accessibilityLabel="Address"
+              accessibilityState={{ selected: activeTab === "address" }}
             >
               <Text
                 className={`text-center font-medium ${
@@ -209,6 +212,9 @@ export default function ReceiveScreen() {
                 activeTab === "amount" ? "bg-brand-600" : ""
               }`}
               onPress={() => setActiveTab("amount")}
+              accessibilityRole="tab"
+              accessibilityLabel="Request Amount"
+              accessibilityState={{ selected: activeTab === "amount" }}
             >
               <Text
                 className={`text-center font-medium ${
@@ -272,12 +278,15 @@ export default function ReceiveScreen() {
                 onPress={handleRegeneratePress}
                 disabled={isGenerating}
                 className="flex-row items-center gap-1"
+                accessibilityRole="button"
+                accessibilityLabel="Generate new stealth address"
+                accessibilityHint="Creates a fresh one-time stealth address"
               >
                 {isGenerating ? (
                   <ActivityIndicator size="small" color="#8b5cf6" />
                 ) : (
                   <>
-                    <ArrowsClockwise size={16} color={ICON_COLORS.brand} weight="regular" />
+                    <ArrowsClockwiseIcon size={16} color={ICON_COLORS.brand} weight="regular" />
                     <Text className="text-brand-400 text-sm">New Address</Text>
                   </>
                 )}
@@ -309,11 +318,14 @@ export default function ReceiveScreen() {
               }`}
               onPress={handleCopy}
               disabled={!stealthAddress}
+              accessibilityRole="button"
+              accessibilityLabel={copied ? "Address copied" : "Copy stealth address"}
+              accessibilityHint="Copies the stealth address to clipboard"
             >
               {copied ? (
-                <Check size={20} color={ICON_COLORS.white} weight="bold" />
+                <CheckIcon size={20} color={ICON_COLORS.white} weight="bold" />
               ) : (
-                <ClipboardText size={20} color={ICON_COLORS.white} weight="regular" />
+                <ClipboardTextIcon size={20} color={ICON_COLORS.white} weight="regular" />
               )}
               <Text className="text-white font-semibold">
                 {copied ? "Copied" : "Copy"}
@@ -324,8 +336,11 @@ export default function ReceiveScreen() {
               className="flex-1 bg-brand-600 py-4 rounded-xl items-center flex-row justify-center gap-2"
               onPress={handleShare}
               disabled={!stealthAddress}
+              accessibilityRole="button"
+              accessibilityLabel="Share stealth address"
+              accessibilityHint="Opens the share dialog to send your address"
             >
-              <Export size={20} color={ICON_COLORS.white} weight="regular" />
+              <ExportIcon size={20} color={ICON_COLORS.white} weight="regular" />
               <Text className="text-white font-semibold">Share</Text>
             </TouchableOpacity>
           </View>
@@ -333,7 +348,7 @@ export default function ReceiveScreen() {
           {/* Privacy Info Card */}
           <View className="mt-6 bg-brand-900/10 border border-brand-800/30 rounded-xl p-4">
             <View className="flex-row items-start gap-3">
-              <LockKey size={24} color={ICON_COLORS.brand} weight="fill" />
+              <LockKeyIcon size={24} color={ICON_COLORS.brand} weight="fill" />
               <View className="flex-1">
                 <Text className="text-brand-400 font-medium">
                   One-time stealth address
@@ -350,9 +365,12 @@ export default function ReceiveScreen() {
           <TouchableOpacity
             className="mt-6 bg-dark-800 border border-dark-700 rounded-xl p-4 flex-row items-center"
             onPress={() => router.push("/scan")}
+            accessibilityRole="button"
+            accessibilityLabel="Scan for payments"
+            accessibilityHint="Opens the payment scanner to find incoming stealth payments"
           >
             <View className="w-10 h-10 bg-brand-900/30 rounded-full items-center justify-center">
-              <MagnifyingGlass size={20} color={ICON_COLORS.brand} weight="regular" />
+              <MagnifyingGlassIcon size={20} color={ICON_COLORS.brand} weight="regular" />
             </View>
             <View className="flex-1 ml-3">
               <Text className="text-white font-medium">Scan for Payments</Text>
@@ -360,7 +378,7 @@ export default function ReceiveScreen() {
                 Check for incoming stealth payments
               </Text>
             </View>
-            <ArrowRight size={24} color={ICON_COLORS.dark} weight="regular" />
+            <ArrowRightIcon size={24} color={ICON_COLORS.dark} weight="regular" />
           </TouchableOpacity>
 
           {/* How It Works Section */}

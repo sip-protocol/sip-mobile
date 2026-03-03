@@ -23,15 +23,15 @@ import { useSeedVault, type SeedVaultSeed } from "@/hooks"
 import { useWalletStore } from "@/stores/wallet"
 import { useState, useEffect, useCallback } from "react"
 import {
-  ShieldCheck,
-  ArrowLeft,
-  Plus,
-  DownloadSimple,
-  Key,
-  Warning,
-  CheckCircle,
-  CaretRight,
-  Gear,
+  ShieldCheckIcon,
+  ArrowLeftIcon,
+  PlusIcon,
+  DownloadSimpleIcon,
+  KeyIcon,
+  WarningIcon,
+  CheckCircleIcon,
+  CaretRightIcon,
+  GearIcon,
 } from "phosphor-react-native"
 import { ICON_COLORS } from "@/constants/icons"
 
@@ -156,7 +156,7 @@ export default function SeedVaultSetupScreen() {
             className="p-2 -ml-2"
             hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
           >
-            <ArrowLeft size={24} color={ICON_COLORS.white} />
+            <ArrowLeftIcon size={24} color={ICON_COLORS.white} />
           </TouchableOpacity>
           <Text className="flex-1 text-xl font-semibold text-white ml-2">
             Seed Vault Setup
@@ -165,7 +165,7 @@ export default function SeedVaultSetupScreen() {
 
         <View className="flex-1 items-center justify-center px-6">
           <View className="w-20 h-20 rounded-full bg-yellow-600/20 items-center justify-center mb-6">
-            <Warning size={40} color={ICON_COLORS.warning} weight="fill" />
+            <WarningIcon size={40} color={ICON_COLORS.warning} weight="fill" />
           </View>
           <Text className="text-xl font-semibold text-white mb-3 text-center">
             Seed Vault Not Available
@@ -203,7 +203,7 @@ export default function SeedVaultSetupScreen() {
           className="p-2 -ml-2"
           hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
         >
-          <ArrowLeft size={24} color={ICON_COLORS.white} />
+          <ArrowLeftIcon size={24} color={ICON_COLORS.white} />
         </TouchableOpacity>
         <Text className="flex-1 text-xl font-semibold text-white ml-2">
           Seed Vault Setup
@@ -217,7 +217,7 @@ export default function SeedVaultSetupScreen() {
           <View>
             <View className="items-center mb-8">
               <View className="w-24 h-24 rounded-full bg-green-600/20 items-center justify-center mb-4">
-                <ShieldCheck size={48} color={ICON_COLORS.green} weight="fill" />
+                <ShieldCheckIcon size={48} color={ICON_COLORS.green} weight="fill" />
               </View>
               <Text className="text-2xl font-bold text-white mb-2 text-center">
                 Hardware-Backed Security
@@ -231,15 +231,15 @@ export default function SeedVaultSetupScreen() {
             <View className="bg-dark-900 rounded-xl p-4 mb-6 border border-dark-800">
               <Text className="text-white font-medium mb-2">Benefits:</Text>
               <View className="flex-row items-center mb-2">
-                <CheckCircle size={20} color={ICON_COLORS.green} weight="fill" />
+                <CheckCircleIcon size={20} color={ICON_COLORS.green} weight="fill" />
                 <Text className="text-dark-300 ml-3">Keys isolated from app layer</Text>
               </View>
               <View className="flex-row items-center mb-2">
-                <CheckCircle size={20} color={ICON_COLORS.green} weight="fill" />
+                <CheckCircleIcon size={20} color={ICON_COLORS.green} weight="fill" />
                 <Text className="text-dark-300 ml-3">Biometric authentication required</Text>
               </View>
               <View className="flex-row items-center">
-                <CheckCircle size={20} color={ICON_COLORS.green} weight="fill" />
+                <CheckCircleIcon size={20} color={ICON_COLORS.green} weight="fill" />
                 <Text className="text-dark-300 ml-3">Same seed across all apps</Text>
               </View>
             </View>
@@ -278,7 +278,7 @@ export default function SeedVaultSetupScreen() {
                     className="bg-dark-900 rounded-xl p-4 mb-3 border border-dark-800 flex-row items-center"
                   >
                     <View className="w-12 h-12 rounded-xl bg-green-600/20 items-center justify-center mr-4">
-                      <Key size={24} color={ICON_COLORS.green} weight="fill" />
+                      <KeyIcon size={24} color={ICON_COLORS.green} weight="fill" />
                     </View>
                     <View className="flex-1">
                       <Text className="text-white font-medium">{seed.name}</Text>
@@ -291,9 +291,9 @@ export default function SeedVaultSetupScreen() {
                       className="p-2"
                       hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
                     >
-                      <Gear size={20} color={ICON_COLORS.muted} />
+                      <GearIcon size={20} color={ICON_COLORS.muted} />
                     </TouchableOpacity>
-                    <CaretRight size={20} color={ICON_COLORS.muted} />
+                    <CaretRightIcon size={20} color={ICON_COLORS.muted} />
                   </TouchableOpacity>
                 ))}
               </View>
@@ -310,7 +310,7 @@ export default function SeedVaultSetupScreen() {
                 className="bg-dark-900 rounded-xl p-4 mb-3 border border-dark-800 flex-row items-center"
               >
                 <View className="w-12 h-12 rounded-xl bg-brand-600/20 items-center justify-center mr-4">
-                  <ShieldCheck size={24} color={ICON_COLORS.brand} weight="fill" />
+                  <ShieldCheckIcon size={24} color={ICON_COLORS.brand} weight="fill" />
                 </View>
                 <View className="flex-1">
                   <Text className="text-white font-medium">Authorize Existing</Text>
@@ -318,7 +318,7 @@ export default function SeedVaultSetupScreen() {
                     Select a seed already in Seed Vault
                   </Text>
                 </View>
-                <CaretRight size={20} color={ICON_COLORS.muted} />
+                <CaretRightIcon size={20} color={ICON_COLORS.muted} />
               </TouchableOpacity>
 
               {/* Create New */}
@@ -328,7 +328,7 @@ export default function SeedVaultSetupScreen() {
                 className="bg-dark-900 rounded-xl p-4 mb-3 border border-dark-800 flex-row items-center"
               >
                 <View className="w-12 h-12 rounded-xl bg-cyan-600/20 items-center justify-center mr-4">
-                  <Plus size={24} color={ICON_COLORS.cyan} weight="bold" />
+                  <PlusIcon size={24} color={ICON_COLORS.cyan} weight="bold" />
                 </View>
                 <View className="flex-1">
                   <Text className="text-white font-medium">Create New Seed</Text>
@@ -336,7 +336,7 @@ export default function SeedVaultSetupScreen() {
                     Generate a new seed phrase
                   </Text>
                 </View>
-                <CaretRight size={20} color={ICON_COLORS.muted} />
+                <CaretRightIcon size={20} color={ICON_COLORS.muted} />
               </TouchableOpacity>
 
               {/* Import Existing */}
@@ -346,7 +346,7 @@ export default function SeedVaultSetupScreen() {
                 className="bg-dark-900 rounded-xl p-4 border border-dark-800 flex-row items-center"
               >
                 <View className="w-12 h-12 rounded-xl bg-purple-600/20 items-center justify-center mr-4">
-                  <DownloadSimple size={24} color={ICON_COLORS.purple} weight="fill" />
+                  <DownloadSimpleIcon size={24} color={ICON_COLORS.purple} weight="fill" />
                 </View>
                 <View className="flex-1">
                   <Text className="text-white font-medium">Import Seed Phrase</Text>
@@ -354,7 +354,7 @@ export default function SeedVaultSetupScreen() {
                     Enter your 12 or 24 word phrase
                   </Text>
                 </View>
-                <CaretRight size={20} color={ICON_COLORS.muted} />
+                <CaretRightIcon size={20} color={ICON_COLORS.muted} />
               </TouchableOpacity>
             </View>
           </View>
@@ -377,7 +377,7 @@ export default function SeedVaultSetupScreen() {
         {error && (
           <View className="bg-red-900/20 rounded-xl p-4 mt-4 border border-red-600/50">
             <View className="flex-row items-center">
-              <Warning size={20} color={ICON_COLORS.error} weight="fill" />
+              <WarningIcon size={20} color={ICON_COLORS.error} weight="fill" />
               <Text className="text-red-400 ml-2 flex-1">{error.message}</Text>
             </View>
           </View>

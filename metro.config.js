@@ -7,6 +7,7 @@ const config = getDefaultConfig(__dirname);
 config.resolver.unstable_conditionNames = [
   "browser",
   "require",
+  "import",
   "react-native",
 ];
 

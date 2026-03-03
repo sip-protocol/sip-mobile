@@ -28,19 +28,21 @@ import { useState, useCallback, useEffect } from "react"
 import { router, useLocalSearchParams } from "expo-router"
 import * as Clipboard from "expo-clipboard"
 import {
-  ShieldCheck,
-  Lock,
-  Eye,
-  QrCode,
-  AddressBook,
-  Warning,
-  CheckCircle,
+  ShieldCheckIcon,
+  LockIcon,
+  EyeIcon,
+  QrCodeIcon,
+  AddressBookIcon,
+  WarningIcon,
+  CheckCircleIcon,
   type Icon as PhosphorIcon,
 } from "phosphor-react-native"
 import { ICON_COLORS } from "@/constants/icons"
+import { hapticMedium, hapticSuccess, hapticError, hapticLight } from "@/utils/haptics"
 import { usePrivacyProvider } from "@/hooks/usePrivacyProvider"
 import { useWalletStore } from "@/stores/wallet"
 import { useSettingsStore } from "@/stores/settings"
+import { useContactsStore } from "@/stores/contacts"
 import { useToastStore } from "@/stores/toast"
 import { useBalance } from "@/hooks/useBalance"
 import { Button, Modal, EmptyState } from "@/components/ui"
@@ -118,8 +120,12 @@ function formatUsdValue(amount: string, solPrice: number): string {
 // ============================================================================
 
 export default function SendScreen() {
-  // Handle scanned address from QR scanner
-  const { scannedAddress } = useLocalSearchParams<{ scannedAddress?: string }>()
+  // Handle params from QR scanner or contacts
+  const { scannedAddress, recipient: recipientParam, contactName } = useLocalSearchParams<{
+    scannedAddress?: string
+    recipient?: string
+    contactName?: string
+  }>()
 
   // Privacy Provider (supports Arcium, Privacy Cash, ShadowWire, etc.)
   const {
@@ -150,13 +156,20 @@ export default function SendScreen() {
   const [addressError, setAddressError] = useState<string | null>(null)
   const [amountError, setAmountError] = useState<string | null>(null)
 
-  // Reset on success
+  // Reset on success + record payment for contacts
   useEffect(() => {
     if (status === "confirmed" && txHash) {
       setShowConfirmModal(false)
       setShowSuccessModal(true)
+      hapticSuccess()
+
+      // Record payment if recipient is a saved contact
+      const contact = useContactsStore.getState().getContactByAddress(recipient)
+      if (contact) {
+        useContactsStore.getState().recordPayment(contact.id)
+      }
     }
-  }, [status, txHash])
+  }, [status, txHash, recipient])
 
   const handleAmountChange = useCallback(
     (value: string) => {
@@ -192,6 +205,14 @@ export default function SendScreen() {
     }
   }, [scannedAddress, handleRecipientChange])
 
+  // Handle recipient param from contacts
+  useEffect(() => {
+    if (recipientParam) {
+      setRecipient(recipientParam)
+      handleRecipientChange(recipientParam)
+    }
+  }, [recipientParam, handleRecipientChange])
+
   const handleMaxAmount = useCallback(() => {
     const maxAmount = Math.max(0, balance - 0.001).toFixed(6) // Leave for fees
     setAmount(maxAmount)
@@ -224,6 +245,7 @@ export default function SendScreen() {
       return
     }
 
+    hapticMedium()
     setShowConfirmModal(true)
   }, [recipient, amount, balance, providerReady, providerError, addToast])
 
@@ -253,6 +275,7 @@ export default function SendScreen() {
         console.error("[Send] Transaction failed:", result.error)
         setTxError(result.error || "Transaction failed")
         setStatus("error")
+        hapticError()
         addToast({
           type: "error",
           title: "Transaction failed",
@@ -265,6 +288,7 @@ export default function SendScreen() {
       const errorMessage = err instanceof Error ? err.message : "Unexpected error occurred"
       setTxError(errorMessage)
       setStatus("error")
+      hapticError()
       addToast({
         type: "error",
         title: "Transaction failed",
@@ -298,7 +322,7 @@ export default function SendScreen() {
     switch (level) {
       case "shielded":
         return {
-          Icon: ShieldCheck,
+          Icon: ShieldCheckIcon,
           iconColor: ICON_COLORS.brand,
           title: "Private Transfer",
           description: "Amount and recipient hidden on-chain",
@@ -306,7 +330,7 @@ export default function SendScreen() {
         }
       case "compliant":
         return {
-          Icon: Lock,
+          Icon: LockIcon,
           iconColor: ICON_COLORS.cyan,
           title: "Compliant Transfer",
           description: "Private with viewing key for auditors",
@@ -314,7 +338,7 @@ export default function SendScreen() {
         }
       case "transparent":
         return {
-          Icon: Eye,
+          Icon: EyeIcon,
           iconColor: ICON_COLORS.muted,
           title: "Public Transfer",
           description: "Fully visible on-chain",
@@ -388,7 +412,13 @@ export default function SendScreen() {
             <View className="mt-6">
               <View className="flex-row items-center justify-between mb-2">
                 <Text className="text-dark-400 text-sm">Amount</Text>
-                <TouchableOpacity testID="max-button" onPress={handleMaxAmount}>
+                <TouchableOpacity
+                  testID="max-button"
+                  onPress={handleMaxAmount}
+                  accessibilityRole="button"
+                  accessibilityLabel="Use maximum amount"
+                  accessibilityHint="Sets the amount to your full available balance"
+                >
                   <Text className="text-brand-400 text-sm">MAX</Text>
                 </TouchableOpacity>
               </View>
@@ -415,6 +445,15 @@ export default function SendScreen() {
                 <Text className="text-red-400 text-sm mt-2">{amountError}</Text>
               )}
             </View>
+
+            {/* Contact Name Banner */}
+            {contactName && (
+              <View testID="contact-name-banner" className="mt-6 bg-brand-900/20 border border-brand-700/50 rounded-xl p-3">
+                <Text className="text-brand-400 font-semibold text-base">
+                  Sending to {contactName}
+                </Text>
+              </View>
+            )}
 
             {/* Recipient Input */}
             <View className="mt-6">
@@ -454,15 +493,21 @@ export default function SendScreen() {
                   testID="scan-qr-button"
                   className="flex-row items-center bg-dark-800 rounded-lg px-3 py-2"
                   onPress={() => router.push("/send/scanner")}
+                  accessibilityRole="button"
+                  accessibilityLabel="Scan QR code"
+                  accessibilityHint="Opens the QR scanner to scan a recipient address"
                 >
-                  <QrCode size={16} color={ICON_COLORS.muted} weight="regular" />
+                  <QrCodeIcon size={16} color={ICON_COLORS.muted} weight="regular" />
                   <Text className="text-dark-400 text-sm ml-1">Scan QR</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
                   className="flex-row items-center bg-dark-800 rounded-lg px-3 py-2"
-                  onPress={() => router.push("/settings/accounts")}
+                  onPress={() => router.push("/contacts")}
+                  accessibilityRole="button"
+                  accessibilityLabel="Choose from contacts"
+                  accessibilityHint="Opens your contact list to select a recipient"
                 >
-                  <AddressBook size={16} color={ICON_COLORS.muted} weight="regular" />
+                  <AddressBookIcon size={16} color={ICON_COLORS.muted} weight="regular" />
                   <Text className="text-dark-400 text-sm ml-1">Contacts</Text>
                 </TouchableOpacity>
               </View>
@@ -472,8 +517,14 @@ export default function SendScreen() {
             <TouchableOpacity
               testID="privacy-toggle"
               className="mt-6"
-              onPress={() => router.push("/(tabs)/settings")}
+              onPress={() => {
+                hapticLight()
+                router.push("/(tabs)/settings")
+              }}
               activeOpacity={0.7}
+              accessibilityRole="button"
+              accessibilityLabel={`Privacy level: ${getPrivacyLevelInfo(defaultPrivacyLevel).title}`}
+              accessibilityHint="Opens settings to change privacy level"
             >
               <Text className="text-dark-400 text-sm mb-3">Privacy Level</Text>
               {(() => {
@@ -518,7 +569,7 @@ export default function SendScreen() {
               !addressError && (
                 <View className="mt-4 bg-yellow-900/20 border border-yellow-700/50 rounded-xl p-3">
                   <View className="flex-row items-start gap-2">
-                    <Warning size={20} color={ICON_COLORS.warning} weight="fill" />
+                    <WarningIcon size={20} color={ICON_COLORS.warning} weight="fill" />
                     <Text className="text-yellow-400 text-sm flex-1">
                       For full privacy, ask the recipient for their stealth address
                       (sip:...). Regular addresses can still receive private transfers
@@ -655,7 +706,7 @@ export default function SendScreen() {
         <View className="gap-4">
           <View testID="transaction-success" className="items-center py-6">
             <View className="w-20 h-20 bg-green-600/20 rounded-full items-center justify-center mb-4">
-              <CheckCircle size={48} color={ICON_COLORS.success} weight="fill" />
+              <CheckCircleIcon size={48} color={ICON_COLORS.success} weight="fill" />
             </View>
             <Text className="text-2xl font-bold text-white">{amount} SOL</Text>
             <Text className="text-green-400 mt-1">Successfully sent!</Text>
@@ -668,6 +719,9 @@ export default function SendScreen() {
                 await Clipboard.setStringAsync(txHash)
                 addToast({ title: "Copied!", type: "success" })
               }}
+              accessibilityRole="button"
+              accessibilityLabel="Copy transaction hash"
+              accessibilityHint="Copies the transaction hash to clipboard"
             >
               <View className="flex-row justify-between items-center mb-1">
                 <Text className="text-dark-500 text-sm">Transaction Hash</Text>

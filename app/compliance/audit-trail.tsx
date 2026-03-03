@@ -17,19 +17,18 @@ import { useToastStore } from "@/stores/toast"
 import { Modal } from "@/components/ui"
 import type { AuditEventType, AuditEvent } from "@/stores"
 import {
-  ArrowLeft,
-  Export,
-  Key,
-  Prohibit,
-  Download,
-  ArrowRight as ArrowRightIcon,
-  ArrowLeft as ArrowLeftIcon,
-  CheckCircle,
-  ArrowsLeftRight,
-  MagnifyingGlass,
-  ChartBar,
-  ClipboardText,
-  Trash,
+  ArrowLeftIcon,
+  ExportIcon,
+  KeyIcon,
+  ProhibitIcon,
+  DownloadIcon,
+  ArrowRightIcon,
+  CheckCircleIcon,
+  ArrowsLeftRightIcon,
+  MagnifyingGlassIcon,
+  ChartBarIcon,
+  ClipboardTextIcon,
+  TrashIcon,
 } from "phosphor-react-native"
 import type { Icon as PhosphorIcon } from "phosphor-react-native"
 import { ICON_COLORS } from "@/constants/icons"
@@ -40,18 +39,18 @@ import { ICON_COLORS } from "@/constants/icons"
 
 function getEventIcon(type: AuditEventType): PhosphorIcon {
   const icons: Record<AuditEventType, PhosphorIcon> = {
-    key_export: Export,
-    key_disclosure: Key,
-    key_revocation: Prohibit,
-    key_import: Download,
+    key_export: ExportIcon,
+    key_disclosure: KeyIcon,
+    key_revocation: ProhibitIcon,
+    key_import: DownloadIcon,
     payment_sent: ArrowRightIcon,
     payment_received: ArrowLeftIcon,
-    payment_claimed: CheckCircle,
-    swap_executed: ArrowsLeftRight,
-    scan_performed: MagnifyingGlass,
-    report_generated: ChartBar,
+    payment_claimed: CheckCircleIcon,
+    swap_executed: ArrowsLeftRightIcon,
+    scan_performed: MagnifyingGlassIcon,
+    report_generated: ChartBarIcon,
   }
-  return icons[type] || ClipboardText
+  return icons[type] || ClipboardTextIcon
 }
 
 function getEventColor(type: AuditEventType): string {
@@ -190,7 +189,7 @@ function EventItem({ event, onPress }: EventItemProps) {
 // ============================================================================
 
 export default function AuditTrailScreen() {
-  const { auditEvents } = useCompliance()
+  const { auditEvents, clearAuditTrail } = useCompliance()
   const { addToast } = useToastStore()
 
   const [filter, setFilter] = useState<FilterType>("all")
@@ -198,8 +197,6 @@ export default function AuditTrailScreen() {
   const [selectedEvent, setSelectedEvent] = useState<AuditEvent | null>(null)
   const [showDetailModal, setShowDetailModal] = useState(false)
   const [showClearConfirm, setShowClearConfirm] = useState(false)
-
-  const { clearAuditTrail } = useCompliance()
 
   const filteredEvents = useMemo(
     () => filterEvents(auditEvents, filter),
@@ -249,7 +246,7 @@ export default function AuditTrailScreen() {
     () => (
       <View className="items-center py-16">
         <View className="w-24 h-24 rounded-full bg-dark-800 items-center justify-center mb-4">
-          <ClipboardText size={48} color={ICON_COLORS.inactive} weight="fill" />
+          <ClipboardTextIcon size={48} color={ICON_COLORS.inactive} weight="fill" />
         </View>
         <Text className="text-white text-xl font-semibold mb-2">
           No Audit Events
@@ -270,7 +267,7 @@ export default function AuditTrailScreen() {
       <View className="flex-row items-center justify-between px-4 py-3 border-b border-dark-800">
         <View className="flex-row items-center">
           <TouchableOpacity onPress={() => router.back()} className="mr-3 p-2 -ml-2">
-            <ArrowLeft size={24} color={ICON_COLORS.white} weight="bold" />
+            <ArrowLeftIcon size={24} color={ICON_COLORS.white} weight="bold" />
           </TouchableOpacity>
           <Text className="text-white text-xl font-bold">Audit Trail</Text>
         </View>
@@ -402,7 +399,7 @@ export default function AuditTrailScreen() {
       >
         <View className="items-center py-4">
           <View className="w-24 h-24 rounded-full bg-red-900/30 items-center justify-center mb-4">
-            <Trash size={48} color={ICON_COLORS.error} weight="fill" />
+            <TrashIcon size={48} color={ICON_COLORS.error} weight="fill" />
           </View>
           <Text className="text-white text-lg font-semibold text-center mb-2">
             Clear All Audit Events?

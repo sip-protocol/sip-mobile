@@ -161,7 +161,7 @@ async function getRpcConfigFromStorage(): Promise<RpcConfig> {
   try {
     const stored = await AsyncStorage.getItem(SETTINGS_STORAGE_KEY)
     if (!stored) {
-      return { provider: "publicnode", cluster: "devnet" }
+      return { provider: "publicnode", cluster: "mainnet-beta" }
     }
 
     const settings: StoredSettings = JSON.parse(stored)
@@ -189,7 +189,7 @@ async function getRpcConfigFromStorage(): Promise<RpcConfig> {
       customEndpoint,
     }
   } catch {
-    return { provider: "publicnode", cluster: "devnet" }
+    return { provider: "publicnode", cluster: "mainnet-beta" }
   }
 }
 

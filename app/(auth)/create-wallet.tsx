@@ -14,13 +14,14 @@ import { router } from "expo-router"
 import { useState, useEffect } from "react"
 import { Button, LoadingState } from "@/components/ui"
 import { useNativeWallet } from "@/hooks"
+import { deleteWallet as deleteWalletStorage } from "@/utils/keyStorage"
 import { copyToClipboardSecure } from "@/utils/security"
 import {
-  ArrowLeft,
-  Warning,
-  CopySimple,
-  Check,
-  CheckCircle,
+  ArrowLeftIcon,
+  WarningIcon,
+  CopySimpleIcon,
+  CheckIcon,
+  CheckCircleIcon,
 } from "phosphor-react-native"
 import { ICON_COLORS } from "@/constants/icons"
 
@@ -61,10 +62,28 @@ export default function CreateWalletScreen() {
         setVerifyIndices(getVerificationIndices())
         setStep("display")
       } catch (err) {
+        const walletError = err as { code?: string; message?: string }
+
+        // If wallet already exists (stale state from incomplete setup),
+        // clear storage and retry once
+        if (walletError.code === "WALLET_EXISTS") {
+          try {
+            await deleteWalletStorage()
+            const result = await createWallet(12)
+            const words = result.mnemonic.split(" ")
+            setMnemonic(words)
+            setVerifyIndices(getVerificationIndices())
+            setStep("display")
+            return
+          } catch {
+            // Fall through to error handling
+          }
+        }
+
         setGenerateError(true)
         Alert.alert(
           "Error",
-          "Failed to create wallet. Please try again.",
+          walletError.message || "Failed to create wallet. Please try again.",
           [{ text: "Go Back", onPress: () => router.back() }]
         )
       }
@@ -94,7 +113,7 @@ export default function CreateWalletScreen() {
   }
 
   const handleVerify = () => {
-    // Check if all selected words match
+    // CheckIcon if all selected words match
     const correct = verifyIndices.every(
       (idx, pos) => selectedWords[pos] === mnemonic[idx]
     )
@@ -149,7 +168,7 @@ export default function CreateWalletScreen() {
           <View className="px-6 pt-4">
             <TouchableOpacity onPress={handleBack} className="mb-4">
               <View className="flex-row items-center">
-                <ArrowLeft size={20} color={ICON_COLORS.brand} weight="bold" />
+                <ArrowLeftIcon size={20} color={ICON_COLORS.brand} weight="bold" />
                 <Text className="text-brand-500 ml-1">Back</Text>
               </View>
             </TouchableOpacity>
@@ -166,7 +185,7 @@ export default function CreateWalletScreen() {
           {/* Security Warning */}
           <View className="mx-6 mt-4 bg-red-500/10 border border-red-500/30 rounded-xl p-4">
             <View className="flex-row items-start">
-              <Warning size={20} color={ICON_COLORS.error} weight="fill" />
+              <WarningIcon size={20} color={ICON_COLORS.error} weight="fill" />
               <View className="flex-1 ml-2">
                 <Text className="text-red-400 font-medium mb-1">
                   Never share your recovery phrase
@@ -204,9 +223,9 @@ export default function CreateWalletScreen() {
                 className="mt-4 py-3 rounded-xl bg-dark-800 items-center flex-row justify-center"
               >
                 {copied ? (
-                  <Check size={18} color={ICON_COLORS.success} weight="bold" />
+                  <CheckIcon size={18} color={ICON_COLORS.success} weight="bold" />
                 ) : (
-                  <CopySimple size={18} color={ICON_COLORS.muted} weight="fill" />
+                  <CopySimpleIcon size={18} color={ICON_COLORS.muted} weight="fill" />
                 )}
                 <Text className="text-dark-300 ml-2">
                   {copied ? "Copied to clipboard" : "Copy to clipboard"}
@@ -255,7 +274,7 @@ export default function CreateWalletScreen() {
           <View className="px-6 pt-4">
             <TouchableOpacity onPress={handleBack} className="mb-4">
               <View className="flex-row items-center">
-                <ArrowLeft size={20} color={ICON_COLORS.brand} weight="bold" />
+                <ArrowLeftIcon size={20} color={ICON_COLORS.brand} weight="bold" />
                 <Text className="text-brand-500 ml-1">Back</Text>
               </View>
             </TouchableOpacity>
@@ -332,7 +351,7 @@ export default function CreateWalletScreen() {
       <View className="items-center w-full">
         {/* Success Icon */}
         <View className="w-24 h-24 rounded-full bg-green-500/20 items-center justify-center mb-6">
-          <CheckCircle size={56} color={ICON_COLORS.success} weight="fill" />
+          <CheckCircleIcon size={56} color={ICON_COLORS.success} weight="fill" />
         </View>
 
         <Text className="text-2xl font-bold text-white mb-2 text-center">

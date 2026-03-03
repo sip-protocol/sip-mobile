@@ -11,7 +11,7 @@ describe("Settings Store", () => {
       slippage: 1.0,
       defaultPrivacyLevel: "shielded",
       biometricsEnabled: false,
-      network: "devnet",
+      network: "mainnet-beta",
       rpcProvider: "helius",
     })
   })
@@ -95,9 +95,9 @@ describe("Settings Store", () => {
   })
 
   describe("Network Settings", () => {
-    it("should default to devnet", () => {
+    it("should default to mainnet-beta", () => {
       const { network } = useSettingsStore.getState()
-      expect(network).toBe("devnet")
+      expect(network).toBe("mainnet-beta")
     })
 
     it("should set network", () => {

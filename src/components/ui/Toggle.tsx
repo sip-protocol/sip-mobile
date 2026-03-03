@@ -1,6 +1,6 @@
 import { View, Text, TouchableOpacity, Animated } from "react-native"
 import { useRef, useEffect } from "react"
-import { LockSimple, LockSimpleOpen } from "phosphor-react-native"
+import { LockSimpleIcon, LockSimpleOpenIcon } from "phosphor-react-native"
 import { ICON_COLORS } from "@/constants/icons"
 
 interface ToggleProps {
@@ -36,6 +36,9 @@ export function Toggle({
       onPress={() => !disabled && onValueChange(!value)}
       activeOpacity={0.7}
       disabled={disabled}
+      accessibilityRole="switch"
+      accessibilityLabel={label || "Toggle"}
+      accessibilityState={{ checked: value, disabled }}
     >
       {(label || description) && (
         <View className="flex-1 mr-4">
@@ -86,13 +89,17 @@ export function PrivacyToggle({
       onPress={() => !disabled && onValueChange(!value)}
       activeOpacity={0.7}
       disabled={disabled}
+      accessibilityRole="switch"
+      accessibilityLabel={value ? "Private mode enabled" : "Private mode disabled"}
+      accessibilityHint="Toggles privacy for this transaction"
+      accessibilityState={{ checked: value, disabled }}
     >
       <View className="flex-row items-center justify-between">
         <View className="flex-row items-center gap-3">
           {value ? (
-            <LockSimple size={28} color={ICON_COLORS.brand} weight="fill" />
+            <LockSimpleIcon size={28} color={ICON_COLORS.brand} weight="fill" />
           ) : (
-            <LockSimpleOpen size={28} color={ICON_COLORS.muted} weight="regular" />
+            <LockSimpleOpenIcon size={28} color={ICON_COLORS.muted} weight="regular" />
           )}
           <View>
             <Text

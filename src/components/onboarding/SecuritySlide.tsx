@@ -14,7 +14,13 @@ import Animated, {
   withDelay,
 } from "react-native-reanimated"
 import type { SharedValue } from "react-native-reanimated"
-import { Shield, CheckCircle, Fingerprint, FaceMask, Lock } from "phosphor-react-native"
+import {
+  ShieldIcon,
+  CheckCircleIcon,
+  FingerprintIcon,
+  FaceMaskIcon,
+  LockIcon,
+} from "phosphor-react-native"
 import { useBiometrics, usePrefersReducedMotion } from "@/hooks"
 import { ICON_COLORS } from "@/constants/icons"
 
@@ -67,10 +73,10 @@ export function SecuritySlide() {
 
   const BiometricIcon =
     biometricType === "facial"
-      ? FaceMask
+      ? FaceMaskIcon
       : biometricType === "fingerprint"
-        ? Fingerprint
-        : Lock
+        ? FingerprintIcon
+        : LockIcon
 
   const features: SecurityFeature[] = [
     { label: "Device encryption", available: true },
@@ -88,7 +94,7 @@ export function SecuritySlide() {
           className="w-24 h-24 rounded-2xl items-center justify-center bg-dark-900 border-2 border-brand-600"
           accessibilityLabel="Secure enclave"
         >
-          <Shield size={44} color={ICON_COLORS.brand} weight="fill" />
+          <ShieldIcon size={44} color={ICON_COLORS.brand} weight="fill" />
           <View className="absolute -bottom-2 -right-2 w-8 h-8 rounded-full bg-dark-950 border-2 border-brand-600 items-center justify-center">
             <BiometricIcon size={14} color={ICON_COLORS.brand} weight="fill" />
           </View>
@@ -161,7 +167,7 @@ function SecurityFeatureRow({
         style={checkStyle}
         className="w-6 h-6 items-center justify-center"
       >
-        <CheckCircle
+        <CheckCircleIcon
           size={20}
           color={feature.available ? ICON_COLORS.success : ICON_COLORS.muted}
           weight="fill"

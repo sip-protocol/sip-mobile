@@ -24,13 +24,13 @@ import { useToastStore } from "@/stores/toast"
 import { Modal } from "@/components/ui"
 import type { SwapRecord } from "@/types"
 import {
-  ArrowLeft,
-  ArrowRight,
-  ShieldCheck,
-  ClipboardText,
-  LockOpen,
-  ChartBar,
-  Trash,
+  ArrowLeftIcon,
+  ArrowRightIcon,
+  ShieldCheckIcon,
+  ClipboardTextIcon,
+  LockOpenIcon,
+  ChartBarIcon,
+  TrashIcon,
 } from "phosphor-react-native"
 import { ICON_COLORS } from "@/constants/icons"
 
@@ -122,7 +122,7 @@ function SwapItem({ swap, onPress }: SwapItemProps) {
       <View className="flex-row items-center justify-between mb-3">
         <View className="flex-row items-center">
           <Text className="text-xl">{getTokenIcon(swap.fromToken)}</Text>
-          <ArrowRight size={16} color={ICON_COLORS.inactive} weight="bold" />
+          <ArrowRightIcon size={16} color={ICON_COLORS.inactive} weight="bold" />
           <Text className="text-xl">{getTokenIcon(swap.toToken)}</Text>
         </View>
 
@@ -131,9 +131,9 @@ function SwapItem({ swap, onPress }: SwapItemProps) {
           {(isShielded || isCompliant) && (
             <View className="bg-brand-900/30 px-2 py-0.5 rounded flex-row items-center">
               {isShielded ? (
-                <ShieldCheck size={12} color={ICON_COLORS.brand} weight="fill" />
+                <ShieldCheckIcon size={12} color={ICON_COLORS.brand} weight="fill" />
               ) : (
-                <ClipboardText size={12} color={ICON_COLORS.brand} weight="fill" />
+                <ClipboardTextIcon size={12} color={ICON_COLORS.brand} weight="fill" />
               )}
               <Text className="text-brand-400 text-xs ml-1">
                 {isShielded ? "Private" : "Compliant"}
@@ -305,7 +305,7 @@ export default function SwapHistoryScreen() {
     () => (
       <View className="items-center py-16">
         <View className="w-24 h-24 rounded-full bg-dark-800 items-center justify-center mb-4">
-          <ChartBar size={48} color={ICON_COLORS.inactive} weight="fill" />
+          <ChartBarIcon size={48} color={ICON_COLORS.inactive} weight="fill" />
         </View>
         <Text className="text-white text-xl font-semibold mb-2">
           No Swap History
@@ -335,7 +335,7 @@ export default function SwapHistoryScreen() {
             onPress={() => router.back()}
             className="mr-3 p-2 -ml-2"
           >
-            <ArrowLeft size={24} color={ICON_COLORS.white} weight="bold" />
+            <ArrowLeftIcon size={24} color={ICON_COLORS.white} weight="bold" />
           </TouchableOpacity>
           <Text className="text-white text-xl font-bold">Swap History</Text>
         </View>
@@ -410,7 +410,7 @@ export default function SwapHistoryScreen() {
                     {formatAmount(selectedSwap.fromAmount, selectedSwap.fromToken)}
                   </Text>
                 </View>
-                <ArrowRight size={24} color={ICON_COLORS.inactive} weight="bold" style={{ marginHorizontal: 24 }} />
+                <ArrowRightIcon size={24} color={ICON_COLORS.inactive} weight="bold" style={{ marginHorizontal: 24 }} />
                 <View className="items-center">
                   <Text className="text-4xl">
                     {getTokenIcon(selectedSwap.toToken)}
@@ -454,11 +454,11 @@ export default function SwapHistoryScreen() {
                 <Text className="text-dark-400">Privacy</Text>
                 <View className="flex-row items-center">
                   {selectedSwap.privacyLevel === "shielded" ? (
-                    <ShieldCheck size={16} color={ICON_COLORS.brand} weight="fill" />
+                    <ShieldCheckIcon size={16} color={ICON_COLORS.brand} weight="fill" />
                   ) : selectedSwap.privacyLevel === "compliant" ? (
-                    <ClipboardText size={16} color={ICON_COLORS.blue} weight="fill" />
+                    <ClipboardTextIcon size={16} color={ICON_COLORS.blue} weight="fill" />
                   ) : (
-                    <LockOpen size={16} color={ICON_COLORS.white} weight="fill" />
+                    <LockOpenIcon size={16} color={ICON_COLORS.white} weight="fill" />
                   )}
                   <Text
                     className={`ml-1 ${
@@ -542,7 +542,7 @@ export default function SwapHistoryScreen() {
       >
         <View className="items-center py-4">
           <View className="w-24 h-24 rounded-full bg-red-900/30 items-center justify-center mb-4">
-            <Trash size={48} color={ICON_COLORS.error} weight="fill" />
+            <TrashIcon size={48} color={ICON_COLORS.error} weight="fill" />
           </View>
           <Text className="text-white text-lg font-semibold text-center mb-2">
             Clear All Swap History?

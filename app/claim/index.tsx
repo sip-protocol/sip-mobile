@@ -24,14 +24,14 @@ import { useToastStore } from "@/stores/toast"
 import { Button } from "@/components/ui"
 import type { PaymentRecord } from "@/types"
 import {
-  ArrowLeft,
-  Coins,
-  Check,
-  CheckCircle,
-  Warning,
-  LockKey,
-  Sparkle,
-  MagnifyingGlass,
+  ArrowLeftIcon,
+  CoinsIcon,
+  CheckIcon,
+  CheckCircleIcon,
+  WarningIcon,
+  LockKeyIcon,
+  SparkleIcon,
+  MagnifyingGlassIcon,
 } from "phosphor-react-native"
 import { ICON_COLORS } from "@/constants/icons"
 
@@ -76,6 +76,10 @@ function ClaimablePaymentRow({
       }`}
       onPress={onToggle}
       disabled={disabled}
+      accessibilityRole="checkbox"
+      accessibilityLabel={`Stealth payment, ${parseFloat(payment.amount).toFixed(4)} ${payment.token}`}
+      accessibilityHint="Toggles selection of this payment for claiming"
+      accessibilityState={{ checked: isSelected, disabled }}
     >
       {/* Selection Checkbox */}
       <View
@@ -85,12 +89,12 @@ function ClaimablePaymentRow({
             : "border-dark-600 bg-dark-800"
         }`}
       >
-        {isSelected && <Check size={14} color={ICON_COLORS.white} weight="bold" />}
+        {isSelected && <CheckIcon size={14} color={ICON_COLORS.white} weight="bold" />}
       </View>
 
       {/* Payment Icon */}
       <View className="w-10 h-10 bg-green-900/30 rounded-full items-center justify-center">
-        <Coins size={20} color={ICON_COLORS.success} weight="fill" />
+        <CoinsIcon size={20} color={ICON_COLORS.success} weight="fill" />
       </View>
 
       {/* Payment Info */}
@@ -195,7 +199,7 @@ function StepIndicator({ label, completed, active }: StepIndicatorProps) {
         }`}
       >
         {completed ? (
-          <Check size={14} color={ICON_COLORS.white} weight="bold" />
+          <CheckIcon size={14} color={ICON_COLORS.white} weight="bold" />
         ) : (
           <View
             className={`w-2 h-2 rounded-full ${
@@ -328,14 +332,16 @@ export default function ClaimScreen() {
           <TouchableOpacity
             className="flex-row items-center"
             onPress={() => router.back()}
+            accessibilityRole="button"
+            accessibilityLabel="Go back"
           >
-            <ArrowLeft size={24} color={ICON_COLORS.white} weight="bold" />
+            <ArrowLeftIcon size={24} color={ICON_COLORS.white} weight="bold" />
             <Text className="text-white ml-4 text-lg">Back</Text>
           </TouchableOpacity>
         </View>
         <View className="flex-1 items-center justify-center px-6">
           <View className="w-20 h-20 rounded-full bg-green-900/30 items-center justify-center mb-4">
-            <Coins size={40} color={ICON_COLORS.success} weight="fill" />
+            <CoinsIcon size={40} color={ICON_COLORS.success} weight="fill" />
           </View>
           <Text className="text-white font-semibold text-lg">Connect Wallet</Text>
           <Text className="text-dark-500 text-center mt-2">
@@ -359,8 +365,10 @@ export default function ClaimScreen() {
         <TouchableOpacity
           className="flex-row items-center"
           onPress={() => router.back()}
+          accessibilityRole="button"
+          accessibilityLabel="Go back"
         >
-          <ArrowLeft size={24} color={ICON_COLORS.white} weight="bold" />
+          <ArrowLeftIcon size={24} color={ICON_COLORS.white} weight="bold" />
           <Text className="text-white ml-4 text-lg">Back</Text>
         </TouchableOpacity>
         <Text className="text-xl font-bold text-white">Claim Payments</Text>
@@ -383,7 +391,7 @@ export default function ClaimScreen() {
                 </Text>
               </View>
               <View className="w-16 h-16 bg-green-900/30 rounded-full items-center justify-center">
-                <Coins size={32} color={ICON_COLORS.success} weight="fill" />
+                <CoinsIcon size={32} color={ICON_COLORS.success} weight="fill" />
               </View>
             </View>
           </View>
@@ -404,7 +412,7 @@ export default function ClaimScreen() {
           {progress.status === "confirmed" && (
             <View className="mt-6 bg-green-900/20 border border-green-700 rounded-xl p-4">
               <View className="flex-row items-center gap-3">
-                <CheckCircle size={24} color={ICON_COLORS.success} weight="fill" />
+                <CheckCircleIcon size={24} color={ICON_COLORS.success} weight="fill" />
                 <View className="flex-1">
                   <Text className="text-green-400 font-medium">
                     Claim Successful!
@@ -421,7 +429,7 @@ export default function ClaimScreen() {
           {error && (
             <View className="mt-6 bg-red-900/20 border border-red-700 rounded-xl p-4">
               <View className="flex-row items-center gap-3">
-                <Warning size={24} color={ICON_COLORS.error} weight="fill" />
+                <WarningIcon size={24} color={ICON_COLORS.error} weight="fill" />
                 <View className="flex-1">
                   <Text className="text-red-400 font-medium">Claim Failed</Text>
                   <Text className="text-dark-400 text-sm mt-1">{error}</Text>
@@ -430,6 +438,9 @@ export default function ClaimScreen() {
               <TouchableOpacity
                 className="mt-3 bg-red-800 rounded-lg py-2 items-center"
                 onPress={reset}
+                accessibilityRole="button"
+                accessibilityLabel="Try again"
+                accessibilityHint="Resets the claim process to try again"
               >
                 <Text className="text-white font-medium">Try Again</Text>
               </TouchableOpacity>
@@ -450,6 +461,8 @@ export default function ClaimScreen() {
                       : selectAll
                   }
                   disabled={isClaiming}
+                  accessibilityRole="button"
+                  accessibilityLabel={selectedIds.size === unclaimedPayments.length ? "Deselect all payments" : "Select all payments"}
                 >
                   <Text className="text-brand-400">
                     {selectedIds.size === unclaimedPayments.length
@@ -474,7 +487,7 @@ export default function ClaimScreen() {
           ) : (
             <View className="mt-6 items-center py-12">
               <View className="w-20 h-20 rounded-full bg-brand-900/30 items-center justify-center mb-4">
-                <Sparkle size={40} color={ICON_COLORS.brand} weight="fill" />
+                <SparkleIcon size={40} color={ICON_COLORS.brand} weight="fill" />
               </View>
               <Text className="text-white font-semibold text-lg">
                 All Caught Up!
@@ -513,7 +526,7 @@ export default function ClaimScreen() {
           {/* Info Card */}
           <View className="mt-6 mb-8 bg-brand-900/10 border border-brand-800/30 rounded-xl p-4">
             <View className="flex-row items-start gap-3">
-              <LockKey size={24} color={ICON_COLORS.brand} weight="fill" />
+              <LockKeyIcon size={24} color={ICON_COLORS.brand} weight="fill" />
               <View className="flex-1">
                 <Text className="text-brand-400 font-medium">
                   Secure Claiming

@@ -23,15 +23,15 @@ import { SafeAreaView } from "react-native-safe-area-context"
 import { router, useLocalSearchParams } from "expo-router"
 import { useState, useEffect, useMemo, useCallback } from "react"
 import {
-  ArrowsClockwise,
-  ArrowsDownUp,
-  ChartBar,
-  GearSix,
-  LockSimple,
-  LockSimpleOpen,
-  Check,
-  X,
-  Warning,
+  ArrowsClockwiseIcon,
+  ArrowsDownUpIcon,
+  ChartBarIcon,
+  GearSixIcon,
+  LockSimpleIcon,
+  LockSimpleOpenIcon,
+  CheckIcon,
+  XIcon,
+  WarningIcon,
 } from "phosphor-react-native"
 import { ICON_COLORS } from "@/constants/icons"
 import { useWalletStore } from "@/stores/wallet"
@@ -118,7 +118,7 @@ function MainnetOnlyOverlay({ network, onSwitchNetwork, onGoBack }: MainnetOnlyO
       <View className="flex-1 items-center justify-center px-6">
         {/* Icon */}
         <View className="w-24 h-24 rounded-full bg-yellow-500/20 items-center justify-center mb-6">
-          <ArrowsClockwise size={48} color={ICON_COLORS.warning} weight="regular" />
+          <ArrowsClockwiseIcon size={48} color={ICON_COLORS.warning} weight="regular" />
         </View>
 
         {/* Title */}
@@ -147,6 +147,8 @@ function MainnetOnlyOverlay({ network, onSwitchNetwork, onGoBack }: MainnetOnlyO
           <TouchableOpacity
             className="py-3 items-center"
             onPress={onGoBack}
+            accessibilityRole="button"
+            accessibilityLabel="Go back"
           >
             <Text className="text-dark-400">Go Back</Text>
           </TouchableOpacity>
@@ -154,7 +156,7 @@ function MainnetOnlyOverlay({ network, onSwitchNetwork, onGoBack }: MainnetOnlyO
 
         {/* Info */}
         <View className="mt-8 bg-dark-900 rounded-xl p-4 border border-dark-800 flex-row items-center justify-center gap-2">
-          <Warning size={16} color={ICON_COLORS.warning} weight="fill" />
+          <WarningIcon size={16} color={ICON_COLORS.warning} weight="fill" />
           <Text className="text-dark-500 text-sm text-center">
             You can still test Send, Receive, and Claim on {getNetworkDisplayName(network)}
           </Text>
@@ -191,9 +193,16 @@ function TokenInput({
   isOutput,
   isLoading,
 }: TokenInputProps) {
+  const SOL_FEE_RESERVE = 0.01
   const handleMaxPress = () => {
     if (balance && onAmountChange) {
-      onAmountChange(balance)
+      // Reserve SOL for transaction fees when swapping SOL
+      if (token.symbol === "SOL") {
+        const maxAmount = Math.max(0, parseFloat(balance) - SOL_FEE_RESERVE)
+        onAmountChange(maxAmount > 0 ? maxAmount.toString() : "0")
+      } else {
+        onAmountChange(balance)
+      }
     }
   }
 
@@ -212,6 +221,9 @@ function TokenInput({
               <TouchableOpacity
                 className="ml-2 bg-brand-900/30 px-2 py-0.5 rounded"
                 onPress={handleMaxPress}
+                accessibilityRole="button"
+                accessibilityLabel="Use maximum balance"
+                accessibilityHint="Sets the input to your full available balance"
               >
                 <Text className="text-brand-400 text-xs font-medium">MAX</Text>
               </TouchableOpacity>
@@ -224,6 +236,9 @@ function TokenInput({
         <TouchableOpacity
           className="flex-row items-center bg-dark-800 rounded-xl px-3 py-2.5 mr-3"
           onPress={onTokenPress}
+          accessibilityRole="button"
+          accessibilityLabel={`Select ${direction === "from" ? "input" : "output"} token, currently ${token.symbol}`}
+          accessibilityHint="Opens the token selector"
         >
           <Text className="text-2xl mr-2">{getTokenIcon(token.symbol)}</Text>
           <Text className="text-white font-semibold text-lg">{token.symbol}</Text>
@@ -283,7 +298,10 @@ function SwapDetails({ quote, slippage }: SwapDetailsProps) {
         <Text className="text-dark-400 text-sm">Rate</Text>
         <Text className="text-white text-sm">
           1 {inputToken.symbol} ≈{" "}
-          {(parseFloat(quote.outputAmount) / parseFloat(quote.inputAmount || "1")).toFixed(4)}{" "}
+          {(parseFloat(quote.inputAmount) > 0
+            ? (parseFloat(quote.outputAmount) / parseFloat(quote.inputAmount)).toFixed(4)
+            : "0.0000"
+          )}{" "}
           {outputToken.symbol}
         </Text>
       </View>
@@ -385,6 +403,14 @@ export default function SwapScreen() {
   const [showExecutingModal, setShowExecutingModal] = useState(false)
   const [showResultModal, setShowResultModal] = useState(false)
 
+  // Saved swap details for result modal (prevents stale data after form reset)
+  const [completedSwap, setCompletedSwap] = useState<{
+    fromAmount: string
+    fromSymbol: string
+    toAmount: string
+    toSymbol: string
+  } | null>(null)
+
   // Swap execution hook
   const {
     status: swapStatus,
@@ -480,14 +506,18 @@ export default function SwapScreen() {
   // Calculate USD values
   const fromUsdValue = useMemo(() => {
     if (!fromAmount || !fromBalance?.usdValue) return 0
-    const ratio = parseFloat(fromAmount) / parseFloat(fromBalance.balance)
+    const bal = parseFloat(fromBalance.balance)
+    if (bal === 0) return 0
+    const ratio = parseFloat(fromAmount) / bal
     return fromBalance.usdValue * ratio
   }, [fromAmount, fromBalance])
 
   const toUsdValue = useMemo(() => {
     if (!quote?.outputAmount || quote.outputAmount === "0") return 0
     if (!toBalance?.usdValue) return 0
-    const ratio = parseFloat(quote.outputAmount) / parseFloat(toBalance.balance)
+    const bal = parseFloat(toBalance.balance)
+    if (bal === 0) return 0
+    const ratio = parseFloat(quote.outputAmount) / bal
     return toBalance.usdValue * ratio
   }, [quote?.outputAmount, toBalance])
 
@@ -530,6 +560,12 @@ export default function SwapScreen() {
     }
     setShowTokenSelector(false)
   }
+
+  const handleAmountChange = useCallback((text: string) => {
+    // Sanitize: allow only digits and one decimal point
+    const sanitized = text.replace(/[^0-9.]/g, "").replace(/(\..*)\./g, "$1")
+    setFromAmount(sanitized)
+  }, [])
 
   const handleSwapDirection = () => {
     const tempToken = fromToken
@@ -575,6 +611,14 @@ export default function SwapScreen() {
       privacyLevel,
     })
 
+    // Save swap details before resetting form
+    setCompletedSwap({
+      fromAmount,
+      fromSymbol: fromToken.symbol,
+      toAmount: quote?.outputAmount ?? "0",
+      toSymbol: toToken.symbol,
+    })
+
     // Show result modal
     setShowExecutingModal(false)
     setShowResultModal(true)
@@ -587,6 +631,7 @@ export default function SwapScreen() {
 
   const handleResultClose = () => {
     setShowResultModal(false)
+    setCompletedSwap(null)
     resetSwap()
   }
 
@@ -632,14 +677,20 @@ export default function SwapScreen() {
               <TouchableOpacity
                 className="bg-dark-800 p-2 rounded-lg"
                 onPress={() => router.push("/swap/history")}
+                accessibilityRole="button"
+                accessibilityLabel="Swap history"
+                accessibilityHint="Opens your swap transaction history"
               >
-                <ChartBar size={20} color={ICON_COLORS.muted} weight="regular" />
+                <ChartBarIcon size={20} color={ICON_COLORS.muted} weight="regular" />
               </TouchableOpacity>
               <TouchableOpacity
                 className="bg-dark-800 p-2 rounded-lg"
                 onPress={() => setShowSlippageModal(true)}
+                accessibilityRole="button"
+                accessibilityLabel="Swap settings"
+                accessibilityHint="Opens slippage and swap settings"
               >
-                <GearSix size={20} color={ICON_COLORS.muted} weight="regular" />
+                <GearSixIcon size={20} color={ICON_COLORS.muted} weight="regular" />
               </TouchableOpacity>
             </View>
           </View>
@@ -649,7 +700,7 @@ export default function SwapScreen() {
             direction="from"
             token={fromToken}
             amount={fromAmount}
-            onAmountChange={setFromAmount}
+            onAmountChange={handleAmountChange}
             onTokenPress={() => handleTokenPress("from")}
             balance={fromBalance?.balance}
             usdValue={fromUsdValue}
@@ -660,8 +711,11 @@ export default function SwapScreen() {
             <TouchableOpacity
               className="bg-dark-800 border-4 border-dark-950 rounded-xl p-2"
               onPress={handleSwapDirection}
+              accessibilityRole="button"
+              accessibilityLabel="Swap token direction"
+              accessibilityHint="Swaps the input and output tokens"
             >
-              <ArrowsDownUp size={24} color={ICON_COLORS.white} weight="bold" />
+              <ArrowsDownUpIcon size={24} color={ICON_COLORS.white} weight="bold" />
             </TouchableOpacity>
           </View>
 
@@ -691,14 +745,18 @@ export default function SwapScreen() {
                 privacyLevel === "shielded" ? "transparent" : "shielded"
               )
             }
+            accessibilityRole="switch"
+            accessibilityLabel={privacyLevel === "shielded" ? "Private swap enabled" : "Public swap"}
+            accessibilityHint="Toggles between private and public swap"
+            accessibilityState={{ checked: privacyLevel === "shielded" }}
           >
             <View className="flex-row items-center justify-between">
               <View className="flex-row items-center">
                 <View className="mr-3">
                   {privacyLevel === "shielded" ? (
-                    <LockSimple size={28} color={ICON_COLORS.brand} weight="fill" />
+                    <LockSimpleIcon size={28} color={ICON_COLORS.brand} weight="fill" />
                   ) : (
-                    <LockSimpleOpen size={28} color={ICON_COLORS.muted} weight="regular" />
+                    <LockSimpleOpenIcon size={28} color={ICON_COLORS.muted} weight="regular" />
                   )}
                 </View>
                 <View>
@@ -759,6 +817,9 @@ export default function SwapScreen() {
                 onPress={refreshQuote}
                 disabled={isQuoteLoading}
                 className="px-3 py-1 bg-dark-800 rounded-lg"
+                accessibilityRole="button"
+                accessibilityLabel="Refresh quote"
+                accessibilityHint="Fetches a fresh swap quote"
               >
                 <Text className="text-dark-400 text-xs">
                   {isQuoteLoading ? "Loading..." : "Refresh"}
@@ -787,7 +848,7 @@ export default function SwapScreen() {
           {isPreviewMode() && (
             <View className="mt-4 bg-yellow-900/20 border border-yellow-700 rounded-xl p-3">
               <View className="flex-row items-center justify-center gap-2">
-                <Warning size={18} color={ICON_COLORS.warning} weight="fill" />
+                <WarningIcon size={18} color={ICON_COLORS.warning} weight="fill" />
                 <Text className="text-yellow-400 text-sm">
                   Preview Mode — No real transactions
                 </Text>
@@ -847,6 +908,9 @@ export default function SwapScreen() {
                   isSelected ? "bg-brand-900/30 border border-brand-700" : "bg-dark-800"
                 }`}
                 onPress={() => handleTokenSelect(token)}
+                accessibilityRole="button"
+                accessibilityLabel={`${token.symbol}, ${token.name}${isSelected ? ", selected" : ""}`}
+                accessibilityHint="Selects this token for the swap"
               >
                 <Text className="text-2xl mr-3">{getTokenIcon(symbol)}</Text>
                 <View className="flex-1">
@@ -871,6 +935,9 @@ export default function SwapScreen() {
                 params: { direction: tokenSelectorDirection, selected },
               })
             }}
+            accessibilityRole="button"
+            accessibilityLabel="View all tokens"
+            accessibilityHint="Opens the full token list"
           >
             <Text className="text-brand-400">View all tokens →</Text>
           </TouchableOpacity>
@@ -893,6 +960,9 @@ export default function SwapScreen() {
                   slippage === option ? "bg-brand-600" : "bg-dark-800"
                 }`}
                 onPress={() => setSlippage(option)}
+                accessibilityRole="button"
+                accessibilityLabel={`${option}% slippage`}
+                accessibilityState={{ selected: slippage === option }}
               >
                 <Text
                   className={`text-center font-medium ${
@@ -928,7 +998,7 @@ export default function SwapScreen() {
 
           {slippage > 5 && (
             <View className="flex-row items-center gap-2 mt-3">
-              <Warning size={16} color={ICON_COLORS.warning} weight="fill" />
+              <WarningIcon size={16} color={ICON_COLORS.warning} weight="fill" />
               <Text className="text-yellow-400 text-sm">
                 High slippage may result in unfavorable trades
               </Text>
@@ -975,8 +1045,9 @@ export default function SwapScreen() {
               <Text className="text-dark-400">Rate</Text>
               <Text className="text-white">
                 1 {fromToken.symbol} ={" "}
-                {(parseFloat(quote?.outputAmount ?? "1") / parseFloat(fromAmount || "1")).toFixed(
-                  4
+                {(parseFloat(fromAmount) > 0
+                  ? (parseFloat(quote?.outputAmount ?? "0") / parseFloat(fromAmount)).toFixed(4)
+                  : "0.0000"
                 )}{" "}
                 {toToken.symbol}
               </Text>
@@ -995,9 +1066,9 @@ export default function SwapScreen() {
               <Text className="text-dark-400">Privacy</Text>
               <View className="flex-row items-center gap-1">
                 {privacyLevel === "shielded" ? (
-                  <LockSimple size={16} color={ICON_COLORS.brand} weight="fill" />
+                  <LockSimpleIcon size={16} color={ICON_COLORS.brand} weight="fill" />
                 ) : (
-                  <LockSimpleOpen size={16} color={ICON_COLORS.white} weight="regular" />
+                  <LockSimpleOpenIcon size={16} color={ICON_COLORS.white} weight="regular" />
                 )}
                 <Text
                   className={
@@ -1025,12 +1096,16 @@ export default function SwapScreen() {
             <TouchableOpacity
               className="flex-1 bg-dark-800 py-3 rounded-xl items-center"
               onPress={() => setShowConfirmModal(false)}
+              accessibilityRole="button"
+              accessibilityLabel="Cancel swap"
             >
               <Text className="text-white font-medium">Cancel</Text>
             </TouchableOpacity>
             <TouchableOpacity
               className="flex-1 bg-brand-600 py-3 rounded-xl items-center"
               onPress={confirmSwap}
+              accessibilityRole="button"
+              accessibilityLabel="Confirm swap"
             >
               <Text className="text-white font-medium">Confirm Swap</Text>
             </TouchableOpacity>
@@ -1098,24 +1173,24 @@ export default function SwapScreen() {
           {swapStatus === "success" ? (
             <>
               <View className="w-20 h-20 rounded-full bg-green-500/20 items-center justify-center mb-4">
-                <Check size={48} color={ICON_COLORS.success} weight="bold" />
+                <CheckIcon size={48} color={ICON_COLORS.success} weight="bold" />
               </View>
               <Text className="text-white text-xl font-semibold text-center">
                 Successfully swapped!
               </Text>
               <View className="flex-row items-center mt-2">
                 <Text className="text-dark-400">
-                  {fromAmount} {fromToken.symbol}
+                  {completedSwap?.fromAmount ?? fromAmount} {completedSwap?.fromSymbol ?? fromToken.symbol}
                 </Text>
                 <Text className="text-dark-500 mx-2">→</Text>
                 <Text className="text-green-400">
-                  {quote?.outputAmount ?? "0"} {toToken.symbol}
+                  {completedSwap?.toAmount ?? quote?.outputAmount ?? "0"} {completedSwap?.toSymbol ?? toToken.symbol}
                 </Text>
               </View>
 
               {privacyLevel === "shielded" && (
                 <View className="bg-brand-900/30 px-3 py-1.5 rounded-full mt-3 flex-row items-center gap-1">
-                  <LockSimple size={14} color={ICON_COLORS.brand} weight="fill" />
+                  <LockSimpleIcon size={14} color={ICON_COLORS.brand} weight="fill" />
                   <Text className="text-brand-400 text-sm">Private Swap</Text>
                 </View>
               )}
@@ -1132,7 +1207,7 @@ export default function SwapScreen() {
           ) : (
             <>
               <View className="w-20 h-20 rounded-full bg-red-500/20 items-center justify-center mb-4">
-                <X size={48} color={ICON_COLORS.error} weight="bold" />
+                <XIcon size={48} color={ICON_COLORS.error} weight="bold" />
               </View>
               <Text className="text-white text-xl font-semibold text-center">
                 Swap Failed
@@ -1148,6 +1223,9 @@ export default function SwapScreen() {
               <TouchableOpacity
                 className="bg-dark-800 py-3 rounded-xl items-center"
                 onPress={handleViewExplorer}
+                accessibilityRole="link"
+                accessibilityLabel="View on Explorer"
+                accessibilityHint="Opens the transaction in a block explorer"
               >
                 <Text className="text-brand-400 font-medium">
                   View on Explorer
@@ -1159,6 +1237,8 @@ export default function SwapScreen() {
                 swapStatus === "success" ? "bg-brand-600" : "bg-dark-800"
               }`}
               onPress={handleResultClose}
+              accessibilityRole="button"
+              accessibilityLabel={swapStatus === "success" ? "Done" : "Close"}
             >
               <Text className="text-white font-medium">
                 {swapStatus === "success" ? "Done" : "Close"}

@@ -6,6 +6,7 @@
 
 import React from "react"
 import { View, Text, ActivityIndicator } from "react-native"
+import { ICON_COLORS } from "@/constants/icons"
 
 export interface LoadingStateProps {
   /** Loading message */
@@ -26,11 +27,11 @@ export function LoadingState({
 }: LoadingStateProps) {
   if (fullScreen) {
     return (
-      <View className="absolute inset-0 bg-neutral-900/80 items-center justify-center z-50">
-        <View className="bg-neutral-800 rounded-2xl p-8 items-center">
-          <ActivityIndicator size={size} color="#22c55e" />
+      <View className="absolute inset-0 bg-dark-950/80 items-center justify-center z-50">
+        <View className="bg-dark-900 rounded-2xl p-8 items-center">
+          <ActivityIndicator size={size} color={ICON_COLORS.brand} />
           {message && (
-            <Text className="text-neutral-300 mt-4 text-center">{message}</Text>
+            <Text className="text-dark-400 mt-4 text-center">{message}</Text>
           )}
         </View>
       </View>
@@ -39,9 +40,9 @@ export function LoadingState({
 
   return (
     <View className={`flex-1 items-center justify-center p-8 ${className}`}>
-      <ActivityIndicator size={size} color="#22c55e" />
+      <ActivityIndicator size={size} color={ICON_COLORS.brand} />
       {message && (
-        <Text className="text-neutral-400 mt-4 text-center">{message}</Text>
+        <Text className="text-dark-400 mt-4 text-center">{message}</Text>
       )}
     </View>
   )
@@ -80,7 +81,7 @@ export function Skeleton({
 
   return (
     <View
-      className={`bg-neutral-700 animate-pulse ${variantStyles[variant]} ${className}`}
+      className={`bg-dark-800 animate-pulse ${variantStyles[variant]} ${className}`}
       style={style}
     />
   )
@@ -91,7 +92,7 @@ export function Skeleton({
  */
 export function ListItemSkeleton() {
   return (
-    <View className="flex-row items-center p-4 bg-neutral-800 rounded-xl mb-2">
+    <View className="flex-row items-center p-4 bg-dark-900 rounded-xl mb-2">
       <Skeleton variant="circular" width={48} height={48} />
       <View className="flex-1 ml-3">
         <Skeleton width={120} height={16} className="mb-2" />
@@ -107,7 +108,7 @@ export function ListItemSkeleton() {
  */
 export function CardSkeleton() {
   return (
-    <View className="bg-neutral-800 rounded-2xl p-4 mb-4">
+    <View className="bg-dark-900 rounded-2xl p-4 mb-4">
       <View className="flex-row items-center mb-4">
         <Skeleton variant="circular" width={40} height={40} />
         <View className="flex-1 ml-3">

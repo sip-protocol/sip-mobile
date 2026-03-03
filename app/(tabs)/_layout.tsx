@@ -1,12 +1,12 @@
 import { Tabs, Redirect } from 'expo-router'
 import { View, ActivityIndicator } from 'react-native'
 import {
-  House,
-  PaperPlaneTilt,
-  Download,
-  ArrowsLeftRight,
-  GearSix,
-} from 'phosphor-react-native'
+  HouseIcon,
+  PaperPlaneTiltIcon,
+  DownloadIcon,
+  ArrowsLeftRightIcon,
+  GearSixIcon,
+} from "phosphor-react-native"
 import type { IconProps } from 'phosphor-react-native'
 import type { ComponentType } from 'react'
 import { useWalletStore } from '@/stores/wallet'
@@ -70,7 +70,7 @@ export default function TabsLayout() {
         name="index"
         options={{
           tabBarIcon: ({ focused }) => (
-            <TabIcon focused={focused} Icon={House} />
+            <TabIcon focused={focused} Icon={HouseIcon} />
           ),
         }}
       />
@@ -78,7 +78,7 @@ export default function TabsLayout() {
         name="send"
         options={{
           tabBarIcon: ({ focused }) => (
-            <TabIcon focused={focused} Icon={PaperPlaneTilt} />
+            <TabIcon focused={focused} Icon={PaperPlaneTiltIcon} />
           ),
         }}
       />
@@ -86,7 +86,7 @@ export default function TabsLayout() {
         name="receive"
         options={{
           tabBarIcon: ({ focused }) => (
-            <TabIcon focused={focused} Icon={Download} />
+            <TabIcon focused={focused} Icon={DownloadIcon} />
           ),
         }}
       />
@@ -94,7 +94,7 @@ export default function TabsLayout() {
         name="swap"
         options={{
           tabBarIcon: ({ focused }) => (
-            <TabIcon focused={focused} Icon={ArrowsLeftRight} />
+            <TabIcon focused={focused} Icon={ArrowsLeftRightIcon} />
           ),
         }}
       />
@@ -102,7 +102,7 @@ export default function TabsLayout() {
         name="settings"
         options={{
           tabBarIcon: ({ focused }) => (
-            <TabIcon focused={focused} Icon={GearSix} />
+            <TabIcon focused={focused} Icon={GearSixIcon} />
           ),
         }}
       />

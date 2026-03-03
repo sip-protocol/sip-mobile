@@ -207,7 +207,7 @@ export function getRpcClient(config?: RpcConfig): SolanaRpcClient {
     rpcClientInstance = new SolanaRpcClient(
       config || {
         provider: "publicnode",
-        cluster: "devnet",
+        cluster: "mainnet-beta",
       }
     )
   }

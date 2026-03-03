@@ -79,6 +79,8 @@ export function EmptyState({
         <Pressable
           onPress={onAction}
           className="bg-brand-600 px-6 py-3 rounded-xl active:bg-brand-700"
+          accessibilityRole="button"
+          accessibilityLabel={actionLabel}
         >
           <Text className="text-white font-semibold">{actionLabel}</Text>
         </Pressable>

@@ -6,7 +6,12 @@
  */
 
 import { View, Text, Dimensions, ScrollView } from "react-native"
-import { Key, User, Buildings, Eye } from "phosphor-react-native"
+import {
+  KeyIcon,
+  UserIcon,
+  BuildingsIcon,
+  EyeIcon,
+} from "phosphor-react-native"
 import { PermissionCard } from "@/components/demos"
 import { ICON_COLORS } from "@/constants/icons"
 
@@ -25,7 +30,7 @@ export function ViewingKeysSlide() {
           className="w-20 h-20 rounded-2xl items-center justify-center"
           style={{ backgroundColor: "rgba(16, 185, 129, 0.15)" }}
         >
-          <Key size={40} color={ICON_COLORS.success} weight="fill" />
+          <KeyIcon size={40} color={ICON_COLORS.success} weight="fill" />
         </View>
       </View>
 
@@ -48,7 +53,7 @@ export function ViewingKeysSlide() {
       >
         <View className="gap-3 pb-2">
           <PermissionCard
-            icon={User}
+            icon={UserIcon}
             title="You"
             accessLabel="Full access"
             level="full"
@@ -57,7 +62,7 @@ export function ViewingKeysSlide() {
           />
 
           <PermissionCard
-            icon={Buildings}
+            icon={BuildingsIcon}
             title="Auditor"
             accessLabel="Read-only"
             level="partial"
@@ -66,7 +71,7 @@ export function ViewingKeysSlide() {
           />
 
           <PermissionCard
-            icon={Eye}
+            icon={EyeIcon}
             title="Public"
             accessLabel="Nothing"
             level="none"

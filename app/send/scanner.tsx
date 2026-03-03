@@ -15,7 +15,11 @@ import { View, Text, StyleSheet, TouchableOpacity, Vibration, Platform } from "r
 import { SafeAreaView } from "react-native-safe-area-context"
 import { router, useLocalSearchParams } from "expo-router"
 import { CameraView, useCameraPermissions, BarcodeScanningResult } from "expo-camera"
-import { Camera, X, Flashlight } from "phosphor-react-native"
+import {
+  CameraIcon,
+  XIcon,
+  FlashlightIcon,
+} from "phosphor-react-native"
 import { ICON_COLORS } from "@/constants/icons"
 import { useToastStore } from "@/stores/toast"
 
@@ -131,10 +135,10 @@ export default function ScannerScreen() {
     return (
       <SafeAreaView className="flex-1 bg-dark-950 justify-center items-center px-6">
         <View className="w-24 h-24 bg-dark-800 rounded-full items-center justify-center mb-6">
-          <Camera size={48} color={ICON_COLORS.muted} weight="regular" />
+          <CameraIcon size={48} color={ICON_COLORS.muted} weight="regular" />
         </View>
         <Text className="text-white text-xl font-semibold text-center mb-4">
-          Camera Permission Required
+          CameraIcon Permission Required
         </Text>
         <Text className="text-dark-400 text-center mb-8">
           We need camera access to scan QR codes containing wallet addresses.
@@ -154,7 +158,7 @@ export default function ScannerScreen() {
 
   return (
     <View testID="qr-scanner-screen" className="flex-1 bg-black">
-      {/* Camera View */}
+      {/* CameraIcon View */}
       <CameraView
         style={StyleSheet.absoluteFillObject}
         facing="back"
@@ -173,7 +177,7 @@ export default function ScannerScreen() {
             className="bg-black/50 rounded-full p-3"
             onPress={() => router.back()}
           >
-            <X size={24} color={ICON_COLORS.white} weight="bold" />
+            <XIcon size={24} color={ICON_COLORS.white} weight="bold" />
           </TouchableOpacity>
 
           <Text className="text-white font-semibold text-lg">Scan QR Code</Text>
@@ -182,7 +186,7 @@ export default function ScannerScreen() {
             className="bg-black/50 rounded-full p-3"
             onPress={() => setFlashOn(!flashOn)}
           >
-            <Flashlight
+            <FlashlightIcon
               size={24}
               color={flashOn ? ICON_COLORS.warning : ICON_COLORS.white}
               weight={flashOn ? "fill" : "regular"}

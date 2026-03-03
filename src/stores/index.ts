@@ -40,3 +40,7 @@ export type {
 // Custom Tokens
 export { useCustomTokensStore, MAX_CUSTOM_TOKENS } from "./customTokens"
 export type { CustomToken } from "./customTokens"
+
+// Portfolio
+export { usePortfolioStore } from "./portfolio"
+export type { PortfolioToken } from "./portfolio"

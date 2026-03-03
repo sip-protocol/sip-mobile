@@ -24,15 +24,15 @@ import { useWalletStore } from "@/stores/wallet"
 import { useSettingsStore } from "@/stores/settings"
 import type { PaymentRecord, PrivacyLevel } from "@/types"
 import {
-  ArrowLeft,
-  ArrowDown,
-  ArrowUp,
-  MagnifyingGlass,
-  X,
-  ShieldCheck,
-  Lock,
-  Eye,
-  ClipboardText,
+  ArrowLeftIcon,
+  ArrowDownIcon,
+  ArrowUpIcon,
+  MagnifyingGlassIcon,
+  XIcon,
+  ShieldCheckIcon,
+  LockIcon,
+  EyeIcon,
+  ClipboardTextIcon,
 } from "phosphor-react-native"
 import { ICON_COLORS } from "@/constants/icons"
 
@@ -93,11 +93,11 @@ function getStatusColor(status: PaymentRecord["status"]): string {
 function getPrivacyIcon(level: PrivacyLevel): React.ReactNode {
   switch (level) {
     case "shielded":
-      return <ShieldCheck size={14} color={ICON_COLORS.success} weight="fill" />
+      return <ShieldCheckIcon size={14} color={ICON_COLORS.success} weight="fill" />
     case "compliant":
-      return <Lock size={14} color={ICON_COLORS.brand} weight="fill" />
+      return <LockIcon size={14} color={ICON_COLORS.brand} weight="fill" />
     case "transparent":
-      return <Eye size={14} color={ICON_COLORS.muted} weight="fill" />
+      return <EyeIcon size={14} color={ICON_COLORS.muted} weight="fill" />
   }
 }
 
@@ -117,6 +117,9 @@ function TransactionItem({ payment, onPress }: TransactionItemProps) {
     <TouchableOpacity
       className="flex-row items-center py-4 px-4 border-b border-dark-900"
       onPress={onPress}
+      accessibilityRole="button"
+      accessibilityLabel={`${isReceive ? "Received" : "Sent"} ${formatAmount(payment.amount, payment.type)} ${payment.token}, ${payment.status}`}
+      accessibilityHint="Opens transaction details"
     >
       {/* Icon */}
       <View
@@ -125,9 +128,9 @@ function TransactionItem({ payment, onPress }: TransactionItemProps) {
         }`}
       >
         {isReceive ? (
-          <ArrowDown size={20} color={ICON_COLORS.success} weight="bold" />
+          <ArrowDownIcon size={20} color={ICON_COLORS.success} weight="bold" />
         ) : (
-          <ArrowUp size={20} color={ICON_COLORS.brand} weight="bold" />
+          <ArrowUpIcon size={20} color={ICON_COLORS.brand} weight="bold" />
         )}
       </View>
 
@@ -181,6 +184,9 @@ function FilterChip({ label, isActive, onPress }: FilterChipProps) {
         isActive ? "bg-brand-600" : "bg-dark-800"
       }`}
       onPress={onPress}
+      accessibilityRole="button"
+      accessibilityLabel={`Filter: ${label}`}
+      accessibilityState={{ selected: isActive }}
     >
       <Text className={isActive ? "text-white font-medium" : "text-dark-400"}>
         {label}
@@ -260,7 +266,7 @@ export default function HistoryScreen() {
   const renderEmptyState = () => (
     <View className="flex-1 items-center justify-center py-20">
       <View className="w-20 h-20 rounded-full bg-dark-800 items-center justify-center mb-4">
-        <ClipboardText size={40} color={ICON_COLORS.inactive} weight="fill" />
+        <ClipboardTextIcon size={40} color={ICON_COLORS.inactive} weight="fill" />
       </View>
       <Text className="text-white font-semibold text-lg">No Transactions</Text>
       <Text className="text-dark-500 text-center mt-2 px-8">
@@ -277,7 +283,7 @@ export default function HistoryScreen() {
     <View className="px-4 pb-4">
       {/* Search Bar */}
       <View className="bg-dark-900 border border-dark-800 rounded-xl px-4 py-3 flex-row items-center">
-        <MagnifyingGlass size={18} color={ICON_COLORS.inactive} weight="bold" />
+        <MagnifyingGlassIcon size={18} color={ICON_COLORS.inactive} weight="bold" />
         <TextInput
           className="flex-1 text-white ml-2"
           placeholder="Search by tx hash or address"
@@ -288,8 +294,12 @@ export default function HistoryScreen() {
           autoCorrect={false}
         />
         {searchQuery.length > 0 && (
-          <TouchableOpacity onPress={() => setSearchQuery("")}>
-            <X size={18} color={ICON_COLORS.inactive} weight="bold" />
+          <TouchableOpacity
+            onPress={() => setSearchQuery("")}
+            accessibilityRole="button"
+            accessibilityLabel="Clear search"
+          >
+            <XIcon size={18} color={ICON_COLORS.inactive} weight="bold" />
           </TouchableOpacity>
         )}
       </View>
@@ -373,8 +383,10 @@ export default function HistoryScreen() {
         <TouchableOpacity
           className="flex-row items-center"
           onPress={() => router.back()}
+          accessibilityRole="button"
+          accessibilityLabel="Go back"
         >
-          <ArrowLeft size={24} color={ICON_COLORS.white} weight="bold" />
+          <ArrowLeftIcon size={24} color={ICON_COLORS.white} weight="bold" />
           <Text className="text-white ml-4 text-lg">Back</Text>
         </TouchableOpacity>
         <Text className="text-xl font-bold text-white">History</Text>

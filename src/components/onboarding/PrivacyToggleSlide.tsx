@@ -7,7 +7,9 @@
 
 import { View, Text, Dimensions } from "react-native"
 import { useState } from "react"
-import { LockSimple } from "phosphor-react-native"
+import {
+  LockSimpleIcon,
+} from "phosphor-react-native"
 import { PrivacyToggle } from "@/components/ui"
 import { BlockchainVisualizer } from "@/components/demos"
 import { ICON_COLORS } from "@/constants/icons"
@@ -28,7 +30,7 @@ export function PrivacyToggleSlide() {
         className="w-20 h-20 rounded-2xl items-center justify-center mb-6"
         style={{ backgroundColor: "rgba(6, 182, 212, 0.15)" }}
       >
-        <LockSimple size={40} color={ICON_COLORS.cyan} weight="fill" />
+        <LockSimpleIcon size={40} color={ICON_COLORS.cyan} weight="fill" />
       </View>
 
       {/* Title */}

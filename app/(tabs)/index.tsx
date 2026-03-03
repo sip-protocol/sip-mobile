@@ -12,6 +12,7 @@ import { SafeAreaView } from "react-native-safe-area-context"
 import { router } from "expo-router"
 import { useCallback, useState, useMemo, useEffect } from "react"
 import { markPerformance } from "@/utils/performance"
+import { hapticLight } from "@/utils/haptics"
 
 // Mark when home screen module loads
 markPerformance("home_module_load")
@@ -23,18 +24,19 @@ import { useClaim } from "@/hooks/useClaim"
 import { useBalance } from "@/hooks/useBalance"
 import { useToastStore } from "@/stores/toast"
 import { AccountIndicator } from "@/components/AccountSwitcher"
+import { FEATURED_TOKENS, getToken, formatTokenAmount } from "@/data/tokens"
 import {
-  ShieldCheck,
-  ClockCounterClockwise,
-  Key,
-  Coins,
-  ArrowDown,
-  ArrowUp,
-  ListChecks,
-  ShieldStar,
-  Clock,
-  Lock,
-  Eye,
+  ShieldCheckIcon,
+  ClockCounterClockwiseIcon,
+  KeyIcon,
+  CoinsIcon,
+  ArrowDownIcon,
+  ArrowUpIcon,
+  ListChecksIcon,
+  ShieldStarIcon,
+  ClockIcon,
+  LockIcon,
+  EyeIcon,
 } from "phosphor-react-native"
 import type { IconProps } from "phosphor-react-native"
 import type { ComponentType } from "react"
@@ -128,7 +130,13 @@ function QuickAction({
           ? "bg-brand-900/20 border border-brand-800/30"
           : "bg-dark-900 border border-dark-800"
       }`}
-      onPress={onPress}
+      onPress={() => {
+        hapticLight()
+        onPress()
+      }}
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      accessibilityHint={sublabel}
     >
       <Icon
         size={28}
@@ -158,10 +166,10 @@ function TransactionRow({ payment, onPress }: TransactionRowProps) {
   // Privacy level indicator
   const PrivacyIcon =
     payment.privacyLevel === "compliant"
-      ? Lock
+      ? LockIcon
       : payment.privacyLevel === "transparent"
-      ? Eye
-      : ShieldCheck
+      ? EyeIcon
+      : ShieldCheckIcon
   const privacyColor =
     payment.privacyLevel === "compliant"
       ? "#22d3ee" // cyan
@@ -173,6 +181,9 @@ function TransactionRow({ payment, onPress }: TransactionRowProps) {
     <TouchableOpacity
       className="flex-row items-center py-3 border-b border-dark-900"
       onPress={onPress}
+      accessibilityRole="button"
+      accessibilityLabel={`${isReceive ? "Received" : "Sent"} ${parseFloat(payment.amount).toFixed(4)} ${payment.token}, ${payment.status}`}
+      accessibilityHint="Opens transaction details"
     >
       <View
         className={`w-10 h-10 rounded-full items-center justify-center ${
@@ -180,9 +191,9 @@ function TransactionRow({ payment, onPress }: TransactionRowProps) {
         }`}
       >
         {isReceive ? (
-          <ArrowDown size={20} weight="bold" color="#4ade80" />
+          <ArrowDownIcon size={20} weight="bold" color="#4ade80" />
         ) : (
-          <ArrowUp size={20} weight="bold" color="#a78bfa" />
+          <ArrowUpIcon size={20} weight="bold" color="#a78bfa" />
         )}
       </View>
       <View className="flex-1 ml-3">
@@ -333,6 +344,9 @@ export default function HomeScreen() {
                 className="flex-row items-center mt-3 pt-3 border-t border-dark-800"
                 onPress={handleCopyAddress}
                 activeOpacity={0.7}
+                accessibilityRole="button"
+                accessibilityLabel="Copy wallet address"
+                accessibilityHint="Copies your wallet address to clipboard"
               >
                 <Text className="text-dark-500 text-sm">
                   {formatAddress(address)}
@@ -348,6 +362,9 @@ export default function HomeScreen() {
                 testID="setup-wallet-button"
                 className="mt-4 bg-brand-600 rounded-xl py-3 items-center"
                 onPress={() => router.push("/wallet-setup")}
+                accessibilityRole="button"
+                accessibilityLabel="Set up wallet"
+                accessibilityHint="Opens the wallet setup flow"
               >
                 <Text className="text-white font-semibold">Set Up Wallet</Text>
               </TouchableOpacity>
@@ -358,34 +375,82 @@ export default function HomeScreen() {
         {/* Quick Actions */}
         <View className="flex-row mt-6 gap-3">
           <QuickAction
-            Icon={ShieldCheck}
+            Icon={ShieldCheckIcon}
             label="Private"
             sublabel="Shield funds"
             variant="primary"
             onPress={() => router.push("/(tabs)/send")}
           />
           <QuickAction
-            Icon={ClockCounterClockwise}
+            Icon={ClockCounterClockwiseIcon}
             label="History"
             sublabel="View activity"
             onPress={() => router.push("/history")}
           />
           <QuickAction
-            Icon={Key}
+            Icon={KeyIcon}
             label="Keys"
             sublabel="Manage keys"
             onPress={() => router.push("/settings/viewing-keys")}
           />
         </View>
 
+        {/* Featured Tokens */}
+        {isConnected && (
+          <View className="mt-6">
+            <Text className="text-lg font-semibold text-white mb-3">
+              Featured Tokens
+            </Text>
+            <View className="flex-row gap-3">
+              {FEATURED_TOKENS.map((symbol) => {
+                const token = getToken(symbol)
+                if (!token) return null
+                const isSol = symbol === "SOL"
+                const tokenBalance = isSol ? balance : 0
+                const tokenUsd = isSol ? usdValue : 0
+                return (
+                  <View
+                    key={symbol}
+                    className="flex-1 bg-dark-900 rounded-xl p-4 border border-dark-800"
+                  >
+                    <View className="flex-row items-center gap-2">
+                      <Text className="text-white font-bold text-base">
+                        {token.symbol}
+                      </Text>
+                      {symbol === "SKR" && (
+                        <View className="bg-brand-900/30 px-1.5 py-0.5 rounded">
+                          <Text className="text-brand-400 text-[10px] font-semibold">
+                            Seeker
+                          </Text>
+                        </View>
+                      )}
+                    </View>
+                    <Text className="text-white text-lg mt-2">
+                      {balanceLoading && isSol
+                        ? "..."
+                        : formatTokenAmount(tokenBalance, token.decimals)}
+                    </Text>
+                    <Text className="text-dark-500 text-sm mt-0.5">
+                      ${tokenUsd.toLocaleString(undefined, { maximumFractionDigits: 2 })}
+                    </Text>
+                  </View>
+                )
+              })}
+            </View>
+          </View>
+        )}
+
         {/* Unclaimed Payments Banner */}
         {isConnected && unclaimedCount > 0 && (
           <TouchableOpacity
             className="mt-6 bg-green-900/20 border border-green-700/50 rounded-xl p-4 flex-row items-center"
             onPress={() => router.push("/claim")}
+            accessibilityRole="button"
+            accessibilityLabel={`${unclaimedCount} unclaimed payment${unclaimedCount !== 1 ? "s" : ""}, ${unclaimedAmount.toFixed(4)} SOL`}
+            accessibilityHint="Opens the claim payments screen"
           >
             <View className="w-12 h-12 bg-green-900/30 rounded-full items-center justify-center">
-              <Coins size={24} weight="duotone" color="#4ade80" />
+              <CoinsIcon size={24} weight="duotone" color="#4ade80" />
             </View>
             <View className="flex-1 ml-3">
               <Text className="text-green-400 font-semibold">
@@ -395,7 +460,7 @@ export default function HomeScreen() {
                 {unclaimedAmount.toFixed(4)} SOL ready to claim
               </Text>
             </View>
-            <ArrowDown size={24} weight="bold" color="#4ade80" style={{ transform: [{ rotate: '-90deg' }] }} />
+            <ArrowDownIcon size={24} weight="bold" color="#4ade80" style={{ transform: [{ rotate: '-90deg' }] }} />
           </TouchableOpacity>
         )}
 
@@ -404,7 +469,7 @@ export default function HomeScreen() {
           <View className="flex-row mt-6 gap-3">
             <View className="flex-1 bg-dark-900 rounded-xl p-4 border border-dark-800">
               <View className="flex-row items-center gap-1.5">
-                <ListChecks size={14} weight="bold" color="#a1a1aa" />
+                <ListChecksIcon size={14} weight="bold" color="#a1a1aa" />
                 <Text className="text-dark-500 text-sm">Transfers</Text>
               </View>
               <Text className="text-2xl font-bold text-white mt-1">
@@ -413,7 +478,7 @@ export default function HomeScreen() {
             </View>
             <View className="flex-1 bg-dark-900 rounded-xl p-4 border border-dark-800">
               <View className="flex-row items-center gap-1.5">
-                <ShieldStar size={14} weight="bold" color="#a78bfa" />
+                <ShieldStarIcon size={14} weight="bold" color="#a78bfa" />
                 <Text className="text-dark-500 text-sm">Private</Text>
               </View>
               <Text className="text-2xl font-bold text-brand-400 mt-1">
@@ -422,7 +487,7 @@ export default function HomeScreen() {
             </View>
             <View className="flex-1 bg-dark-900 rounded-xl p-4 border border-dark-800">
               <View className="flex-row items-center gap-1.5">
-                <Clock size={14} weight="bold" color="#facc15" />
+                <ClockIcon size={14} weight="bold" color="#facc15" />
                 <Text className="text-dark-500 text-sm">Pending</Text>
               </View>
               <Text className="text-2xl font-bold text-yellow-400 mt-1">
@@ -439,7 +504,12 @@ export default function HomeScreen() {
               Recent Activity
             </Text>
             {privacyStats.total > 0 && (
-              <TouchableOpacity onPress={() => router.push("/history")}>
+              <TouchableOpacity
+                onPress={() => router.push("/history")}
+                accessibilityRole="button"
+                accessibilityLabel="View all transactions"
+                accessibilityHint="Opens the full transaction history"
+              >
                 <Text className="text-brand-400">View All</Text>
               </TouchableOpacity>
             )}

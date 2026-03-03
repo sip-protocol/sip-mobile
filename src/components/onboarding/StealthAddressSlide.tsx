@@ -6,7 +6,9 @@
  */
 
 import { View, Text, Dimensions } from "react-native"
-import { Ghost } from "phosphor-react-native"
+import {
+  GhostIcon,
+} from "phosphor-react-native"
 import { StealthAddressDisplay } from "@/components/demos"
 import { useStealthDemo } from "@/hooks"
 import { ICON_COLORS } from "@/constants/icons"
@@ -27,7 +29,7 @@ export function StealthAddressSlide() {
         className="w-20 h-20 rounded-2xl items-center justify-center mb-6"
         style={{ backgroundColor: "rgba(249, 115, 22, 0.15)" }}
       >
-        <Ghost size={40} color={ICON_COLORS.orange} weight="fill" />
+        <GhostIcon size={40} color={ICON_COLORS.orange} weight="fill" />
       </View>
 
       {/* Title */}

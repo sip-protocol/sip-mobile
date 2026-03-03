@@ -13,7 +13,11 @@ import Animated, {
   withTiming,
   Easing,
 } from "react-native-reanimated"
-import { ArrowsClockwise, Copy, CheckCircle } from "phosphor-react-native"
+import {
+  ArrowsClockwiseIcon,
+  CopyIcon,
+  CheckCircleIcon,
+} from "phosphor-react-native"
 import * as Clipboard from "expo-clipboard"
 import { usePrefersReducedMotion } from "@/hooks"
 import { ICON_COLORS } from "@/constants/icons"
@@ -99,12 +103,12 @@ export function StealthAddressDisplay({
           <TouchableOpacity
             onPress={handleCopy}
             hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-            accessibilityLabel={copied ? "Copied" : "Copy address"}
+            accessibilityLabel={copied ? "Copied" : "CopyIcon address"}
           >
             {copied ? (
-              <CheckCircle size={16} color={ICON_COLORS.success} />
+              <CheckCircleIcon size={16} color={ICON_COLORS.success} />
             ) : (
-              <Copy size={16} color={ICON_COLORS.muted} />
+              <CopyIcon size={16} color={ICON_COLORS.muted} />
             )}
           </TouchableOpacity>
         )}
@@ -135,7 +139,7 @@ export function StealthAddressDisplay({
             accessibilityLabel="Generate new address"
             accessibilityRole="button"
           >
-            <ArrowsClockwise
+            <ArrowsClockwiseIcon
               size={18}
               color={isGenerating ? ICON_COLORS.muted : ICON_COLORS.white}
               weight={isGenerating ? "regular" : "bold"}
