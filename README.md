@@ -24,7 +24,7 @@
 [![Solana](https://img.shields.io/badge/Solana-Mainnet-9945FF?logo=solana&logoColor=white)](https://solana.com/)
 [![dApp Store](https://img.shields.io/badge/Solana-dApp_Store-14F195?logo=solana&logoColor=white)](https://solanamobile.com/dapp-store)
 
-**MONOLITH 2nd Solana Mobile Hackathon Submission** | [Download APK v0.1.6](https://github.com/sip-protocol/sip-mobile/releases/tag/v0.1.6) | [Live Demo Videos](https://sip-protocol.org/showcase/solana-privacy-2026)
+**Solana Privacy Hackathon 2026** | **MONOLITH 2nd Solana Mobile Hackathon** | [Download APK v0.1.6](https://github.com/sip-protocol/sip-mobile/releases/tag/v0.1.6) | [Demo Videos](https://sip-protocol.org/showcase/solana-privacy-2026)
 
 </div>
 
@@ -500,7 +500,7 @@ If you discover a vulnerability:
 
 <div align="center">
 
-**MONOLITH 2nd Solana Mobile Hackathon Submission**
+**Solana Privacy Hackathon 2026 | MONOLITH 2nd Solana Mobile Hackathon**
 
 *Privacy is not a feature. It's a right.*
 
