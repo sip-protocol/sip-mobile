@@ -80,7 +80,7 @@
 
 ## Quick Reference
 
-**Stack:** Expo 52, React Native, NativeWind 4, Zustand 5, Expo Router
+**Stack:** Expo 54, React Native 0.81, NativeWind 4, Zustand 5, Expo Router
 
 ```bash
 pnpm install              # Install
@@ -382,8 +382,8 @@ publishing/           # APK builds, dApp Store config
 
 ```bash
 # app.json — increment BOTH before building:
-"version": "0.1.1"              # versionName (human-readable)
-"android": { "versionCode": 2 } # MUST increment for store updates
+"version": "0.1.6"              # versionName (human-readable)
+"android": { "versionCode": 7 } # MUST increment for store updates
 ```
 
 ---
@@ -497,7 +497,7 @@ scrcpy --record session.mp4                    # Record
 
 | Category | Tests | Status |
 |----------|-------|--------|
-| Total | 647 | 100% pass |
+| Total | 1,205 | 100% pass (55 suites) |
 | E2E Flows | 49 | ✅ Good |
 | Hooks | 190 | ✅ Good |
 | Stores | 80 | ✅ Good |
@@ -513,7 +513,7 @@ All providers tested on Seeker with real on-chain transactions:
 
 ---
 
-**Last Updated:** 2026-01-31
-**Status:** v0.1.5 | dApp Store submitted | All 7 Privacy Providers E2E Verified | Interactive Onboarding
+**Last Updated:** 2026-03-03
+**Status:** v0.1.6 | 1,205 tests | 55 suites | Mainnet default | dApp Store published | All 7 Privacy Providers E2E Verified | Interactive Onboarding
 **Positioning:** Privacy in Your Pocket — consumers, daily use, native security
 **Companion:** sip-app ("Privacy Command Center" — enterprise, compliance, power users)

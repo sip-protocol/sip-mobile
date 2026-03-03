@@ -24,7 +24,7 @@
 [![Solana](https://img.shields.io/badge/Solana-Mainnet-9945FF?logo=solana&logoColor=white)](https://solana.com/)
 [![dApp Store](https://img.shields.io/badge/Solana-dApp_Store-14F195?logo=solana&logoColor=white)](https://solanamobile.com/dapp-store)
 
-**Solana Privacy Hackathon 2026 Submission** | [Download APK v0.1.6](https://github.com/sip-protocol/sip-mobile/releases/tag/v0.1.6) | [Live Demo Videos](https://sip-protocol.org/showcase/solana-privacy-2026)
+**MONOLITH 2nd Solana Mobile Hackathon Submission** | [Download APK v0.1.6](https://github.com/sip-protocol/sip-mobile/releases/tag/v0.1.6) | [Live Demo Videos](https://sip-protocol.org/showcase/solana-privacy-2026)
 
 </div>
 
@@ -257,7 +257,7 @@ Import private key   →  Base58 encoded
 
 ### 2. Fund Your Wallet
 
-Send SOL to your wallet address. Works on both devnet and mainnet.
+Send SOL to your wallet address (default network: mainnet-beta).
 
 ### 3. Send Private Payment
 
@@ -388,17 +388,19 @@ SIP Privacy is a **standalone wallet** — not a connector to other wallets.
 
 ## 📱 Build & Publishing
 
-### EAS Cloud Build (Recommended)
+### EAS Local Build
+
+> **Note:** Always use `--local` flag — free-tier cloud builds are quota limited.
 
 ```bash
 # Development build
-eas build --profile development --platform android
+eas build --profile development --platform android --local
 
 # Production APK
-eas build --profile production --platform android
+eas build --profile production --platform android --local
 
 # Production AAB (Play Store)
-eas build --profile production --platform android --type aab
+eas build --profile production --platform android --type aab --local
 ```
 
 ### Build Optimizations
@@ -498,7 +500,7 @@ If you discover a vulnerability:
 
 <div align="center">
 
-**Solana Privacy Hackathon 2026 Submission**
+**MONOLITH 2nd Solana Mobile Hackathon Submission**
 
 *Privacy is not a feature. It's a right.*
 
