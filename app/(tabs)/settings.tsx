@@ -862,6 +862,24 @@ export default function SettingsScreen() {
               >
                 <Text className="text-white text-center font-medium">GitHub</Text>
               </TouchableOpacity>
+              <TouchableOpacity
+                className="bg-dark-800 p-4 rounded-xl"
+                onPress={() => {
+                  setShowAboutModal(false)
+                  openUrl('https://sip-protocol.org/privacy')
+                }}
+              >
+                <Text className="text-white text-center font-medium">Privacy Policy</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                className="bg-dark-800 p-4 rounded-xl"
+                onPress={() => {
+                  setShowAboutModal(false)
+                  openUrl('https://sip-protocol.org/terms')
+                }}
+              >
+                <Text className="text-white text-center font-medium">Terms of Service</Text>
+              </TouchableOpacity>
             </View>
 
             <TouchableOpacity

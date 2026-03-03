@@ -52,7 +52,7 @@ function getRpcEndpoint(network: string): string {
     case "testnet":
       return "https://api.testnet.solana.com"
     default:
-      return "https://api.devnet.solana.com"
+      return "https://api.mainnet-beta.solana.com"
   }
 }
 

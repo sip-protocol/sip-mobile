@@ -95,7 +95,7 @@ export const useSettingsStore = create<SettingsStore>()(
       setBiometricsEnabled: (enabled) => set({ biometricsEnabled: enabled }),
 
       // Network
-      network: "devnet",
+      network: "mainnet-beta",
       setNetwork: (network) => set({ network }),
 
       // RPC Provider

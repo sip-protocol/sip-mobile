@@ -70,18 +70,19 @@ release:
         Docs: https://docs.sip-protocol.org
         GitHub: https://github.com/sip-protocol
       new_in_version: |
-        Initial release v0.1.0:
-        • Private payments with stealth addresses
-        • Privacy-enabled DEX swaps via Jupiter
-        • Compliance dashboard with viewing keys
-        • Multi-wallet support (Phantom, MWA, Privy)
+        v0.1.6:
+        • Mainnet-first default for production users
+        • 17 bug fixes across swap, settings, and compliance screens
+        • Comprehensive accessibility pass (WCAG 2.1 AA)
+        • Haptic feedback and polished interactions
+        • 1,205 tests across 55 test suites
       saga_features: |
         Enhanced security with Saga's secure element for key storage.
   android_details:
     cert_fingerprint: be3e93cf0ce6ee2dacaf11f56a9357870009d2814956946d0a23fc510fcc4e9d
     min_sdk: 24
-    version: 0.1.0
-    version_code: 1
+    version: 0.1.6
+    version_code: 7
     locales:
       - en-US
 solana_mobile_dapp_publisher_portal:
@@ -125,12 +126,9 @@ solana_mobile_dapp_publisher_portal:
        - View audit trail
        - Export viewing keys if needed
 
-    DEVNET TESTING:
-    App defaults to devnet for testing. Request devnet SOL from:
-    https://faucet.solana.com
-
-    MAINNET:
-    Switch to mainnet in Settings when ready for production use.
+    NETWORK:
+    App defaults to mainnet. Switch to devnet in Settings for testing.
+    Request devnet SOL from: https://faucet.solana.com
   alpha_testers: []
 lastSubmittedVersionOnChain:
   address: Cq8m84EtYXovgqewZT52Qi4ntNqCQ2dpSiaZePXuEgBF
