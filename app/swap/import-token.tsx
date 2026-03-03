@@ -18,6 +18,8 @@ import {
 } from "react-native"
 import { SafeAreaView } from "react-native-safe-area-context"
 import { router } from "expo-router"
+import { ArrowLeftIcon } from "phosphor-react-native"
+import { ICON_COLORS } from "@/constants/icons"
 import { useState, useCallback } from "react"
 import { useSettingsStore } from "@/stores/settings"
 import { useCustomTokensStore } from "@/stores/customTokens"
@@ -54,7 +56,7 @@ function TokenPreview({ token, onImport, isImporting }: TokenPreviewProps) {
       </View>
 
       {/* Token Details */}
-      <View className="space-y-2 mb-4">
+      <View className="gap-2 mb-4">
         <View className="flex-row justify-between">
           <Text className="text-dark-500">Decimals</Text>
           <Text className="text-white">{token.decimals}</Text>
@@ -197,7 +199,7 @@ export default function ImportTokenScreen() {
             className="p-2 -ml-2"
             onPress={() => router.back()}
           >
-            <Text className="text-2xl text-white">←</Text>
+            <ArrowLeftIcon size={24} color={ICON_COLORS.white} weight="bold" />
           </TouchableOpacity>
           <Text className="flex-1 text-xl font-bold text-white text-center mr-8">
             Import Token

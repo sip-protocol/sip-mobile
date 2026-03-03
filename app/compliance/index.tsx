@@ -325,7 +325,7 @@ export default function ComplianceDashboard() {
             <Text className="text-brand-400 font-semibold mb-2">
               Improve Your Score
             </Text>
-            <View className="space-y-2">
+            <View className="gap-2">
               {scoreBreakdown.transactionPrivacy < 80 && (
                 <Text className="text-dark-300 text-sm">
                   • Use shielded transactions for better privacy
