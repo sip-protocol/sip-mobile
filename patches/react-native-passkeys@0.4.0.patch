@@ -1,0 +1,15 @@
+diff --git a/android/build.gradle b/android/build.gradle
+index 1234567..abcdefg 100644
+--- a/android/build.gradle
++++ b/android/build.gradle
+@@ -52,6 +52,10 @@ android {
+     targetCompatibility JavaVersion.VERSION_17
+   }
+
++  kotlinOptions {
++    jvmTarget = JavaVersion.VERSION_17.majorVersion
++  }
++
+   def agpVersion = com.android.Version.ANDROID_GRADLE_PLUGIN_VERSION
+   if (agpVersion.tokenize('.')[0].toInteger() < 8) {
+     compileOptions {

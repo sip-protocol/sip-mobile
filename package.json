@@ -107,6 +107,9 @@
     "overrides": {
       "@expo/metro-runtime": "5.0.4"
     },
-    "patchedDependencies": {}
+    "patchedDependencies": {
+      "@solana-mobile/seed-vault-lib@0.4.0": "patches/@solana-mobile__seed-vault-lib@0.4.0.patch",
+      "react-native-passkeys@0.4.0": "patches/react-native-passkeys@0.4.0.patch"
+    }
   }
 }

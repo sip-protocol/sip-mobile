@@ -53,6 +53,7 @@ export default {
       favicon: "./assets/favicon.png",
     },
     plugins: [
+      "./plugins/withKotlinJvmTarget",
       "expo-router",
       "expo-splash-screen",
       "expo-secure-store",
