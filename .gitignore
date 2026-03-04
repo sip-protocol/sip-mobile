@@ -49,3 +49,5 @@ secrets/*
 coverage/
 build-latest.apk
 build-*.apk
+sip-privacy-*.apk
+*-backup.png

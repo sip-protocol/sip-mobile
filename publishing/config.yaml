@@ -16,7 +16,7 @@ app:
     - purpose: icon
       uri: media/app-icon-512.png
 release:
-  address: Cq8m84EtYXovgqewZT52Qi4ntNqCQ2dpSiaZePXuEgBF
+  address: CUnf6QJ6HpPrcGe7q7VkhrbpafiG5cG4kjFAk6aYoLHF
   media:
     - purpose: icon
       uri: media/app-icon-512.png
@@ -131,8 +131,8 @@ solana_mobile_dapp_publisher_portal:
     Request devnet SOL from: https://faucet.solana.com
   alpha_testers: []
 lastSubmittedVersionOnChain:
-  address: Cq8m84EtYXovgqewZT52Qi4ntNqCQ2dpSiaZePXuEgBF
-  version_code: 1
-  apk_hash: 3rRbQomhmI+I3GJCdZTgREcjJvIrOaDx5ksUimdXLE8=
+  address: CUnf6QJ6HpPrcGe7q7VkhrbpafiG5cG4kjFAk6aYoLHF
+  version_code: 7
+  apk_hash: CR8ZbdvKe5gccTtceXNdAmclf+nJuzkYEGBmQG6evEk=
 lastUpdatedVersionOnStore:
-  address: Cq8m84EtYXovgqewZT52Qi4ntNqCQ2dpSiaZePXuEgBF
+  address: CUnf6QJ6HpPrcGe7q7VkhrbpafiG5cG4kjFAk6aYoLHF
