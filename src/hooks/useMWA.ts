@@ -7,7 +7,7 @@
  * ⚠️ This is now an OPTIONAL integration.
  * Primary wallet strategy is native key management.
  *
- * @see useNativeWallet — Primary wallet hook (TODO: #67)
+ * @see useNativeWallet — Primary wallet hook
  * @see https://github.com/sip-protocol/sip-mobile/issues/61 — Architecture pivot
  */
 

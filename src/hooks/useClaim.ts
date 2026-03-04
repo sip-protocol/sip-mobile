@@ -22,7 +22,7 @@ import {
   type StealthAddress,
 } from "@/lib/stealth"
 import { buildClaimTransfer, signClaimWithStealth } from "@/lib/anchor/client"
-import { debug } from "@/utils/logger"
+import { debug, logger } from "@/utils/logger"
 import bs58 from "bs58"
 
 // ============================================================================
@@ -86,7 +86,7 @@ async function loadKeysForPayment(payment: PaymentRecord): Promise<StealthKeys |
     if (keyRecord) {
       return keyRecord.keys
     }
-    console.warn(`Keys for keyId ${payment.keyId} not found, trying active keys`)
+    logger.warn(`Keys for keyId ${payment.keyId} not found, trying active keys`)
   }
 
   // Fall back to active keys (for legacy payments or if keyId not found)
@@ -204,6 +204,7 @@ async function findTransferRecordPubkey(
   connection: Connection
 ): Promise<PublicKey | null> {
   // Try to use the txHash which stores the transfer record PDA
+  // Safety filter: exclude development-generated mock entries from production display
   if (payment.txHash && !payment.txHash.startsWith("mock_")) {
     try {
       return new PublicKey(payment.txHash)

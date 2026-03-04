@@ -443,11 +443,11 @@ export default function ViewingKeysScreen() {
     [removeImportedKey, addToast]
   )
 
-  const handleScanImported = (key: ImportedViewingKey) => {
+  const handleScanImported = (_key: ImportedViewingKey) => {
     addToast({
       type: "info",
-      title: "Coming soon",
-      message: `Scanning with ${key.label}'s key will be available soon`,
+      title: "Not yet available",
+      message: "Viewing key scanning requires background indexer integration — planned for a future release",
     })
   }
 

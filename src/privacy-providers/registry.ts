@@ -11,7 +11,7 @@ import type {
   AdapterOptions,
 } from "./types"
 import { createSipNativeAdapter } from "./sip-native"
-// Privacy Cash disabled - uses import.meta which Hermes doesn't support
+// Blocked: Privacy Cash SDK uses import.meta (unsupported by Hermes/React Native)
 // import { createPrivacyCashAdapter } from "./privacy-cash"
 import { createShadowWireAdapter } from "./shadowwire"
 import { createMagicBlockAdapter } from "./magicblock"
@@ -49,8 +49,7 @@ export function createAdapter(
     case "sip-native":
       return createSipNativeAdapter(options)
     case "privacy-cash":
-      // Privacy Cash disabled - uses import.meta which Hermes doesn't support
-      // TODO: Re-enable when privacycash SDK supports React Native
+      // Blocked: Privacy Cash SDK uses import.meta (unsupported by Hermes/React Native)
       throw new Error("Privacy Cash is not available on mobile. Please use SIP Native or another provider.")
     case "shadowwire":
       return createShadowWireAdapter(options)

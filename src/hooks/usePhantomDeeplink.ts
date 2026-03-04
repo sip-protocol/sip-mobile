@@ -10,7 +10,7 @@
  * Implements NaCl encryption per Phantom's deeplink protocol:
  * https://docs.phantom.app/developer-guides/deeplinks
  *
- * @see useNativeWallet — Primary wallet hook (TODO: #67)
+ * @see useNativeWallet — Primary wallet hook
  * @see https://github.com/sip-protocol/sip-mobile/issues/61 — Architecture pivot
  */
 

@@ -383,6 +383,7 @@ export function useScanPayments(): UseScanPaymentsReturn {
 
         // Get existing payment IDs to avoid duplicates
         // Use txHash (transfer record PDA) as the unique identifier
+        // Safety filter: exclude development-generated mock entries from production display
         const existingRecordPDAs = new Set(
           payments
             .filter((p) => p.txHash && !p.txHash.startsWith("mock_"))

@@ -60,7 +60,6 @@ export interface SwapRecord {
   privacyLevel: PrivacyLevel
   depositAddress?: string
   error?: string // Error message if failed
-  isPreview?: boolean // True if executed in preview mode
 }
 
 /**

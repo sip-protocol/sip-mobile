@@ -204,7 +204,7 @@ export class SipPrivacyClient {
     // Compute viewing key hash
     const viewingKeyHash = computeViewingKeyHash(params.recipientViewingKey)
 
-    // Generate mock proof (real implementation would use Noir)
+    // Mock proof — real Noir/Barretenberg proofs planned for M19-M21
     const proof = await generateMockProof(commitment, blindingFactor, lamports)
 
     // Derive PDAs
@@ -641,7 +641,7 @@ export async function buildClaimTransfer(
   const [configPda] = getConfigPda(programId)
   const [nullifierPda] = getNullifierPda(nullifier, programId)
 
-  // Generate mock proof (real ZK proof would prove ownership)
+  // Mock proof — real Noir/Barretenberg ZK proofs planned for M19-M21
   const mockProof = sha256(new Uint8Array([...nullifier, ...Buffer.from("CLAIM_PROOF")]))
 
   // Encode claim_transfer instruction data

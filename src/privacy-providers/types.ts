@@ -345,7 +345,7 @@ export const PRIVACY_PROVIDERS: PrivacyProviderInfo[] = [
   {
     id: "cspl",
     name: "C-SPL Confidential Tokens",
-    description: "Token-2022 encrypted balances (hides amounts, not addresses)",
+    description: "Blocked — requires Solana ZK ElGamal program (currently disabled on devnet/mainnet)",
     icon: "eye-off",
     recommended: false,
     features: {
@@ -354,7 +354,7 @@ export const PRIVACY_PROVIDERS: PrivacyProviderInfo[] = [
       viewingKeys: false, // SIP Native adds this
       compliance: true, // Auditor keys
     },
-    status: "available", // SDK integrated
+    status: "coming-soon", // Blocked: Solana ZK ElGamal program disabled, entire provider is simulated
   },
 ]
 

@@ -258,8 +258,8 @@ export function deriveSharedSecret(
 /**
  * Generate a mock ZK proof for the shielded transfer
  *
- * In production, this would generate a real Noir/Barretenberg proof.
- * For devnet testing, we use a mock proof that the program accepts.
+ * KNOWN LIMITATION: Mock proof — real Noir/Barretenberg proofs planned for M19-M21.
+ * The Solana program currently accepts this format for development.
  *
  * @param commitment - The Pedersen commitment
  * @param blindingFactor - The blinding factor
