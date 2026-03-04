@@ -12,7 +12,7 @@
 
 import { View, Text, TouchableOpacity, Platform, Alert } from "react-native"
 import { SafeAreaView } from "react-native-safe-area-context"
-import { router, Href } from "expo-router"
+import { router, Href, useLocalSearchParams } from "expo-router"
 import { useNativeWallet, useSeedVault } from "@/hooks"
 import { useEffect, useMemo, useState, useRef } from "react"
 import { useSettingsStore } from "@/stores/settings"
@@ -66,6 +66,7 @@ const SEED_VAULT_OPTION: SetupOption = {
 }
 
 export default function WalletSetupScreen() {
+  const { addAccount } = useLocalSearchParams<{ addAccount?: string }>()
   const { wallet, isInitialized } = useNativeWallet()
   const { isAvailable: seedVaultAvailable, isInitialized: seedVaultInitialized } = useSeedVault()
   const resetOnboarding = useSettingsStore((s) => s.resetOnboarding)
@@ -110,12 +111,12 @@ export default function WalletSetupScreen() {
     return options
   }, [seedVaultAvailable, seedVaultInitialized])
 
-  // Redirect to home if wallet already exists
+  // Redirect to home if wallet already exists (skip when adding another account)
   useEffect(() => {
-    if (isInitialized && wallet) {
+    if (isInitialized && wallet && addAccount !== "true") {
       router.replace("/(tabs)")
     }
-  }, [isInitialized, wallet])
+  }, [isInitialized, wallet, addAccount])
 
   const handleOptionPress = (option: SetupOption) => {
     router.push(option.route)

@@ -266,7 +266,7 @@ export default function AccountsScreen() {
           <Button
             fullWidth
             variant="secondary"
-            onPress={() => router.push("/(auth)/wallet-setup")}
+            onPress={() => router.push("/(auth)/wallet-setup?addAccount=true")}
           >
             + Add Another Account
           </Button>
