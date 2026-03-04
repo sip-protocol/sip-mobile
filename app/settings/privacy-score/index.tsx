@@ -8,10 +8,10 @@
  * - Recommendations for improvement
  */
 
-import { View, Text, TouchableOpacity, ScrollView, ActivityIndicator } from "react-native"
+import { View, Text, TouchableOpacity, ScrollView } from "react-native"
 import { SafeAreaView } from "react-native-safe-area-context"
 import { router } from "expo-router"
-import { useState, useEffect, useMemo } from "react"
+import { useMemo } from "react"
 import { useWalletStore, formatAddress } from "@/stores/wallet"
 import { usePrivacyStore } from "@/stores/privacy"
 import { Button } from "@/components/ui"
@@ -121,7 +121,6 @@ function RecommendationCard({ text, index }: RecommendationCardProps) {
 export default function PrivacyScoreScreen() {
   const { isConnected, address } = useWalletStore()
   const { payments } = usePrivacyStore()
-  const [isAnalyzing, setIsAnalyzing] = useState(true)
 
   // Calculate privacy metrics from payment history
   const metrics: PrivacyMetrics = useMemo(() => {
@@ -182,12 +181,6 @@ export default function PrivacyScoreScreen() {
     }
   }, [payments])
 
-  // Simulate analysis delay
-  useEffect(() => {
-    const timer = setTimeout(() => setIsAnalyzing(false), 1500)
-    return () => clearTimeout(timer)
-  }, [])
-
   if (!isConnected) {
     return (
       <SafeAreaView className="flex-1 bg-dark-950">
@@ -214,26 +207,6 @@ export default function PrivacyScoreScreen() {
           >
             Connect Wallet
           </Button>
-        </View>
-      </SafeAreaView>
-    )
-  }
-
-  if (isAnalyzing) {
-    return (
-      <SafeAreaView className="flex-1 bg-dark-950">
-        <View className="flex-row items-center px-6 py-4 border-b border-dark-900">
-          <TouchableOpacity
-            className="flex-row items-center"
-            onPress={() => router.back()}
-          >
-            <ArrowLeftIcon size={24} color={ICON_COLORS.white} weight="bold" />
-            <Text className="text-white ml-4 text-lg">Back</Text>
-          </TouchableOpacity>
-        </View>
-        <View className="flex-1 items-center justify-center">
-          <ActivityIndicator size="large" color="#8b5cf6" />
-          <Text className="text-dark-400 mt-4">Analyzing wallet privacy...</Text>
         </View>
       </SafeAreaView>
     )

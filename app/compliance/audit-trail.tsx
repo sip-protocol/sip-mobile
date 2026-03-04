@@ -212,10 +212,10 @@ export default function AuditTrailScreen() {
     }
   }, [auditEvents])
 
-  const onRefresh = useCallback(async () => {
+  const onRefresh = useCallback(() => {
     setRefreshing(true)
-    await new Promise((resolve) => setTimeout(resolve, 500))
-    setRefreshing(false)
+    // Audit events are persisted locally via zustand -- re-reading is synchronous.
+    requestAnimationFrame(() => setRefreshing(false))
   }, [])
 
   const handleEventPress = useCallback((event: AuditEvent) => {

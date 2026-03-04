@@ -22,6 +22,7 @@ import { useState, useMemo, useCallback } from "react"
 import { usePrivacyStore } from "@/stores/privacy"
 import { useWalletStore } from "@/stores/wallet"
 import { useSettingsStore } from "@/stores/settings"
+import { useScanPayments } from "@/hooks"
 import type { PaymentRecord, PrivacyLevel } from "@/types"
 import {
   ArrowLeftIcon,
@@ -203,6 +204,7 @@ export default function HistoryScreen() {
   const { payments, isScanning } = usePrivacyStore()
   const { isConnected } = useWalletStore()
   const { network } = useSettingsStore()
+  const { scan, isScanning: isScanningPayments } = useScanPayments()
 
   const [filterType, setFilterType] = useState<FilterType>("all")
   const [filterStatus, setFilterStatus] = useState<FilterStatus>("all")
@@ -254,10 +256,12 @@ export default function HistoryScreen() {
 
   const handleRefresh = useCallback(async () => {
     setRefreshing(true)
-    // Simulate refresh - in production, this would trigger a scan
-    await new Promise((resolve) => setTimeout(resolve, 1000))
-    setRefreshing(false)
-  }, [])
+    try {
+      await scan()
+    } finally {
+      setRefreshing(false)
+    }
+  }, [scan])
 
   const handleTransactionPress = useCallback((payment: PaymentRecord) => {
     router.push(`/history/${payment.id}`)

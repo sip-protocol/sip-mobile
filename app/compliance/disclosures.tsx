@@ -215,10 +215,10 @@ export default function DisclosuresScreen() {
     [activeDisclosures, expiredDisclosures, revokedDisclosures, disclosures]
   )
 
-  const onRefresh = useCallback(async () => {
+  const onRefresh = useCallback(() => {
     setRefreshing(true)
-    await new Promise((resolve) => setTimeout(resolve, 500))
-    setRefreshing(false)
+    // Disclosures are persisted locally via SecureStore -- re-reading is synchronous.
+    requestAnimationFrame(() => setRefreshing(false))
   }, [])
 
   const handleRevoke = useCallback((disclosure: ViewingKeyDisclosure) => {

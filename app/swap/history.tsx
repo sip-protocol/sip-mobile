@@ -278,11 +278,11 @@ export default function SwapHistoryScreen() {
     })
   }, [clearHistory, addToast])
 
-  const onRefresh = useCallback(async () => {
+  const onRefresh = useCallback(() => {
     setRefreshing(true)
-    // Simulate refresh (in real app, would re-fetch from blockchain)
-    await new Promise((resolve) => setTimeout(resolve, 1000))
-    setRefreshing(false)
+    // Swap history is persisted locally via zustand -- re-reading is synchronous.
+    // Setting refreshing to false on next tick lets the RefreshControl animate.
+    requestAnimationFrame(() => setRefreshing(false))
   }, [])
 
   const renderItem = useCallback(

@@ -207,15 +207,17 @@ export default function ComplianceDashboard() {
 
   const activeDisclosures = getActiveDisclosures()
 
-  const onRefresh = useCallback(async () => {
+  const onRefresh = useCallback(() => {
     setRefreshing(true)
     refreshScore()
-    await new Promise((resolve) => setTimeout(resolve, 500))
-    setRefreshing(false)
-    addToast({
-      type: "success",
-      title: "Score Updated",
-      message: "Privacy score has been recalculated",
+    // Score recalculation is synchronous -- no need for artificial delay.
+    requestAnimationFrame(() => {
+      setRefreshing(false)
+      addToast({
+        type: "success",
+        title: "Score Updated",
+        message: "Privacy score has been recalculated",
+      })
     })
   }, [refreshScore, addToast])
 
