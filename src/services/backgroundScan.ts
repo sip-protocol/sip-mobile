@@ -36,6 +36,7 @@ import {
   MIN_BACKGROUND_SCAN_INTERVAL_SEC,
   MAX_HASH_HISTORY,
 } from "@/constants/security"
+import { logger } from "@/utils/logger"
 
 // ============================================================================
 // CONSTANTS
@@ -81,7 +82,7 @@ async function initializeNotifications(): Promise<boolean> {
     notificationsAvailable = true
     return true
   } catch (error) {
-    console.warn("[BackgroundScan] Notifications not available:", error)
+    logger.warn("[BackgroundScan] Notifications not available:", error)
     notificationsAvailable = false
     return false
   }
@@ -104,7 +105,7 @@ export async function requestNotificationPermissions(): Promise<boolean> {
     const { status } = await Notifications.requestPermissionsAsync()
     return status === "granted"
   } catch (error) {
-    console.warn("[BackgroundScan] Failed to request permissions:", error)
+    logger.warn("[BackgroundScan] Failed to request permissions:", error)
     return false
   }
 }
@@ -116,7 +117,7 @@ async function sendPaymentNotification(count: number, totalAmount: number): Prom
   try {
     await initializeNotifications()
     if (!notificationsAvailable) {
-      console.log("[BackgroundScan] Notifications not available, skipping")
+      logger.debug("[BackgroundScan] Notifications not available, skipping")
       return
     }
 
@@ -136,7 +137,7 @@ async function sendPaymentNotification(count: number, totalAmount: number): Prom
       trigger: null, // Immediate
     })
   } catch (error) {
-    console.warn("[BackgroundScan] Failed to send notification:", error)
+    logger.warn("[BackgroundScan] Failed to send notification:", error)
   }
 }
 
@@ -304,13 +305,13 @@ function checkRecordOwnership(
  * Main background scan function
  */
 async function performBackgroundScan(): Promise<BackgroundFetch.BackgroundFetchResult> {
-  console.log("[BackgroundScan] Starting background scan...")
+  logger.info("[BackgroundScan] Starting background scan...")
 
   try {
     // Load stealth keys
     const keysStorage = await loadStealthKeys()
     if (!keysStorage || keysStorage.records.length === 0) {
-      console.log("[BackgroundScan] No stealth keys found, skipping")
+      logger.debug("[BackgroundScan] No stealth keys found, skipping")
       return BackgroundFetch.BackgroundFetchResult.NoData
     }
 
@@ -325,7 +326,7 @@ async function performBackgroundScan(): Promise<BackgroundFetch.BackgroundFetchR
     // Fetch transfer records
     const records = await fetchAllTransferRecords(connection)
     if (!records || records.length === 0) {
-      console.log("[BackgroundScan] No transfer records found")
+      logger.debug("[BackgroundScan] No transfer records found")
       await saveLastScanTimestamp(Date.now())
       return BackgroundFetch.BackgroundFetchResult.NoData
     }
@@ -337,12 +338,12 @@ async function performBackgroundScan(): Promise<BackgroundFetch.BackgroundFetchR
     })
 
     if (newRecords.length === 0) {
-      console.log("[BackgroundScan] No new records since last scan")
+      logger.debug("[BackgroundScan] No new records since last scan")
       await saveLastScanTimestamp(Date.now())
       return BackgroundFetch.BackgroundFetchResult.NoData
     }
 
-    console.log(`[BackgroundScan] Scanning ${newRecords.length} new records...`)
+    logger.info(`[BackgroundScan] Scanning ${newRecords.length} new records...`)
 
     // Get existing payment hashes
     const existingHashes = await getExistingPaymentHashes()
@@ -379,7 +380,7 @@ async function performBackgroundScan(): Promise<BackgroundFetch.BackgroundFetchR
             amount = Number(decrypted) / 1e9 // Convert lamports to SOL
           } catch {
             // Decryption failed, use a placeholder
-            console.warn("[BackgroundScan] Failed to decrypt amount")
+            logger.warn("[BackgroundScan] Failed to decrypt amount")
             amount = 0
           }
 
@@ -387,7 +388,7 @@ async function performBackgroundScan(): Promise<BackgroundFetch.BackgroundFetchR
           totalAmount += amount
           newHashes.push(recordHash)
 
-          console.log(`[BackgroundScan] Found payment: ${amount.toFixed(4)} SOL`)
+          logger.info(`[BackgroundScan] Found payment: ${amount.toFixed(4)} SOL`)
           break // Found owner, no need to check other keys
         }
       }
@@ -404,12 +405,12 @@ async function performBackgroundScan(): Promise<BackgroundFetch.BackgroundFetchR
 
     // Send notification if payments found
     if (foundCount > 0) {
-      console.log(`[BackgroundScan] Found ${foundCount} payments, sending notification`)
+      logger.info(`[BackgroundScan] Found ${foundCount} payments, sending notification`)
       await sendPaymentNotification(foundCount, totalAmount)
       return BackgroundFetch.BackgroundFetchResult.NewData
     }
 
-    console.log("[BackgroundScan] Scan complete, no new payments")
+    logger.debug("[BackgroundScan] Scan complete, no new payments")
     return BackgroundFetch.BackgroundFetchResult.NoData
   } catch (error) {
     console.error("[BackgroundScan] Error:", error)
@@ -436,7 +437,7 @@ export async function registerBackgroundScan(): Promise<boolean> {
     // Check if already registered
     const isRegistered = await TaskManager.isTaskRegisteredAsync(BACKGROUND_SCAN_TASK)
     if (isRegistered) {
-      console.log("[BackgroundScan] Task already registered")
+      logger.debug("[BackgroundScan] Task already registered")
       return true
     }
 
@@ -447,7 +448,7 @@ export async function registerBackgroundScan(): Promise<boolean> {
       startOnBoot: true,
     })
 
-    console.log("[BackgroundScan] Task registered successfully")
+    logger.info("[BackgroundScan] Task registered successfully")
     return true
   } catch (error) {
     console.error("[BackgroundScan] Failed to register task:", error)
@@ -463,7 +464,7 @@ export async function unregisterBackgroundScan(): Promise<void> {
     const isRegistered = await TaskManager.isTaskRegisteredAsync(BACKGROUND_SCAN_TASK)
     if (isRegistered) {
       await BackgroundFetch.unregisterTaskAsync(BACKGROUND_SCAN_TASK)
-      console.log("[BackgroundScan] Task unregistered")
+      logger.debug("[BackgroundScan] Task unregistered")
     }
   } catch (error) {
     console.error("[BackgroundScan] Failed to unregister task:", error)
@@ -510,6 +511,6 @@ export async function getBackgroundFetchStatus(): Promise<BackgroundFetch.Backgr
  * Trigger an immediate background scan (for testing)
  */
 export async function triggerBackgroundScan(): Promise<void> {
-  console.log("[BackgroundScan] Triggering immediate scan...")
+  logger.info("[BackgroundScan] Triggering immediate scan...")
   await performBackgroundScan()
 }

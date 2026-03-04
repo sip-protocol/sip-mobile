@@ -10,6 +10,7 @@
  */
 
 import { Connection, PublicKey, LAMPORTS_PER_SOL } from "@solana/web3.js"
+import { logger } from "@/utils/logger"
 
 // ─── Types ─────────────────────────────────────────────────────────────────
 
@@ -86,14 +87,14 @@ export class SolanaRpcClient {
     switch (provider) {
       case "helius":
         if (!apiKey) {
-          console.warn("Helius requires API key, falling back to PublicNode")
+          logger.warn("Helius requires API key, falling back to PublicNode")
           return PUBLICNODE_ENDPOINTS[cluster]
         }
         return `${HELIUS_ENDPOINTS[cluster]}/?api-key=${apiKey}`
 
       case "quicknode":
         if (!apiKey) {
-          console.warn("QuickNode requires API key, falling back to PublicNode")
+          logger.warn("QuickNode requires API key, falling back to PublicNode")
           return PUBLICNODE_ENDPOINTS[cluster]
         }
         return `${QUICKNODE_ENDPOINTS[cluster]}/${apiKey}`
@@ -101,7 +102,7 @@ export class SolanaRpcClient {
       case "triton":
         // Triton uses custom endpoint (user provides full URL)
         if (!customEndpoint) {
-          console.warn("Triton requires custom endpoint, falling back to PublicNode")
+          logger.warn("Triton requires custom endpoint, falling back to PublicNode")
           return PUBLICNODE_ENDPOINTS[cluster]
         }
         return customEndpoint
@@ -240,7 +241,7 @@ export async function getSolPriceJupiter(): Promise<PriceData | null> {
     const SOL_MINT = "So11111111111111111111111111111111111111112"
     const response = await fetch(`${JUPITER_PRICE_API}?ids=${SOL_MINT}`)
     if (!response.ok) {
-      console.warn(`Jupiter API returned ${response.status}`)
+      logger.warn(`Jupiter API returned ${response.status}`)
       return null
     }
     const data = await response.json()
@@ -296,8 +297,8 @@ export async function getSolPrice(): Promise<number> {
   }
 
   // Default fallback price
-  console.warn("Using fallback SOL price")
-  return 185.00
+  logger.warn("Using fallback SOL price")
+  return 140.00
 }
 
 // ─── Token Prices API ─────────────────────────────────────────────────────────
@@ -323,7 +324,7 @@ export async function getTokenPrices(mints: string[]): Promise<TokenPriceData> {
     const response = await fetch(`${JUPITER_PRICE_API}?ids=${mintsQuery}`)
 
     if (!response.ok) {
-      console.warn(`Jupiter Price API returned ${response.status}`)
+      logger.warn(`Jupiter Price API returned ${response.status}`)
       return {}
     }
 

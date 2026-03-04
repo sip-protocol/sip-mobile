@@ -76,6 +76,8 @@ export default function WalletSetupScreen() {
   const tapTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const handleTitleTap = () => {
+    if (!__DEV__) return
+
     setTapCount((prev) => prev + 1)
 
     // Reset tap count after 2 seconds of no taps

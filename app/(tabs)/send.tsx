@@ -39,6 +39,7 @@ import {
 } from "phosphor-react-native"
 import { ICON_COLORS } from "@/constants/icons"
 import { hapticMedium, hapticSuccess, hapticError, hapticLight } from "@/utils/haptics"
+import { logger } from "@/utils/logger"
 import { usePrivacyProvider } from "@/hooks/usePrivacyProvider"
 import { useWalletStore } from "@/stores/wallet"
 import { useSettingsStore } from "@/stores/settings"
@@ -250,7 +251,7 @@ export default function SendScreen() {
   }, [recipient, amount, balance, providerReady, providerError, addToast])
 
   const handleConfirmSend = useCallback(async () => {
-    console.log("[Send] Starting transaction...")
+    logger.debug("[Send] Starting transaction...")
     // Reset state
     setStatus("idle")
     setTxError(null)
@@ -267,7 +268,7 @@ export default function SendScreen() {
         (newStatus) => setStatus(newStatus)
       )
 
-      console.log("[Send] Result:", result.success ? "success" : "failed", result.error || result.txHash)
+      logger.info("[Send] Result:", result.success ? "success" : "failed", result.error || result.txHash)
       if (result.success && result.txHash) {
         setTxHash(result.txHash)
         setStatus("confirmed")

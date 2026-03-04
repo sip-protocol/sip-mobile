@@ -26,7 +26,7 @@ import {
 
 /** Default/fallback prices for common tokens */
 const FALLBACK_PRICES: Record<string, number> = {
-  SOL: 185.00,
+  SOL: 140.00,
   USDC: 1.00,
   USDT: 1.00,
 }

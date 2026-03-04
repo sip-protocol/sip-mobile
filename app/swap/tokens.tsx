@@ -37,6 +37,7 @@ import {
   XIcon,
 } from "phosphor-react-native"
 import { ICON_COLORS } from "@/constants/icons"
+import { logger } from "@/utils/logger"
 
 // ============================================================================
 // CONSTANTS
@@ -207,7 +208,7 @@ export default function TokenSelectorScreen() {
           setRecentTokens(parsed)
         } else {
           // Invalid format, clear corrupted data
-          console.warn("Invalid recent tokens format, clearing...")
+          logger.warn("Invalid recent tokens format, clearing...")
           await AsyncStorage.removeItem(RECENT_TOKENS_KEY)
         }
       }

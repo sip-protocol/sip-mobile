@@ -39,6 +39,8 @@ try {
   SeedVaultPermissionAndroid = seedVaultLib.SeedVaultPermissionAndroid
   useSeedVaultNative = seedVaultLib.useSeedVault
 } catch (e) {
+  // Deferred: logger not yet imported at module scope, use console.warn
+  // This only runs at module load time and is expected on non-Android
   console.warn("[SeedVault] Native module not available:", e)
 }
 
@@ -48,6 +50,7 @@ import type {
   SeedVaultEvent,
   SeedVaultContentChange,
 } from "@solana-mobile/seed-vault-lib"
+import { logger } from "@/utils/logger"
 
 // ============================================================================
 // TYPES
@@ -147,15 +150,15 @@ export function useSeedVault(
   // Handle Seed Vault events
   const handleSeedVaultEvent = useCallback((event: SeedVaultEvent) => {
     if ("__type" in event) {
-      console.log("[SeedVault] Event received:", event.__type)
+      logger.debug("[SeedVault] Event received:", event.__type)
     } else if ("message" in event) {
-      console.log("[SeedVault] Event error:", event.message)
+      logger.debug("[SeedVault] Event error:", event.message)
     }
   }, [])
 
   // Handle content changes (seed added/removed)
   const handleContentChange = useCallback((event: SeedVaultContentChange) => {
-    console.log("[SeedVault] Content changed:", event.uris)
+    logger.debug("[SeedVault] Content changed:", event.uris)
   }, [])
 
   // Register event listeners (only on Android when native module is available)
@@ -164,7 +167,7 @@ export function useSeedVault(
       try {
         useSeedVaultNative(handleSeedVaultEvent, handleContentChange)
       } catch (e) {
-        console.warn("[SeedVault] Failed to register event listeners:", e)
+        logger.warn("[SeedVault] Failed to register event listeners:", e)
       }
     }
   }, [handleSeedVaultEvent, handleContentChange])
@@ -193,7 +196,7 @@ export function useSeedVault(
       setIsAvailable(available)
       return available
     } catch (err) {
-      console.warn("[SeedVault] Error checking availability:", err)
+      logger.warn("[SeedVault] Error checking availability:", err)
       setIsAvailable(false)
       return false
     }
@@ -242,7 +245,7 @@ export function useSeedVault(
       setError(null)
 
       const result = await SeedVault.authorizeNewSeed()
-      console.log("[SeedVault] Seed authorized, authToken:", result.authToken)
+      logger.info("[SeedVault] Seed authorized, authToken:", result.authToken)
 
       return result
     } catch (err) {
@@ -269,7 +272,7 @@ export function useSeedVault(
       setError(null)
 
       const result = await SeedVault.createNewSeed()
-      console.log("[SeedVault] New seed created, authToken:", result.authToken)
+      logger.info("[SeedVault] New seed created, authToken:", result.authToken)
 
       return result
     } catch (err) {
@@ -296,7 +299,7 @@ export function useSeedVault(
       setError(null)
 
       const result = await SeedVault.importExistingSeed()
-      console.log("[SeedVault] Seed imported, authToken:", result.authToken)
+      logger.info("[SeedVault] Seed imported, authToken:", result.authToken)
 
       return result
     } catch (err) {
@@ -333,7 +336,7 @@ export function useSeedVault(
 
     try {
       SeedVault.deauthorizeSeed(authToken)
-      console.log("[SeedVault] Seed deauthorized:", authToken)
+      logger.debug("[SeedVault] Seed deauthorized:", authToken)
 
       // If this was the active wallet, disconnect
       if (wallet?.authToken === authToken) {
@@ -416,7 +419,7 @@ export function useSeedVault(
         currentDerivationPathRef.current = publicKeyResult.resolvedDerivationPath
       }
 
-      console.log("[SeedVault] Wallet selected:", wallet?.publicKey.toBase58())
+      logger.info("[SeedVault] Wallet selected:", wallet?.publicKey.toBase58())
     } catch (err) {
       console.error("[SeedVault] Failed to select seed:", err)
       setError(err instanceof Error ? err : new Error("Failed to select seed"))
