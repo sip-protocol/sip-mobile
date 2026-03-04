@@ -141,13 +141,6 @@ function SwapItem({ swap, onPress }: SwapItemProps) {
             </View>
           )}
 
-          {/* Preview badge */}
-          {swap.isPreview && (
-            <View className="bg-dark-700 px-2 py-0.5 rounded">
-              <Text className="text-dark-400 text-xs">Preview</Text>
-            </View>
-          )}
-
           {/* Status badge */}
           <View className={`${bg} px-2 py-0.5 rounded`}>
             <Text className={`${text} text-xs font-medium`}>{label}</Text>
@@ -484,13 +477,6 @@ export default function SwapHistoryScreen() {
                   {new Date(selectedSwap.timestamp).toLocaleString()}
                 </Text>
               </View>
-
-              {selectedSwap.isPreview && (
-                <View className="flex-row justify-between mb-3">
-                  <Text className="text-dark-400">Mode</Text>
-                  <Text className="text-dark-300">Preview (Not Executed)</Text>
-                </View>
-              )}
 
               {selectedSwap.txSignature && (
                 <View className="mb-3">

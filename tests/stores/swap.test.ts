@@ -9,36 +9,7 @@ import type { SwapRecord } from "@/types"
 describe("Swap Store", () => {
   beforeEach(() => {
     useSwapStore.setState({
-      mode: "preview",
       swaps: [],
-    })
-  })
-
-  describe("Mode", () => {
-    it("should default to preview mode", () => {
-      const { mode, isPreviewMode } = useSwapStore.getState()
-      expect(mode).toBe("preview")
-      expect(isPreviewMode()).toBe(true)
-    })
-
-    it("should toggle mode", () => {
-      const { toggleMode } = useSwapStore.getState()
-
-      toggleMode()
-      expect(useSwapStore.getState().mode).toBe("execute")
-
-      toggleMode()
-      expect(useSwapStore.getState().mode).toBe("preview")
-    })
-
-    it("should set mode directly", () => {
-      const { setMode } = useSwapStore.getState()
-
-      setMode("execute")
-      expect(useSwapStore.getState().mode).toBe("execute")
-
-      setMode("preview")
-      expect(useSwapStore.getState().mode).toBe("preview")
     })
   })
 

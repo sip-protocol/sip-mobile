@@ -296,7 +296,7 @@ export function useSwap(): SwapResult {
   const { isConnected, address } = useWalletStore()
   const { network, defaultExplorer } = useSettingsStore()
   const { signTransaction } = useWallet()
-  const { addSwap, isPreviewMode } = useSwapStore()
+  const { addSwap } = useSwapStore()
   const { addToast } = useToastStore()
 
   const [status, setStatus] = useState<SwapStatus>("idle")
@@ -369,32 +369,6 @@ export function useSwap(): SwapResult {
 
         // Step 1: Confirming
         setStatus("confirming")
-
-        // Preview mode - simulate without executing
-        if (isPreviewMode()) {
-          await new Promise((resolve) => setTimeout(resolve, 1000))
-          setStatus("success")
-          addToast({
-            type: "info",
-            title: "Preview Mode",
-            message: "Swap simulated successfully (no real transaction)",
-          })
-
-          // Add to history as preview
-          addSwap({
-            id: newSwapId,
-            fromToken: quote.inputToken.symbol,
-            toToken: quote.outputToken.symbol,
-            fromAmount: quote.inputAmount,
-            toAmount: quote.outputAmount,
-            privacyLevel,
-            status: "completed",
-            timestamp: Date.now(),
-            isPreview: true,
-          })
-
-          return true
-        }
 
         // Step 2: Request wallet signature
         setStatus("signing")
@@ -469,7 +443,7 @@ export function useSwap(): SwapResult {
         return false
       }
     },
-    [isConnected, address, network, defaultExplorer, signTransaction, isPreviewMode, addSwap, addToast]
+    [isConnected, address, network, defaultExplorer, signTransaction, addSwap, addToast]
   )
 
   // Generate explorer URL

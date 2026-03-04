@@ -35,7 +35,6 @@ import {
 } from "phosphor-react-native"
 import { ICON_COLORS } from "@/constants/icons"
 import { useWalletStore } from "@/stores/wallet"
-import { useSwapStore } from "@/stores/swap"
 import { useSettingsStore } from "@/stores/settings"
 import { useToastStore } from "@/stores/toast"
 import { getProviderInfo } from "@/privacy-providers"
@@ -373,7 +372,6 @@ export default function SwapScreen() {
     toToken?: string
   }>()
   const { isConnected } = useWalletStore()
-  const { isPreviewMode } = useSwapStore()
   const { slippage: storedSlippage, network, setNetwork, privacyProvider } = useSettingsStore()
   const providerInfo = getProviderInfo(privacyProvider)
   const { addToast } = useToastStore()
@@ -841,18 +839,6 @@ export default function SwapScreen() {
               <Text className="text-red-400 text-sm text-center">
                 Insufficient {fromToken.symbol} balance
               </Text>
-            </View>
-          )}
-
-          {/* Preview Mode Banner */}
-          {isPreviewMode() && (
-            <View className="mt-4 bg-yellow-900/20 border border-yellow-700 rounded-xl p-3">
-              <View className="flex-row items-center justify-center gap-2">
-                <WarningIcon size={18} color={ICON_COLORS.warning} weight="fill" />
-                <Text className="text-yellow-400 text-sm">
-                  Preview Mode — No real transactions
-                </Text>
-              </View>
             </View>
           )}
 
