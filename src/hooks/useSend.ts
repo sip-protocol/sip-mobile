@@ -11,6 +11,7 @@ import { usePrivacyStore } from "@/stores/privacy"
 import { useSettingsStore } from "@/stores/settings"
 import { useNativeWallet } from "./useNativeWallet"
 import { useBalance } from "./useBalance"
+import { useTokenPrices } from "./useTokenPrices"
 import type { PrivacyLevel } from "@/types"
 import type { Transaction as SolanaTransaction } from "@solana/web3.js"
 import {
@@ -18,7 +19,7 @@ import {
   parseStealthMetaAddress,
   hexToBytes,
 } from "@/lib/stealth"
-import { debug } from "@/utils/logger"
+import { debug, logger } from "@/utils/logger"
 import {
   getSipPrivacyClient,
   type ShieldedTransferParams,
@@ -72,16 +73,13 @@ export interface UseSendReturn {
   send: (params: SendParams) => Promise<SendResult>
   reset: () => void
 
-  // Price conversion (mock)
+  // Price conversion
   getUsdValue: (solAmount: string) => string
 }
 
 // ============================================================================
 // CONSTANTS
 // ============================================================================
-
-// Default SOL price (used as fallback when price not available)
-const DEFAULT_SOL_PRICE_USD = 185.00
 
 // Stealth address prefix
 const STEALTH_PREFIX = "sip:"
@@ -155,6 +153,7 @@ export function useSend(): UseSendReturn {
   const { signTransaction } = useNativeWallet()
   const { balance } = useBalance()
   const { addPayment } = usePrivacyStore()
+  const { getPrice } = useTokenPrices()
 
   const [status, setStatus] = useState<SendStatus>("idle")
   const [error, setError] = useState<string | null>(null)
@@ -213,8 +212,9 @@ export function useSend(): UseSendReturn {
   const getUsdValue = useCallback((solAmount: string): string => {
     const num = parseFloat(solAmount)
     if (isNaN(num) || num <= 0) return "$0.00"
-    return `$${(num * DEFAULT_SOL_PRICE_USD).toFixed(2)}`
-  }, [])
+    const solPrice = getPrice("SOL")
+    return `$${(num * solPrice).toFixed(2)}`
+  }, [getPrice])
 
   const send = useCallback(
     async (params: SendParams): Promise<SendResult> => {
@@ -329,7 +329,7 @@ export function useSend(): UseSendReturn {
             debug("Transfer record PDA:", transferRecord.toBase58())
           } catch (sendErr) {
             // If program not initialized, fall back to regular transfer
-            console.warn("Shielded transfer failed, using regular transfer:", sendErr)
+            logger.warn("Shielded transfer failed, using regular transfer:", sendErr)
             throw new Error(
               sendErr instanceof Error
                 ? sendErr.message

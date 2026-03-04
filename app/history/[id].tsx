@@ -24,6 +24,7 @@ import * as Clipboard from "expo-clipboard"
 import { usePrivacyStore } from "@/stores/privacy"
 import { useToastStore } from "@/stores/toast"
 import { useSettingsStore } from "@/stores/settings"
+import { useClaim } from "@/hooks/useClaim"
 import { getExplorerTxUrl } from "@/utils/explorer"
 import { Button } from "@/components/ui"
 import type { PaymentRecord, PrivacyLevel } from "@/types"
@@ -96,9 +97,10 @@ function getPrivacyInfo(level: PrivacyLevel) {
 
 export default function TransactionDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>()
-  const { getPayment, updatePayment } = usePrivacyStore()
+  const { getPayment } = usePrivacyStore()
   const { addToast } = useToastStore()
   const { network, defaultExplorer } = useSettingsStore()
+  const { claim, progress: claimProgress } = useClaim()
 
   const payment = id ? getPayment(id) : undefined
 
@@ -183,26 +185,27 @@ export default function TransactionDetailScreen() {
   }
 
   const handleClaim = async () => {
-    // Simulate claiming
     addToast({
       type: "info",
       title: "Claiming...",
       message: "Processing your claim request",
     })
 
-    await new Promise((resolve) => setTimeout(resolve, 2000))
+    const result = await claim(payment)
 
-    updatePayment(payment.id, {
-      status: "claimed",
-      claimed: true,
-      claimedAt: Date.now(),
-    })
-
-    addToast({
-      type: "success",
-      title: "Claimed!",
-      message: "Funds have been added to your wallet",
-    })
+    if (result.success) {
+      addToast({
+        type: "success",
+        title: "Claimed!",
+        message: `Funds have been added to your wallet`,
+      })
+    } else {
+      addToast({
+        type: "error",
+        title: "Claim failed",
+        message: result.error || "Unable to claim payment",
+      })
+    }
   }
 
   return (
@@ -343,8 +346,15 @@ export default function TransactionDetailScreen() {
         <View className="mt-6 mb-8 gap-3">
           {/* Claim Button (for unclaimed received payments) */}
           {isReceive && payment.status === "completed" && !payment.claimed && (
-            <Button fullWidth size="lg" onPress={handleClaim}>
-              Claim to Wallet
+            <Button
+              fullWidth
+              size="lg"
+              onPress={handleClaim}
+              disabled={claimProgress.status !== "idle" && claimProgress.status !== "error" && claimProgress.status !== "confirmed"}
+            >
+              {claimProgress.status === "idle" || claimProgress.status === "error" || claimProgress.status === "confirmed"
+                ? "Claim to Wallet"
+                : claimProgress.message}
             </Button>
           )}
 
