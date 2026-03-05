@@ -11,7 +11,7 @@ export default {
   expo: {
     name: IS_DEV ? "SIP Privacy (Dev)" : "SIP Privacy",
     slug: "sip-privacy",
-    version: "0.1.6",
+    version: "0.1.7",
     scheme: "sipprotocol",
     orientation: "portrait",
     icon: "./assets/icon.png",
@@ -32,7 +32,7 @@ export default {
       },
     },
     android: {
-      versionCode: 7,
+      versionCode: 8,
       package: "org.sip_protocol.privacy",
       adaptiveIcon: {
         foregroundImage: "./assets/adaptive-icon.png",
