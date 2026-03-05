@@ -91,7 +91,7 @@ export default function OnboardingScreen() {
     const SlideComponent = SLIDE_COMPONENTS[item]
     if (!SlideComponent) return null
     return (
-      <View style={{ height: slideHeight }}>
+      <View style={{ width, height: slideHeight }}>
         <SlideComponent />
       </View>
     )
