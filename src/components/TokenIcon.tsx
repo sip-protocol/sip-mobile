@@ -59,9 +59,7 @@ export function TokenIcon({
   if (token.logoUri && !imageError) {
     return (
       <View
-        className={`${container} rounded-full overflow-hidden ${
-          showBackground ? "bg-dark-800" : ""
-        }`}
+        className={`${container} rounded-full overflow-hidden items-center justify-center bg-dark-800`}
       >
         <Image
           source={{ uri: token.logoUri }}
