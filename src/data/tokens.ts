@@ -11,13 +11,15 @@ import type { TokenInfo } from "@/types"
 // POPULAR TOKENS
 // ============================================================================
 
+const CDN = "https://cdn.sip-protocol.org/tokens"
+
 export const TOKENS: Record<string, TokenInfo> = {
   SOL: {
     symbol: "SOL",
     name: "Solana",
     mint: "So11111111111111111111111111111111111111112",
     decimals: 9,
-    logoUri: "https://img.jup.ag/tokens/So11111111111111111111111111111111111111112",
+    logoUri: `${CDN}/SOL.png`,
     coingeckoId: "solana",
   },
   USDC: {
@@ -25,7 +27,7 @@ export const TOKENS: Record<string, TokenInfo> = {
     name: "USD Coin",
     mint: "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
     decimals: 6,
-    logoUri: "https://img.jup.ag/tokens/EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+    logoUri: `${CDN}/USDC.png`,
     coingeckoId: "usd-coin",
   },
   USDT: {
@@ -33,7 +35,7 @@ export const TOKENS: Record<string, TokenInfo> = {
     name: "Tether USD",
     mint: "Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB",
     decimals: 6,
-    logoUri: "https://img.jup.ag/tokens/Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB",
+    logoUri: `${CDN}/USDT.png`,
     coingeckoId: "tether",
   },
   BONK: {
@@ -41,7 +43,7 @@ export const TOKENS: Record<string, TokenInfo> = {
     name: "Bonk",
     mint: "DezXAZ8z7PnrnRJjz3wXBoRgixCa6xjnB7YaB1pPB263",
     decimals: 5,
-    logoUri: "https://img.jup.ag/tokens/DezXAZ8z7PnrnRJjz3wXBoRgixCa6xjnB7YaB1pPB263",
+    logoUri: `${CDN}/BONK.jpg`,
     coingeckoId: "bonk",
   },
   JUP: {
@@ -49,7 +51,7 @@ export const TOKENS: Record<string, TokenInfo> = {
     name: "Jupiter",
     mint: "JUPyiwrYJFskUPiHa7hkeR8VUtAeFoSYbKedZNsDvCN",
     decimals: 6,
-    logoUri: "https://img.jup.ag/tokens/JUPyiwrYJFskUPiHa7hkeR8VUtAeFoSYbKedZNsDvCN",
+    logoUri: `${CDN}/JUP.png`,
     coingeckoId: "jupiter-exchange-solana",
   },
   RAY: {
@@ -57,7 +59,7 @@ export const TOKENS: Record<string, TokenInfo> = {
     name: "Raydium",
     mint: "4k3Dyjzvzp8eMZWUXbBCjEvwSkkk59S5iCNLY3QrkX6R",
     decimals: 6,
-    logoUri: "https://img.jup.ag/tokens/4k3Dyjzvzp8eMZWUXbBCjEvwSkkk59S5iCNLY3QrkX6R",
+    logoUri: `${CDN}/RAY.png`,
     coingeckoId: "raydium",
   },
   PYTH: {
@@ -65,7 +67,7 @@ export const TOKENS: Record<string, TokenInfo> = {
     name: "Pyth Network",
     mint: "HZ1JovNiVvGrGNiiYvEozEVgZ58xaU3RKwX8eACQBCt3",
     decimals: 6,
-    logoUri: "https://img.jup.ag/tokens/HZ1JovNiVvGrGNiiYvEozEVgZ58xaU3RKwX8eACQBCt3",
+    logoUri: `${CDN}/PYTH.png`,
     coingeckoId: "pyth-network",
   },
   WIF: {
@@ -73,7 +75,7 @@ export const TOKENS: Record<string, TokenInfo> = {
     name: "dogwifhat",
     mint: "EKpQGSJtjMFqKZ9KQanSqYXRcF8fBopzLHYxdM65zcjm",
     decimals: 6,
-    logoUri: "https://img.jup.ag/tokens/EKpQGSJtjMFqKZ9KQanSqYXRcF8fBopzLHYxdM65zcjm",
+    logoUri: `${CDN}/WIF.jpg`,
     coingeckoId: "dogwifcoin",
   },
   JTO: {
@@ -81,7 +83,7 @@ export const TOKENS: Record<string, TokenInfo> = {
     name: "Jito",
     mint: "jtojtomepa8beP8AuQc6eXt5FriJwfFMwQx2v2f9mCL",
     decimals: 9,
-    logoUri: "https://img.jup.ag/tokens/jtojtomepa8beP8AuQc6eXt5FriJwfFMwQx2v2f9mCL",
+    logoUri: `${CDN}/JTO.webp`,
     coingeckoId: "jito-governance-token",
   },
   ORCA: {
@@ -89,7 +91,7 @@ export const TOKENS: Record<string, TokenInfo> = {
     name: "Orca",
     mint: "orcaEKTdK7LKz57vaAYr9QeNsVEPfiu6QeMU1kektZE",
     decimals: 6,
-    logoUri: "https://img.jup.ag/tokens/orcaEKTdK7LKz57vaAYr9QeNsVEPfiu6QeMU1kektZE",
+    logoUri: `${CDN}/ORCA.png`,
     coingeckoId: "orca",
   },
   SKR: {
@@ -97,7 +99,7 @@ export const TOKENS: Record<string, TokenInfo> = {
     name: "Seeker",
     mint: "SKRbvo6Gf7GondiT3BbTfuRDPqLWei4j2Qy2NPGZhW3",
     decimals: 6,
-    logoUri: "https://img.jup.ag/tokens/SKRbvo6Gf7GondiT3BbTfuRDPqLWei4j2Qy2NPGZhW3",
+    logoUri: `${CDN}/SKR.jpg`,
     coingeckoId: "seeker",
   },
 }
