@@ -25,6 +25,7 @@ import { useBalance } from "@/hooks/useBalance"
 import { useToastStore } from "@/stores/toast"
 import { AccountIndicator } from "@/components/AccountSwitcher"
 import { FEATURED_TOKENS, getToken, formatTokenAmount } from "@/data/tokens"
+import { TokenIcon } from "@/components/TokenIcon"
 import {
   ShieldCheckIcon,
   ClockCounterClockwiseIcon,
@@ -414,6 +415,7 @@ export default function HomeScreen() {
                     className="flex-1 bg-dark-900 rounded-xl p-4 border border-dark-800"
                   >
                     <View className="flex-row items-center gap-2">
+                      <TokenIcon token={token} size="sm" />
                       <Text className="text-white font-bold text-base">
                         {token.symbol}
                       </Text>

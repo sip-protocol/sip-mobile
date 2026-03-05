@@ -37,6 +37,7 @@ import {
   XIcon,
 } from "phosphor-react-native"
 import { ICON_COLORS } from "@/constants/icons"
+import { TokenIcon } from "@/components/TokenIcon"
 import { logger } from "@/utils/logger"
 
 // ============================================================================
@@ -49,23 +50,6 @@ const MAX_RECENT_TOKENS = 5
 // ============================================================================
 // HELPERS
 // ============================================================================
-
-function getTokenIcon(symbol: string): string {
-  const icons: Record<string, string> = {
-    SOL: "◎",
-    USDC: "💵",
-    USDT: "💲",
-    BONK: "🐕",
-    JUP: "🪐",
-    RAY: "☀️",
-    PYTH: "🔮",
-    WIF: "🎩",
-    JTO: "⚡",
-    ORCA: "🐋",
-  }
-  return icons[symbol] || "🪙"
-}
-
 
 // ============================================================================
 // COMPONENTS
@@ -95,8 +79,8 @@ function TokenRow({
       activeOpacity={0.7}
     >
       {/* Token Icon */}
-      <View className="w-10 h-10 bg-dark-800 rounded-full items-center justify-center mr-3">
-        <Text className="text-xl">{getTokenIcon(token.symbol)}</Text>
+      <View className="mr-3">
+        <TokenIcon token={token} size="md" />
       </View>
 
       {/* Token Info */}
@@ -334,7 +318,9 @@ export default function TokenSelectorScreen() {
           }`}
           onPress={() => handleTokenSelect(token)}
         >
-          <Text className="text-lg mr-1.5">{getTokenIcon(token.symbol)}</Text>
+          <View className="mr-1.5">
+            <TokenIcon token={token} size="sm" showBackground={false} />
+          </View>
           <Text
             className={`font-medium ${
               token.symbol === selectedToken ? "text-white" : "text-dark-300"

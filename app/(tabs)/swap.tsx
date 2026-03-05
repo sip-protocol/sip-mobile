@@ -50,6 +50,7 @@ import {
   isSwapComplete,
 } from "@/hooks"
 import { Button, Modal } from "@/components/ui"
+import { TokenIcon } from "@/components/TokenIcon"
 import {
   TOKENS,
   POPULAR_TOKENS,
@@ -73,22 +74,6 @@ const DEFAULT_SLIPPAGE = 0.5
 // ============================================================================
 // HELPERS
 // ============================================================================
-
-function getTokenIcon(symbol: string): string {
-  const icons: Record<string, string> = {
-    SOL: "◎",
-    USDC: "💵",
-    USDT: "💲",
-    BONK: "🐕",
-    JUP: "🪐",
-    RAY: "☀️",
-    PYTH: "🔮",
-    WIF: "🎩",
-    JTO: "⚡",
-    ORCA: "🐋",
-  }
-  return icons[symbol] || "🪙"
-}
 
 function getNetworkDisplayName(network: "mainnet-beta" | "devnet" | "testnet"): string {
   switch (network) {
@@ -239,7 +224,7 @@ function TokenInput({
           accessibilityLabel={`Select ${direction === "from" ? "input" : "output"} token, currently ${token.symbol}`}
           accessibilityHint="Opens the token selector"
         >
-          <Text className="text-2xl mr-2">{getTokenIcon(token.symbol)}</Text>
+          <TokenIcon token={token} size="md" showBackground={false} />
           <Text className="text-white font-semibold text-lg">{token.symbol}</Text>
           <Text className="text-dark-400 ml-2">▼</Text>
         </TouchableOpacity>
@@ -898,7 +883,9 @@ export default function SwapScreen() {
                 accessibilityLabel={`${token.symbol}, ${token.name}${isSelected ? ", selected" : ""}`}
                 accessibilityHint="Selects this token for the swap"
               >
-                <Text className="text-2xl mr-3">{getTokenIcon(symbol)}</Text>
+                <View className="mr-3">
+                  <TokenIcon token={token} size="md" showBackground={false} />
+                </View>
                 <View className="flex-1">
                   <Text className="text-white font-medium">{token.symbol}</Text>
                   <Text className="text-dark-500 text-sm">{token.name}</Text>
@@ -1011,14 +998,14 @@ export default function SwapScreen() {
           <View className="items-center py-4">
             <View className="flex-row items-center">
               <View className="items-center">
-                <Text className="text-3xl">{getTokenIcon(fromToken.symbol)}</Text>
+                <TokenIcon token={fromToken} size="xl" />
                 <Text className="text-white font-bold text-lg mt-2">
                   {fromAmount} {fromToken.symbol}
                 </Text>
               </View>
               <Text className="text-dark-500 text-2xl mx-6">→</Text>
               <View className="items-center">
-                <Text className="text-3xl">{getTokenIcon(toToken.symbol)}</Text>
+                <TokenIcon token={toToken} size="xl" />
                 <Text className="text-green-400 font-bold text-lg mt-2">
                   {quote?.outputAmount ?? "0"} {toToken.symbol}
                 </Text>

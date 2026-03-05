@@ -33,6 +33,8 @@ import {
   TrashIcon,
 } from "phosphor-react-native"
 import { ICON_COLORS } from "@/constants/icons"
+import { TokenIcon, getTokenEmoji } from "@/components/TokenIcon"
+import { TOKENS } from "@/data/tokens"
 
 // ============================================================================
 // TYPES
@@ -43,22 +45,6 @@ type StatusFilter = "all" | "pending" | "completed" | "failed"
 // ============================================================================
 // HELPERS
 // ============================================================================
-
-function getTokenIcon(symbol: string): string {
-  const icons: Record<string, string> = {
-    SOL: "◎",
-    USDC: "💵",
-    USDT: "💲",
-    BONK: "🐕",
-    JUP: "🪐",
-    RAY: "☀️",
-    PYTH: "🔮",
-    WIF: "🎩",
-    JTO: "⚡",
-    ORCA: "🐋",
-  }
-  return icons[symbol] || "🪙"
-}
 
 function formatRelativeTime(timestamp: number): string {
   const seconds = Math.floor((Date.now() - timestamp) / 1000)
@@ -120,10 +106,18 @@ function SwapItem({ swap, onPress }: SwapItemProps) {
     >
       {/* Header Row: Token Pair + Status */}
       <View className="flex-row items-center justify-between mb-3">
-        <View className="flex-row items-center">
-          <Text className="text-xl">{getTokenIcon(swap.fromToken)}</Text>
+        <View className="flex-row items-center gap-1">
+          {TOKENS[swap.fromToken] ? (
+            <TokenIcon token={TOKENS[swap.fromToken]} size="sm" />
+          ) : (
+            <Text className="text-xl">{getTokenEmoji(swap.fromToken)}</Text>
+          )}
           <ArrowRightIcon size={16} color={ICON_COLORS.inactive} weight="bold" />
-          <Text className="text-xl">{getTokenIcon(swap.toToken)}</Text>
+          {TOKENS[swap.toToken] ? (
+            <TokenIcon token={TOKENS[swap.toToken]} size="sm" />
+          ) : (
+            <Text className="text-xl">{getTokenEmoji(swap.toToken)}</Text>
+          )}
         </View>
 
         <View className="flex-row items-center gap-2">
@@ -396,18 +390,22 @@ export default function SwapHistoryScreen() {
             <View className="items-center py-4">
               <View className="flex-row items-center">
                 <View className="items-center">
-                  <Text className="text-4xl">
-                    {getTokenIcon(selectedSwap.fromToken)}
-                  </Text>
+                  {TOKENS[selectedSwap.fromToken] ? (
+                    <TokenIcon token={TOKENS[selectedSwap.fromToken]} size="xl" />
+                  ) : (
+                    <Text className="text-4xl">{getTokenEmoji(selectedSwap.fromToken)}</Text>
+                  )}
                   <Text className="text-white font-bold text-lg mt-2">
                     {formatAmount(selectedSwap.fromAmount, selectedSwap.fromToken)}
                   </Text>
                 </View>
                 <ArrowRightIcon size={24} color={ICON_COLORS.inactive} weight="bold" style={{ marginHorizontal: 24 }} />
                 <View className="items-center">
-                  <Text className="text-4xl">
-                    {getTokenIcon(selectedSwap.toToken)}
-                  </Text>
+                  {TOKENS[selectedSwap.toToken] ? (
+                    <TokenIcon token={TOKENS[selectedSwap.toToken]} size="xl" />
+                  ) : (
+                    <Text className="text-4xl">{getTokenEmoji(selectedSwap.toToken)}</Text>
+                  )}
                   <Text className="text-green-400 font-bold text-lg mt-2">
                     {formatAmount(selectedSwap.toAmount, selectedSwap.toToken)}
                   </Text>

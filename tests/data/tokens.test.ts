@@ -38,7 +38,7 @@ describe("Token Registry", () => {
 
     it("should have a logo URI", () => {
       expect(TOKENS.SKR.logoUri).toBeDefined()
-      expect(TOKENS.SKR.logoUri).toContain("seeker")
+      expect(TOKENS.SKR.logoUri).toContain(TOKENS.SKR.mint)
     })
 
     it("should be included in POPULAR_TOKENS", () => {
