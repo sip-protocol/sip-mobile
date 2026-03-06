@@ -102,8 +102,8 @@ export const useSettingsStore = create<SettingsStore>()(
       network: "mainnet-beta",
       setNetwork: (network) => set({ network }),
 
-      // RPC Provider
-      rpcProvider: "helius",
+      // RPC Provider (publicnode = free, no key required)
+      rpcProvider: "publicnode",
       setRpcProvider: (provider) => set({ rpcProvider: provider }),
 
       // Balance visibility (privacy wallet defaults to hidden)
