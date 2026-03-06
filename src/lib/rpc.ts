@@ -144,15 +144,20 @@ export class SolanaRpcClient {
 
   /**
    * Get all token balances for an address
+   *
+   * Note: PublicNode returns 403 for getParsedTokenAccountsByOwner.
+   * Falls back to Solana public RPC if primary fails.
    */
   async getTokenBalances(address: string): Promise<TokenBalance[]> {
+    const publicKey = new PublicKey(address)
+    const programId = new PublicKey("TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA")
+
+    // Try primary connection first
     try {
-      const publicKey = new PublicKey(address)
       const tokenAccounts = await this.connection.getParsedTokenAccountsByOwner(
         publicKey,
-        { programId: new PublicKey("TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA") }
+        { programId }
       )
-
       return tokenAccounts.value.map((account) => {
         const parsedInfo = account.account.data.parsed.info
         return {
@@ -162,9 +167,27 @@ export class SolanaRpcClient {
           uiAmount: parsedInfo.tokenAmount.uiAmount || 0,
         }
       })
-    } catch (err) {
-      console.error("Failed to get token balances:", err)
-      return []
+    } catch (primaryErr) {
+      // Fallback to Solana public RPC (handles PublicNode 403)
+      try {
+        const fallback = new Connection("https://api.mainnet-beta.solana.com", { commitment: "confirmed" })
+        const tokenAccounts = await fallback.getParsedTokenAccountsByOwner(
+          publicKey,
+          { programId }
+        )
+        return tokenAccounts.value.map((account) => {
+          const parsedInfo = account.account.data.parsed.info
+          return {
+            mint: parsedInfo.mint,
+            amount: parsedInfo.tokenAmount.amount,
+            decimals: parsedInfo.tokenAmount.decimals,
+            uiAmount: parsedInfo.tokenAmount.uiAmount || 0,
+          }
+        })
+      } catch (fallbackErr) {
+        console.error("Failed to get token balances (primary + fallback):", primaryErr, fallbackErr)
+        return []
+      }
     }
   }
 
