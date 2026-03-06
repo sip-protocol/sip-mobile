@@ -12,6 +12,7 @@ export default function SettingsLayout() {
         }}
       >
         <Stack.Screen name="accounts" />
+        <Stack.Screen name="backup" />
       </Stack>
     </View>
   )
