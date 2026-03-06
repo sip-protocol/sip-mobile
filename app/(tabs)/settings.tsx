@@ -15,6 +15,7 @@ import {
   LockKeyIcon,
   ShieldIcon,
   ShieldCheckIcon,
+  CloudArrowUpIcon,
   EyeIcon,
   LockIcon,
   ChartBarIcon,
@@ -423,6 +424,13 @@ export default function SettingsScreen() {
               title="Security"
               subtitle="Biometrics & PIN"
               onPress={() => router.push('/settings/security')}
+            />
+            <SettingsItem
+              Icon={CloudArrowUpIcon}
+              iconColor={ICON_COLORS.success}
+              title="Backup"
+              subtitle="View recovery phrase"
+              onPress={() => router.push('/settings/backup')}
             />
           </View>
         </View>

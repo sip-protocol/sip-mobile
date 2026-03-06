@@ -263,13 +263,19 @@ export default function AccountsScreen() {
 
         {/* Add Account Button */}
         <View className="py-6">
-          <Button
-            fullWidth
-            variant="secondary"
-            onPress={() => router.push("/(auth)/wallet-setup?addAccount=true")}
-          >
-            + Add Another Account
-          </Button>
+          <View className="opacity-50">
+            <Button
+              fullWidth
+              variant="secondary"
+              disabled
+              onPress={() => {}}
+            >
+              + Add Another Account
+            </Button>
+          </View>
+          <Text className="text-dark-600 text-center text-xs mt-2">
+            Multi-account support coming soon
+          </Text>
         </View>
 
         {/* Info Text */}

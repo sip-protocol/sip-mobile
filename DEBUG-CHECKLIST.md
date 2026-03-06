@@ -25,10 +25,10 @@
 ### 1.2 Wallet Setup
 | Feature | Status | Notes |
 |---------|--------|-------|
-| Create New Wallet | 🔲 | BIP39 mnemonic generation |
-| Import Seed Phrase | 🔲 | 12/24 word validation |
-| Import Private Key | 🔲 | Base58 validation |
-| Biometric setup prompt | 🔲 | Face ID / Fingerprint |
+| Create New Wallet | ✅ | "Recommended" badge, green border, triggers biometric + "Creating your wallet..." |
+| Import Existing Wallet | ✅ | "Restore from seed phrase or private key" option present |
+| Security notice | ✅ | "Your keys, your crypto" card at bottom |
+| Biometric setup prompt | ✅ | Fingerprint dialog: "Authenticate to access your wallet" |
 
 ### 1.3 Create Wallet Flow
 | Feature | Status | Notes |
@@ -292,44 +292,47 @@
 ### 8.1 Account Section
 | Feature | Status | Notes |
 |---------|--------|-------|
-| Current wallet shown | 🔲 | Address truncated |
-| Accounts button | 🔲 | Opens accounts |
-| Backup button | 🔲 | Opens backup |
+| Current wallet shown | ✅ | "92rVZU...BY4a" truncated, "Active" badge |
+| Accounts button | ✅ | Opens Manage Accounts screen |
+| Backup button | 🔲 | No dedicated backup button in Settings (seed phrase via Accounts) |
 
 ### 8.2 Accounts Screen
 | Feature | Status | Notes |
 |---------|--------|-------|
-| List all accounts | 🔲 | With addresses |
-| Switch account | 🔲 | Tap to switch |
-| Add account | 🔲 | Create/Import |
-| Delete account | 🔲 | With confirmation |
+| List all accounts | ✅ | 1 account with Provider, Chain, Added, Last Used details |
+| Switch account | ✅ | Checkmark on active, "Tap to make active" helper |
+| Add account | ⚠️ | Button present but errors "Wallet already exists. Delete it first" — no multi-account support |
+| Delete account | ✅ | Red "Remove" button with trash icon |
+| Rename account | ✅ | "Rename" button with edit icon |
 
 ### 8.3 Backup Screen
 | Feature | Status | Notes |
 |---------|--------|-------|
-| Biometric to reveal | 🔲 | Required |
-| Seed phrase shown | 🔲 | 12/24 words |
-| Copy phrase | 🔲 | To clipboard |
-| Warning message | 🔲 | Security notice |
+| Biometric to reveal | 🔲 | No dedicated backup screen — biometric triggers on wallet creation |
+| Seed phrase shown | 🔲 | No standalone seed reveal UI found |
+| Copy phrase | 🔲 | N/A |
+| Warning message | 🔲 | N/A |
 
 ### 8.4 Viewing Keys
 | Feature | Status | Notes |
 |---------|--------|-------|
-| Export tab | 🔲 | Generate key |
-| Expiry selection | 🔲 | 7/30/90 days |
-| Copy key | 🔲 | To clipboard |
-| Record disclosure | 🔲 | Modal form |
-| History tab | 🔲 | All disclosures |
-| Revoke disclosure | 🔲 | Changes status |
-| Imported tab | 🔲 | External keys |
+| Export tab | ✅ | Key icon, "Export Viewing Key" with share/copy buttons |
+| Expiry selection | ✅ | "Expires in (days, optional)" with "Never" placeholder |
+| Copy key | ✅ | Clipboard icon button |
+| Record disclosure | 🔲 | No disclosures to test (0 items) |
+| History tab | ✅ | "No Disclosures Yet" empty state, disclosure records explanation |
+| Revoke disclosure | 🔲 | No disclosures to test |
+| Imported tab | ✅ | "Imported (0)" tab accessible, same empty state |
 
 ### 8.5 Security Settings
 | Feature | Status | Notes |
 |---------|--------|-------|
-| Biometric toggle | 🔲 | Enable/disable |
-| PIN backup toggle | 🔲 | If bio fails |
-| Auto-lock timeout | 🔲 | Selection works |
-| Hide balance toggle | 🔲 | Privacy feature |
+| Biometric toggle | ✅ | "Enable Fingerprint" toggle (OFF by default) |
+| PIN backup toggle | ✅ | "Set PIN" option — "Use PIN as backup when biometrics unavailable" |
+| Auto-lock timeout | ✅ | Toggle ON + "Lock after: 5 minutes" configurable |
+| Hide balance toggle | ✅ | "Hide balance in background" toggle ON |
+| Screenshot protection | ✅ | "Prevent screenshots of sensitive screens" toggle ON |
+| Security info card | ✅ | "Your keys are secure" with enclave explanation |
 
 ### 8.6 Privacy Settings
 | Feature | Status | Notes |
@@ -502,8 +505,8 @@
 
 | # | Screen | Description | Severity | Status |
 |---|--------|-------------|----------|--------|
-| 1 | | | | |
-| 2 | | | | |
+| 1 | Accounts | "+ Add Another Account" errors with "Wallet already exists" — no multi-account support | Medium | Open |
+| 2 | Settings | No dedicated Backup/Seed Phrase screen to reveal stored mnemonic | Medium | Open |
 | 3 | | | | |
 
 ---
@@ -524,7 +527,8 @@
 - [x] Session 6: Swap (7.x) — **2026-03-05** ✅ Full swap UI verified
 - [x] Session 7: History (10.x, 13.x) — **2026-03-05** ✅ Filters + empty states
 - [x] Session 8: Compliance (9.x) — **2026-03-05** ✅ Dashboard, stats, Viewing Keys nav, coming soon features
-- [ ] Session 9: Error/Loading States (11.x, 12.x) — requires balance to test
+- [x] Session 9: Wallet/Security/Viewing Keys (1.2, 8.1-8.5) — **2026-03-06** ✅ Accounts, Security, Viewing Keys verified
+- [ ] Session 10: Error/Loading States (11.x, 12.x) — requires balance to test
 
 ---
 
@@ -581,4 +585,4 @@
 
 ---
 
-**Last Updated:** 2026-03-05 17:54
+**Last Updated:** 2026-03-06 14:00
