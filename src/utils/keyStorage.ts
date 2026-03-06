@@ -275,3 +275,159 @@ export function clearSensitiveData(data: Uint8Array): void {
   // Overwrite with zeros
   data.fill(0)
 }
+
+// ---------------------------------------------------------------------------
+// Multi-Wallet Support (indexed key storage)
+// ---------------------------------------------------------------------------
+
+const walletKey = (id: string, suffix: string) => `sip_${suffix}_${id}`
+const REGISTRY_KEY = "sip_wallet_registry"
+
+export interface WalletRegistryEntry {
+  id: string
+  address: string
+  providerType: string
+  createdAt: string
+  hasMnemonic: boolean
+}
+
+/**
+ * Get all wallet entries from the registry
+ */
+export async function getWalletRegistry(): Promise<WalletRegistryEntry[]> {
+  try {
+    const raw = await SecureStore.getItemAsync(REGISTRY_KEY, STANDARD_OPTIONS)
+    if (!raw) return []
+    return JSON.parse(raw) as WalletRegistryEntry[]
+  } catch {
+    return []
+  }
+}
+
+/**
+ * Add a wallet entry to the registry (skips duplicates by id)
+ */
+export async function addToRegistry(entry: WalletRegistryEntry): Promise<void> {
+  const registry = await getWalletRegistry()
+  if (registry.some((e) => e.id === entry.id)) return
+  registry.push(entry)
+  await SecureStore.setItemAsync(REGISTRY_KEY, JSON.stringify(registry), STANDARD_OPTIONS)
+}
+
+/**
+ * Remove a wallet entry from the registry by id
+ */
+export async function removeFromRegistry(id: string): Promise<void> {
+  const registry = await getWalletRegistry()
+  const filtered = registry.filter((e) => e.id !== id)
+  await SecureStore.setItemAsync(REGISTRY_KEY, JSON.stringify(filtered), STANDARD_OPTIONS)
+}
+
+/**
+ * Store keys for a specific wallet account
+ */
+export async function storeWalletKeys(
+  id: string,
+  privateKeyBase58: string,
+  publicKeyBase58: string,
+  mnemonic?: string
+): Promise<void> {
+  await SecureStore.setItemAsync(walletKey(id, "privkey"), privateKeyBase58, SECURE_OPTIONS)
+  await SecureStore.setItemAsync(walletKey(id, "pubkey"), publicKeyBase58, STANDARD_OPTIONS)
+  if (mnemonic) {
+    await SecureStore.setItemAsync(walletKey(id, "mnemonic"), mnemonic, SECURE_OPTIONS)
+  }
+}
+
+/**
+ * Retrieve private key for a specific account (requires biometric)
+ */
+export async function getPrivateKeyForAccount(id: string): Promise<string | null> {
+  try {
+    return await SecureStore.getItemAsync(walletKey(id, "privkey"), SECURE_OPTIONS)
+  } catch (error) {
+    const msg = error instanceof Error ? error.message : ""
+    if (msg.includes("authentication") || msg.includes("canceled")) {
+      throw { code: "AUTH_FAILED", message: "Biometric authentication failed" } as KeyStorageError
+    }
+    return null
+  }
+}
+
+/**
+ * Retrieve mnemonic for a specific account (requires biometric)
+ */
+export async function getMnemonicForAccount(id: string): Promise<string | null> {
+  try {
+    return await SecureStore.getItemAsync(walletKey(id, "mnemonic"), SECURE_OPTIONS)
+  } catch (error) {
+    const msg = error instanceof Error ? error.message : ""
+    if (msg.includes("authentication") || msg.includes("canceled")) {
+      throw { code: "AUTH_FAILED", message: "Biometric authentication failed" } as KeyStorageError
+    }
+    return null
+  }
+}
+
+/**
+ * Delete all stored keys for a specific account
+ */
+export async function deleteWalletKeys(id: string): Promise<void> {
+  await Promise.all([
+    SecureStore.deleteItemAsync(walletKey(id, "privkey")),
+    SecureStore.deleteItemAsync(walletKey(id, "pubkey")),
+    SecureStore.deleteItemAsync(walletKey(id, "mnemonic")),
+  ])
+}
+
+/**
+ * Migrate legacy single-wallet storage to indexed multi-wallet format
+ */
+export async function migrateFromLegacy(accountId: string): Promise<WalletRegistryEntry | null> {
+  try {
+    const exists = await SecureStore.getItemAsync(STORAGE_KEYS.WALLET_EXISTS, STANDARD_OPTIONS)
+    if (exists !== "true") return null
+
+    const publicKey = await SecureStore.getItemAsync(STORAGE_KEYS.PUBLIC_KEY, STANDARD_OPTIONS)
+    if (!publicKey) return null
+
+    let privateKey: string | null = null
+    try {
+      privateKey = await SecureStore.getItemAsync(STORAGE_KEYS.PRIVATE_KEY, SECURE_OPTIONS)
+    } catch {
+      return null
+    }
+    if (!privateKey) return null
+
+    let mnemonic: string | null = null
+    try {
+      mnemonic = await SecureStore.getItemAsync(STORAGE_KEYS.MNEMONIC, SECURE_OPTIONS)
+    } catch {
+      // Mnemonic might not exist
+    }
+
+    await storeWalletKeys(accountId, privateKey, publicKey, mnemonic ?? undefined)
+
+    const createdAt = await SecureStore.getItemAsync(STORAGE_KEYS.WALLET_CREATED_AT, STANDARD_OPTIONS)
+    const entry: WalletRegistryEntry = {
+      id: accountId,
+      address: publicKey,
+      providerType: "native",
+      createdAt: createdAt || new Date().toISOString(),
+      hasMnemonic: !!mnemonic,
+    }
+    await addToRegistry(entry)
+
+    await Promise.all([
+      SecureStore.deleteItemAsync(STORAGE_KEYS.PRIVATE_KEY),
+      SecureStore.deleteItemAsync(STORAGE_KEYS.MNEMONIC),
+      SecureStore.deleteItemAsync(STORAGE_KEYS.PUBLIC_KEY),
+      SecureStore.deleteItemAsync(STORAGE_KEYS.WALLET_EXISTS),
+      SecureStore.deleteItemAsync(STORAGE_KEYS.WALLET_CREATED_AT),
+    ])
+
+    return entry
+  } catch {
+    return null
+  }
+}
