@@ -3,7 +3,7 @@
  */
 
 import { describe, it, expect, beforeEach } from "vitest"
-import { useWalletStore, formatAddress, WALLET_INFO } from "@/stores/wallet"
+import { useWalletStore, formatAddress, WALLET_INFO, WALLET_EMOJIS } from "@/stores/wallet"
 
 describe("Wallet Store", () => {
   beforeEach(() => {
@@ -229,6 +229,47 @@ describe("Wallet Store", () => {
       const active = getActiveAccount()
       expect(active).toBeDefined()
       expect(active?.address).toBe("ABC123")
+    })
+  })
+
+  describe("Account Emoji", () => {
+    it("should assign random emoji on account creation via addAccount", () => {
+      const { addAccount } = useWalletStore.getState()
+
+      const account = addAccount({
+        address: "EMOJI_TEST_123",
+        providerType: "phantom",
+        chain: "solana",
+      })
+
+      expect(account.emoji).toBeDefined()
+      expect(account.emoji?.length).toBeGreaterThan(0)
+      expect(WALLET_EMOJIS).toContain(account.emoji)
+    })
+
+    it("should assign random emoji on account creation via connect", () => {
+      const { connect } = useWalletStore.getState()
+
+      connect("phantom", "solana", "EMOJI_CONNECT_123", "deeplink")
+
+      const account = useWalletStore.getState().accounts[0]
+      expect(account.emoji).toBeDefined()
+      expect(WALLET_EMOJIS).toContain(account.emoji)
+    })
+
+    it("should update account emoji", () => {
+      const { addAccount, updateAccountEmoji } = useWalletStore.getState()
+
+      const account = addAccount({
+        address: "EMOJI_UPDATE_123",
+        providerType: "phantom",
+        chain: "solana",
+      })
+
+      updateAccountEmoji(account.id, "\u{1F525}")
+
+      const updated = useWalletStore.getState().accounts[0]
+      expect(updated.emoji).toBe("\u{1F525}")
     })
   })
 })

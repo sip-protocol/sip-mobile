@@ -48,6 +48,10 @@ interface SettingsStore {
   rpcProvider: "helius" | "quicknode" | "triton" | "publicnode"
   setRpcProvider: (provider: "helius" | "quicknode" | "triton" | "publicnode") => void
 
+  // Balance visibility
+  hideBalances: boolean
+  toggleHideBalances: () => void
+
   // Explorer preference
   defaultExplorer: ExplorerType
   setDefaultExplorer: (explorer: ExplorerType) => void
@@ -102,6 +106,10 @@ export const useSettingsStore = create<SettingsStore>()(
       rpcProvider: "helius",
       setRpcProvider: (provider) => set({ rpcProvider: provider }),
 
+      // Balance visibility (privacy wallet defaults to hidden)
+      hideBalances: true,
+      toggleHideBalances: () => set((s) => ({ hideBalances: !s.hideBalances })),
+
       // Explorer preference
       defaultExplorer: "solscan",
       setDefaultExplorer: (explorer) => set({ defaultExplorer: explorer }),
@@ -123,6 +131,7 @@ export const useSettingsStore = create<SettingsStore>()(
         defaultPrivacyLevel: state.defaultPrivacyLevel,
         privacyProvider: state.privacyProvider,
         biometricsEnabled: state.biometricsEnabled,
+        hideBalances: state.hideBalances,
         network: state.network,
         rpcProvider: state.rpcProvider,
         defaultExplorer: state.defaultExplorer,

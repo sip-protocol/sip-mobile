@@ -11,6 +11,7 @@ describe("Settings Store", () => {
       slippage: 1.0,
       defaultPrivacyLevel: "shielded",
       biometricsEnabled: false,
+      hideBalances: true,
       network: "mainnet-beta",
       rpcProvider: "helius",
     })
@@ -91,6 +92,23 @@ describe("Settings Store", () => {
 
       setBiometricsEnabled(false)
       expect(useSettingsStore.getState().biometricsEnabled).toBe(false)
+    })
+  })
+
+  describe("Hide Balances", () => {
+    it("should default to true (privacy wallet)", () => {
+      const { hideBalances } = useSettingsStore.getState()
+      expect(hideBalances).toBe(true)
+    })
+
+    it("should toggle hide balances", () => {
+      const { toggleHideBalances } = useSettingsStore.getState()
+
+      toggleHideBalances()
+      expect(useSettingsStore.getState().hideBalances).toBe(false)
+
+      toggleHideBalances()
+      expect(useSettingsStore.getState().hideBalances).toBe(true)
     })
   })
 

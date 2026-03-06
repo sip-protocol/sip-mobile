@@ -220,6 +220,7 @@ export interface StoredAccount {
   id: string
   address: string
   nickname: string
+  emoji?: string
   providerType: WalletProviderType
   chain: ChainType
   createdAt: number
