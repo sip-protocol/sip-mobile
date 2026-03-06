@@ -93,6 +93,7 @@ export function Sidebar({ visible, onClose }: SidebarProps) {
   const { accounts, activeAccountId } = useWalletStore()
   const { network, rpcProvider } = useSettingsStore()
   const activeAccount = accounts.find((a) => a.id === activeAccountId)
+  const [showAccountPicker, setShowAccountPicker] = React.useState(false)
 
   if (!visible || !activeAccount) return null
 
@@ -189,13 +190,13 @@ export function Sidebar({ visible, onClose }: SidebarProps) {
             <View className="flex-row items-center justify-between mb-3">
               <AccountAvatar emoji={activeAccount.emoji || ""} size="lg" />
               <TouchableOpacity
-                onPress={() => navigate("/settings/accounts")}
+                onPress={() => setShowAccountPicker(!showAccountPicker)}
                 className="bg-zinc-800 px-4 py-2 rounded-full"
                 accessibilityRole="button"
                 accessibilityLabel="Switch account"
               >
                 <Text className="text-zinc-300 text-sm font-medium">
-                  Switch
+                  {showAccountPicker ? "Close" : "Switch"}
                 </Text>
               </TouchableOpacity>
             </View>
@@ -214,6 +215,49 @@ export function Sidebar({ visible, onClose }: SidebarProps) {
               <ICONS.actions.copy size={14} color={ICON_COLORS.inactive} />
             </TouchableOpacity>
           </View>
+
+          {/* Account Picker */}
+          {showAccountPicker && (
+            <View className="border-b border-zinc-800">
+              {accounts.map((account) => (
+                <TouchableOpacity
+                  key={account.id}
+                  onPress={() => {
+                    if (account.id !== activeAccountId) {
+                      useWalletStore.getState().setActiveAccount(account.id)
+                    }
+                    setShowAccountPicker(false)
+                  }}
+                  className="flex-row items-center px-4 py-3"
+                  accessibilityRole="button"
+                  accessibilityLabel={`Switch to ${account.nickname}`}
+                >
+                  <AccountAvatar emoji={account.emoji || ""} size="sm" />
+                  <View className="flex-1 ml-3">
+                    <Text className="text-zinc-200 text-sm">{account.nickname}</Text>
+                    <Text className="text-zinc-500 text-xs">{formatAddress(account.address)}</Text>
+                  </View>
+                  {account.id === activeAccountId && (
+                    <ICONS.status.confirmed size={18} color={ICON_COLORS.brand} />
+                  )}
+                </TouchableOpacity>
+              ))}
+              <TouchableOpacity
+                onPress={() => {
+                  onClose()
+                  setTimeout(() => router.push("/(auth)/wallet-setup?addAccount=true" as any), 150)
+                }}
+                className="flex-row items-center px-4 py-3"
+                accessibilityRole="button"
+                accessibilityLabel="Add another wallet"
+              >
+                <View className="w-8 h-8 rounded-full bg-zinc-800 items-center justify-center">
+                  <Text className="text-zinc-400 text-lg">+</Text>
+                </View>
+                <Text className="text-zinc-400 text-sm ml-3">Add Wallet</Text>
+              </TouchableOpacity>
+            </View>
+          )}
 
           {/* Scrollable menu */}
           <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>

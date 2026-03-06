@@ -9,6 +9,19 @@
 import { describe, it, expect, vi } from "vitest"
 import React from "react"
 
+// Mock React hooks for non-component (direct function call) context
+vi.mock("react", async () => {
+  const actual = await vi.importActual<typeof import("react")>("react")
+  return {
+    ...actual,
+    default: {
+      ...actual,
+      useState: (initial: unknown) => [initial, vi.fn()],
+    },
+    useState: (initial: unknown) => [initial, vi.fn()],
+  }
+})
+
 // Mock phosphor-react-native (icons used by Sidebar and icons constant)
 vi.mock("phosphor-react-native", () => {
   const iconMock = vi.fn(() => null)
