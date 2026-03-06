@@ -14,3 +14,5 @@ export { PrivacyScoreBadge, getScoreTier, getScoreColor, getScoreLabel } from ".
 export type { PrivacyScoreBadgeProps, ScoreTier } from "./PrivacyScoreBadge"
 export { NumpadInput } from "./NumpadInput"
 export type { NumpadInputProps } from "./NumpadInput"
+export { Sidebar } from "./Sidebar"
+export { SidebarProvider, useSidebar } from "./SidebarProvider"
