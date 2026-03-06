@@ -191,7 +191,7 @@ export default function HomeScreen() {
   const sidebar = useSidebar()
   const activeAccount = accounts.find((a) => a.id === activeAccountId)
   const { getClaimableAmount } = useClaim()
-  const { balance, usdValue, isLoading: balanceLoading, refresh: refreshBalance } = useBalance()
+  const { balance, usdValue, isLoading: balanceLoading, refresh: refreshBalance, tokenBalances } = useBalance()
   const [refreshing, setRefreshing] = useState(false)
 
   // Mark when home screen first renders
@@ -370,7 +370,10 @@ export default function HomeScreen() {
                 const token = getToken(symbol)
                 if (!token) return null
                 const isSol = symbol === "SOL"
-                const tokenBalance = isSol ? balance : 0
+                const rpcToken = !isSol && token.mint
+                  ? tokenBalances.find((t) => t.mint === token.mint)
+                  : undefined
+                const tokenBalance = isSol ? balance : (rpcToken?.uiAmount ?? 0)
                 const tokenUsd = isSol ? usdValue : 0
                 return (
                   <View
