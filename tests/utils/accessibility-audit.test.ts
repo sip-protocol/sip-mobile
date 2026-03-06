@@ -60,11 +60,11 @@ describe("Accessibility Audit: Screen Files", () => {
   describe("Home Screen", () => {
     const source = readScreen(SCREEN_FILES.home)
 
-    it("should have accessibilityLabel on QuickAction buttons", () => {
-      expect(source).toContain("accessibilityLabel={label}")
+    it("should have accessibilityLabel on quick action buttons", () => {
+      expect(source).toContain("accessibilityLabel={action.label}")
     })
 
-    it("should have accessibilityRole on QuickAction buttons", () => {
+    it("should have accessibilityRole on quick action buttons", () => {
       expect(source).toContain('accessibilityRole="button"')
     })
 
