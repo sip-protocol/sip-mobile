@@ -148,8 +148,10 @@ export function useNativeWallet(): UseNativeWalletReturn {
         if (legacyExists && existingAccountId) {
           const migrated = await migrateFromLegacy(existingAccountId)
           if (migrated) {
+            connectToWalletStore(migrated.address)
             setWallet({ publicKey: new PublicKey(migrated.address) })
             setIsInitialized(true)
+            setIsLoading(false)
             return
           }
         }
@@ -159,15 +161,16 @@ export function useNativeWallet(): UseNativeWalletReturn {
         if (registry.length > 0 && existingAccountId) {
           const entry = registry.find((e) => e.id === existingAccountId)
           if (entry) {
+            connectToWalletStore(entry.address)
             setWallet({ publicKey: new PublicKey(entry.address) })
           } else {
-            setWallet({ publicKey: new PublicKey(registry[0].address) })
             connectToWalletStore(registry[0].address)
+            setWallet({ publicKey: new PublicKey(registry[0].address) })
           }
         } else if (registry.length > 0) {
           const first = registry[0]
-          setWallet({ publicKey: new PublicKey(first.address) })
           connectToWalletStore(first.address)
+          setWallet({ publicKey: new PublicKey(first.address) })
         }
 
         setIsInitialized(true)
