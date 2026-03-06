@@ -258,6 +258,10 @@ export default function ReceiveScreen() {
                   size={200}
                   backgroundColor="white"
                   color="#0a0a0a"
+                  logo={require("../../assets/logo-mark.png")}
+                  logoSize={40}
+                  logoBackgroundColor="white"
+                  logoBorderRadius={8}
                 />
               ) : (
                 <View className="w-[200px] h-[200px] items-center justify-center">
