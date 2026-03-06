@@ -224,8 +224,11 @@ export function resetRpcClient(): void {
 
 // ─── Price API ─────────────────────────────────────────────────────────────
 
-const JUPITER_PRICE_API = "https://lite-api.jup.ag/price/v2"
+const JUPITER_QUOTE_API = "https://lite-api.jup.ag/swap/v1/quote"
 const COINGECKO_PRICE_API = "https://api.coingecko.com/api/v3/simple/price"
+
+const SOL_MINT = "So11111111111111111111111111111111111111112"
+const USDC_MINT = "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v"
 
 export interface PriceData {
   sol: number
@@ -233,24 +236,25 @@ export interface PriceData {
 }
 
 /**
- * Get SOL price in USD from Jupiter
+ * Get SOL price in USD from Jupiter (derived from 1 SOL → USDC quote)
  */
 export async function getSolPriceJupiter(): Promise<PriceData | null> {
   try {
-    // SOL mint address
-    const SOL_MINT = "So11111111111111111111111111111111111111112"
-    const response = await fetch(`${JUPITER_PRICE_API}?ids=${SOL_MINT}`)
+    const params = new URLSearchParams({
+      inputMint: SOL_MINT,
+      outputMint: USDC_MINT,
+      amount: "1000000000", // 1 SOL in lamports
+      slippageBps: "50",
+    })
+    const response = await fetch(`${JUPITER_QUOTE_API}?${params}`)
     if (!response.ok) {
-      logger.warn(`Jupiter API returned ${response.status}`)
+      logger.warn(`Jupiter Quote API returned ${response.status}`)
       return null
     }
     const data = await response.json()
-
-    if (data.data?.[SOL_MINT]?.price) {
-      return {
-        sol: Number(data.data[SOL_MINT].price),
-        timestamp: Date.now(),
-      }
+    const usdcAmount = parseInt(data.outAmount, 10) / 1_000_000 // USDC has 6 decimals
+    if (usdcAmount > 0) {
+      return { sol: usdcAmount, timestamp: Date.now() }
     }
     return null
   } catch (err) {
@@ -311,44 +315,49 @@ export interface TokenPriceData {
 }
 
 /**
- * Get prices for multiple tokens from Jupiter Price API
+ * Get prices for multiple tokens by quoting each against USDC via Jupiter
  * @param mints Array of token mint addresses
  * @returns Map of mint -> price data
  */
 export async function getTokenPrices(mints: string[]): Promise<TokenPriceData> {
   if (mints.length === 0) return {}
 
-  try {
-    // Jupiter supports up to 100 tokens per request
-    const mintsQuery = mints.join(",")
-    const response = await fetch(`${JUPITER_PRICE_API}?ids=${mintsQuery}`)
+  const result: TokenPriceData = {}
+  const timestamp = Date.now()
 
-    if (!response.ok) {
-      logger.warn(`Jupiter Price API returned ${response.status}`)
-      return {}
+  // Quote each token against USDC in parallel (skip USDC itself)
+  const quotePromises = mints.map(async (mint) => {
+    if (mint === USDC_MINT) {
+      result[mint] = { price: 1.0, timestamp }
+      return
     }
-
-    const data = await response.json()
-    const result: TokenPriceData = {}
-    const timestamp = Date.now()
-
-    // Parse response
-    if (data.data) {
-      for (const mint of mints) {
-        if (data.data[mint]?.price) {
-          result[mint] = {
-            price: Number(data.data[mint].price),
-            timestamp,
-          }
+    try {
+      // Use 1 unit of the token — need decimals lookup
+      // For SOL (9 decimals), most SPL tokens (6-9 decimals)
+      // Default to 9 decimals, which gives a reasonable quote
+      const decimals = mint === SOL_MINT ? 9 : 6
+      const amount = Math.pow(10, decimals).toString()
+      const params = new URLSearchParams({
+        inputMint: mint,
+        outputMint: USDC_MINT,
+        amount,
+        slippageBps: "50",
+      })
+      const response = await fetch(`${JUPITER_QUOTE_API}?${params}`)
+      if (response.ok) {
+        const data = await response.json()
+        const usdcOut = parseInt(data.outAmount, 10) / 1_000_000
+        if (usdcOut > 0) {
+          result[mint] = { price: usdcOut, timestamp }
         }
       }
+    } catch {
+      // Skip failed quotes silently
     }
+  })
 
-    return result
-  } catch (err) {
-    console.error("Failed to fetch token prices:", err)
-    return {}
-  }
+  await Promise.all(quotePromises)
+  return result
 }
 
 /**
