@@ -1,3 +1,9 @@
+// Polyfills — MUST be first imports (before @solana/web3.js)
+import "react-native-get-random-values"
+import "react-native-url-polyfill/auto"
+import { Buffer } from "buffer"
+global.Buffer = global.Buffer || Buffer
+
 import "../global.css"
 import { useEffect, useState, useCallback } from "react"
 import { Stack } from "expo-router"
