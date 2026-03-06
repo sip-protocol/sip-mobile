@@ -24,18 +24,19 @@ import bs58 from "bs58"
 import nacl from "tweetnacl"
 import {
   hasWallet,
-  storePrivateKey,
-  getPrivateKey,
-  storeMnemonic,
-  getMnemonic,
-  storePublicKey,
-  getPublicKey,
-  setWalletExists,
-  deleteWallet as deleteWalletStorage,
+  storeWalletKeys,
+  getPrivateKeyForAccount,
+  getMnemonicForAccount,
+  deleteWalletKeys,
+  getWalletRegistry,
+  addToRegistry,
+  removeFromRegistry,
+  migrateFromLegacy,
   authenticateUser,
   isBiometricAvailable,
   clearSensitiveData,
   type KeyStorageError,
+  type WalletRegistryEntry,
 } from "@/utils/keyStorage"
 import { useWalletStore } from "@/stores/wallet"
 
@@ -80,11 +81,11 @@ export interface UseNativeWalletReturn {
   hasBiometrics: boolean
 
   // Wallet Management
-  createWallet: (wordCount?: 12 | 24) => Promise<{ wallet: NativeWallet; mnemonic: string }>
+  createWallet: (wordCount?: 12 | 24) => Promise<{ wallet: NativeWallet; mnemonic: string; accountId: string }>
   importFromSeed: (mnemonic: string) => Promise<NativeWallet>
   importFromPrivateKey: (privateKey: string) => Promise<NativeWallet>
   exportMnemonic: () => Promise<string | null>
-  deleteWallet: () => Promise<void>
+  deleteWallet: (accountId?: string) => Promise<void>
 
   // Signing (requires biometric)
   signTransaction: (tx: Transaction | VersionedTransaction) => Promise<Transaction | VersionedTransaction>
@@ -130,38 +131,49 @@ export function useNativeWallet(): UseNativeWalletReturn {
   const [error, setError] = useState<NativeWalletError | null>(null)
   const [hasBiometrics, setHasBiometrics] = useState(false)
 
-  // Initialize - check if wallet exists
+  // Initialize - check if wallet exists, migrate legacy if needed
   useEffect(() => {
     async function init() {
       try {
         setIsLoading(true)
 
-        // Check biometric availability
         const biometricAvailable = await isBiometricAvailable()
         setHasBiometrics(biometricAvailable)
 
-        // Check if wallet exists
-        const walletExists = await hasWallet()
+        const walletStore = useWalletStore.getState()
+        const existingAccountId = walletStore.activeAccountId
+        const legacyExists = await hasWallet()
 
-        if (walletExists) {
-          // Load public key (doesn't require biometric)
-          const publicKeyBase58 = await getPublicKey()
-          if (publicKeyBase58) {
-            setWallet({
-              publicKey: new PublicKey(publicKeyBase58),
-            })
-            // Connect to main wallet store
-            connectToWalletStore(publicKeyBase58)
+        // Migrate legacy keys to indexed format if needed
+        if (legacyExists && existingAccountId) {
+          const migrated = await migrateFromLegacy(existingAccountId)
+          if (migrated) {
+            setWallet({ publicKey: new PublicKey(migrated.address) })
+            setIsInitialized(true)
+            return
           }
+        }
+
+        // Load from registry
+        const registry = await getWalletRegistry()
+        if (registry.length > 0 && existingAccountId) {
+          const entry = registry.find((e) => e.id === existingAccountId)
+          if (entry) {
+            setWallet({ publicKey: new PublicKey(entry.address) })
+          } else {
+            setWallet({ publicKey: new PublicKey(registry[0].address) })
+            connectToWalletStore(registry[0].address)
+          }
+        } else if (registry.length > 0) {
+          const first = registry[0]
+          setWallet({ publicKey: new PublicKey(first.address) })
+          connectToWalletStore(first.address)
         }
 
         setIsInitialized(true)
       } catch (err) {
         console.error("Failed to initialize native wallet:", err)
-        setError({
-          code: "STORAGE_ERROR",
-          message: "Failed to initialize wallet",
-        })
+        setError({ code: "STORAGE_ERROR", message: "Failed to initialize wallet" })
       } finally {
         setIsLoading(false)
       }
@@ -174,48 +186,38 @@ export function useNativeWallet(): UseNativeWalletReturn {
    * Create new wallet with mnemonic
    */
   const createWallet = useCallback(
-    async (wordCount: 12 | 24 = 12): Promise<{ wallet: NativeWallet; mnemonic: string }> => {
+    async (wordCount: 12 | 24 = 12): Promise<{ wallet: NativeWallet; mnemonic: string; accountId: string }> => {
       try {
         setIsLoading(true)
         setError(null)
 
-        // Check if wallet already exists
-        const exists = await hasWallet()
-        if (exists) {
-          throw {
-            code: "WALLET_EXISTS",
-            message: "Wallet already exists. Delete it first to create a new one.",
-          } as NativeWalletError
-        }
-
-        // Generate mnemonic
         const strength = wordCount === 24 ? 256 : 128
         const mnemonic = generateMnemonic(wordlist, strength)
-
-        // Derive keypair
         const keypair = deriveKeypairFromMnemonic(mnemonic)
         const publicKeyBase58 = keypair.publicKey.toBase58()
         const privateKeyBase58 = bs58.encode(keypair.secretKey)
 
-        // Store securely
-        await storePrivateKey(privateKeyBase58)
-        await storeMnemonic(mnemonic)
-        await storePublicKey(publicKeyBase58)
-        await setWalletExists(true)
-
-        const newWallet: NativeWallet = {
-          publicKey: keypair.publicKey,
-        }
-
-        setWallet(newWallet)
-
-        // Connect to main wallet store
+        // Connect to store first to get the account ID
         connectToWalletStore(publicKeyBase58)
+        const accountId = useWalletStore.getState().activeAccountId!
 
-        // Clear keypair from memory
+        // Store keys indexed by account ID
+        await storeWalletKeys(accountId, privateKeyBase58, publicKeyBase58, mnemonic)
+
+        // Add to registry
+        await addToRegistry({
+          id: accountId,
+          address: publicKeyBase58,
+          providerType: "native",
+          createdAt: new Date().toISOString(),
+          hasMnemonic: true,
+        })
+
+        const newWallet: NativeWallet = { publicKey: keypair.publicKey }
+        setWallet(newWallet)
         clearSensitiveData(keypair.secretKey)
 
-        return { wallet: newWallet, mnemonic }
+        return { wallet: newWallet, mnemonic, accountId }
       } catch (err) {
         const walletError = err as NativeWalletError
         setError(walletError)
@@ -236,46 +238,29 @@ export function useNativeWallet(): UseNativeWalletReturn {
         setIsLoading(true)
         setError(null)
 
-        // Normalize and validate mnemonic
         const normalizedMnemonic = mnemonic.trim().toLowerCase()
-
         if (!validateMnemonic(normalizedMnemonic, wordlist)) {
-          throw {
-            code: "INVALID_MNEMONIC",
-            message: "Invalid seed phrase. Please check and try again.",
-          } as NativeWalletError
+          throw { code: "INVALID_MNEMONIC", message: "Invalid seed phrase. Please check and try again." } as NativeWalletError
         }
 
-        // Check if wallet already exists
-        const exists = await hasWallet()
-        if (exists) {
-          throw {
-            code: "WALLET_EXISTS",
-            message: "Wallet already exists. Delete it first to import.",
-          } as NativeWalletError
-        }
-
-        // Derive keypair
         const keypair = deriveKeypairFromMnemonic(normalizedMnemonic)
         const publicKeyBase58 = keypair.publicKey.toBase58()
         const privateKeyBase58 = bs58.encode(keypair.secretKey)
 
-        // Store securely
-        await storePrivateKey(privateKeyBase58)
-        await storeMnemonic(normalizedMnemonic)
-        await storePublicKey(publicKeyBase58)
-        await setWalletExists(true)
-
-        const newWallet: NativeWallet = {
-          publicKey: keypair.publicKey,
-        }
-
-        setWallet(newWallet)
-
-        // Connect to main wallet store
         connectToWalletStore(publicKeyBase58)
+        const accountId = useWalletStore.getState().activeAccountId!
 
-        // Clear keypair from memory
+        await storeWalletKeys(accountId, privateKeyBase58, publicKeyBase58, normalizedMnemonic)
+        await addToRegistry({
+          id: accountId,
+          address: publicKeyBase58,
+          providerType: "native",
+          createdAt: new Date().toISOString(),
+          hasMnemonic: true,
+        })
+
+        const newWallet: NativeWallet = { publicKey: keypair.publicKey }
+        setWallet(newWallet)
         clearSensitiveData(keypair.secretKey)
 
         return newWallet
@@ -299,22 +284,10 @@ export function useNativeWallet(): UseNativeWalletReturn {
         setIsLoading(true)
         setError(null)
 
-        // Check if wallet already exists
-        const exists = await hasWallet()
-        if (exists) {
-          throw {
-            code: "WALLET_EXISTS",
-            message: "Wallet already exists. Delete it first to import.",
-          } as NativeWalletError
-        }
-
-        // Parse private key (supports both base58 and array format)
         let secretKey: Uint8Array
         try {
-          // Try base58 first
           secretKey = bs58.decode(privateKey.trim())
         } catch {
-          // Try JSON array format
           try {
             const parsed = JSON.parse(privateKey)
             if (Array.isArray(parsed)) {
@@ -323,41 +296,32 @@ export function useNativeWallet(): UseNativeWalletReturn {
               throw new Error("Invalid format")
             }
           } catch {
-            throw {
-              code: "INVALID_PRIVATE_KEY",
-              message: "Invalid private key format. Use base58 or JSON array.",
-            } as NativeWalletError
+            throw { code: "INVALID_PRIVATE_KEY", message: "Invalid private key format. Use base58 or JSON array." } as NativeWalletError
           }
         }
 
-        // Validate key length (should be 64 bytes for Solana)
         if (secretKey.length !== 64) {
-          throw {
-            code: "INVALID_PRIVATE_KEY",
-            message: "Invalid private key length. Expected 64 bytes.",
-          } as NativeWalletError
+          throw { code: "INVALID_PRIVATE_KEY", message: "Invalid private key length. Expected 64 bytes." } as NativeWalletError
         }
 
-        // Create keypair
         const keypair = Keypair.fromSecretKey(secretKey)
         const publicKeyBase58 = keypair.publicKey.toBase58()
         const privateKeyBase58 = bs58.encode(keypair.secretKey)
 
-        // Store securely (no mnemonic for direct key import)
-        await storePrivateKey(privateKeyBase58)
-        await storePublicKey(publicKeyBase58)
-        await setWalletExists(true)
-
-        const newWallet: NativeWallet = {
-          publicKey: keypair.publicKey,
-        }
-
-        setWallet(newWallet)
-
-        // Connect to main wallet store
         connectToWalletStore(publicKeyBase58)
+        const accountId = useWalletStore.getState().activeAccountId!
 
-        // Clear sensitive data
+        await storeWalletKeys(accountId, privateKeyBase58, publicKeyBase58)
+        await addToRegistry({
+          id: accountId,
+          address: publicKeyBase58,
+          providerType: "native",
+          createdAt: new Date().toISOString(),
+          hasMnemonic: false,
+        })
+
+        const newWallet: NativeWallet = { publicKey: keypair.publicKey }
+        setWallet(newWallet)
         clearSensitiveData(secretKey)
         clearSensitiveData(keypair.secretKey)
 
@@ -379,50 +343,46 @@ export function useNativeWallet(): UseNativeWalletReturn {
   const exportMnemonic = useCallback(async (): Promise<string | null> => {
     try {
       setError(null)
-
-      if (!wallet) {
-        throw {
-          code: "NO_WALLET",
-          message: "No wallet found",
-        } as NativeWalletError
+      const accountId = useWalletStore.getState().activeAccountId
+      if (!accountId) {
+        throw { code: "NO_WALLET", message: "No active account" } as NativeWalletError
       }
-
-      // Biometric auth happens in getMnemonic via SecureStore
-      const mnemonic = await getMnemonic()
-      return mnemonic
+      return await getMnemonicForAccount(accountId)
     } catch (err) {
       if ((err as KeyStorageError).code === "AUTH_FAILED") {
-        setError({
-          code: "AUTH_FAILED",
-          message: "Authentication failed",
-        })
+        setError({ code: "AUTH_FAILED", message: "Authentication failed" })
       }
       return null
     }
-  }, [wallet])
+  }, [])
 
   /**
    * Delete wallet and all stored data
    */
-  const deleteWalletFn = useCallback(async (): Promise<void> => {
+  const deleteWalletFn = useCallback(async (accountId?: string): Promise<void> => {
     try {
       setIsLoading(true)
       setError(null)
 
-      // Require biometric to delete
       const authenticated = await authenticateUser("Authenticate to delete wallet")
       if (!authenticated) {
-        throw {
-          code: "AUTH_FAILED",
-          message: "Authentication required to delete wallet",
-        } as NativeWalletError
+        throw { code: "AUTH_FAILED", message: "Authentication required to delete wallet" } as NativeWalletError
       }
 
-      await deleteWalletStorage()
-      setWallet(null)
+      const targetId = accountId || useWalletStore.getState().activeAccountId
+      if (!targetId) return
 
-      // Disconnect from main wallet store
-      useWalletStore.getState().disconnect()
+      await deleteWalletKeys(targetId)
+      await removeFromRegistry(targetId)
+      useWalletStore.getState().removeAccount(targetId)
+
+      const remaining = await getWalletRegistry()
+      if (remaining.length === 0) {
+        setWallet(null)
+      } else {
+        const next = remaining[0]
+        setWallet({ publicKey: new PublicKey(next.address) })
+      }
     } catch (err) {
       const walletError = err as NativeWalletError
       setError(walletError)
@@ -447,13 +407,14 @@ export function useNativeWallet(): UseNativeWalletReturn {
           } as NativeWalletError
         }
 
-        // Get private key (biometric auth happens here)
-        const privateKeyBase58 = await getPrivateKey()
+        // Get private key for active account (biometric auth happens here)
+        const accountId = useWalletStore.getState().activeAccountId
+        if (!accountId) {
+          throw { code: "NO_WALLET", message: "No active account" } as NativeWalletError
+        }
+        const privateKeyBase58 = await getPrivateKeyForAccount(accountId)
         if (!privateKeyBase58) {
-          throw {
-            code: "AUTH_FAILED",
-            message: "Failed to access private key",
-          } as NativeWalletError
+          throw { code: "AUTH_FAILED", message: "Failed to access private key" } as NativeWalletError
         }
 
         const secretKey = bs58.decode(privateKeyBase58)
@@ -499,13 +460,14 @@ export function useNativeWallet(): UseNativeWalletReturn {
           } as NativeWalletError
         }
 
-        // Get private key (biometric auth happens here)
-        const privateKeyBase58 = await getPrivateKey()
+        // Get private key for active account (biometric auth happens here)
+        const accountId = useWalletStore.getState().activeAccountId
+        if (!accountId) {
+          throw { code: "NO_WALLET", message: "No active account" } as NativeWalletError
+        }
+        const privateKeyBase58 = await getPrivateKeyForAccount(accountId)
         if (!privateKeyBase58) {
-          throw {
-            code: "AUTH_FAILED",
-            message: "Failed to access private key",
-          } as NativeWalletError
+          throw { code: "AUTH_FAILED", message: "Failed to access private key" } as NativeWalletError
         }
 
         const secretKey = bs58.decode(privateKeyBase58)
@@ -544,13 +506,14 @@ export function useNativeWallet(): UseNativeWalletReturn {
           } as NativeWalletError
         }
 
-        // Get private key once (biometric auth happens here)
-        const privateKeyBase58 = await getPrivateKey()
+        // Get private key for active account once (biometric auth happens here)
+        const accountId = useWalletStore.getState().activeAccountId
+        if (!accountId) {
+          throw { code: "NO_WALLET", message: "No active account" } as NativeWalletError
+        }
+        const privateKeyBase58 = await getPrivateKeyForAccount(accountId)
         if (!privateKeyBase58) {
-          throw {
-            code: "AUTH_FAILED",
-            message: "Failed to access private key",
-          } as NativeWalletError
+          throw { code: "AUTH_FAILED", message: "Failed to access private key" } as NativeWalletError
         }
 
         const secretKey = bs58.decode(privateKeyBase58)
