@@ -174,6 +174,8 @@ export const useWalletStore = create<WalletState>()(
           chain: null,
           walletType: null,
           connectionMethod: null,
+          accounts: [],
+          activeAccountId: null,
         }),
 
       // Multi-account actions
@@ -261,14 +263,21 @@ export const useWalletStore = create<WalletState>()(
       },
 
       updateAccountNickname: (accountId, nickname) => {
+        const trimmed = nickname.trim()
+        if (!trimmed || trimmed.length > 32) return
+        const state = get()
+        if (!state.accounts.find((a) => a.id === accountId)) return
         set((s) => ({
           accounts: s.accounts.map((a) =>
-            a.id === accountId ? { ...a, nickname } : a
+            a.id === accountId ? { ...a, nickname: trimmed } : a
           ),
         }))
       },
 
       updateAccountEmoji: (accountId, emoji) => {
+        if (!emoji) return
+        const state = get()
+        if (!state.accounts.find((a) => a.id === accountId)) return
         set((s) => ({
           accounts: s.accounts.map((a) =>
             a.id === accountId ? { ...a, emoji } : a
@@ -319,8 +328,12 @@ function walletTypeToProvider(walletType: WalletType): WalletProviderType {
     case "solflare":
     case "backpack":
       return "phantom" // All deeplink wallets use phantom-style connection
-    default:
+    case "walletconnect":
+      return "phantom" // WalletConnect uses phantom-style interface
+    default: {
+      const _exhaustive: never = walletType
       return "phantom"
+    }
   }
 }
 

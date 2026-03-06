@@ -11,7 +11,7 @@
  */
 
 import { useState, useEffect, useCallback } from "react"
-import { View, Text, StyleSheet, TouchableOpacity, Vibration, Platform } from "react-native"
+import { View, Text, StyleSheet, TouchableOpacity } from "react-native"
 import { SafeAreaView } from "react-native-safe-area-context"
 import { router, useLocalSearchParams } from "expo-router"
 import { CameraView, useCameraPermissions, BarcodeScanningResult } from "expo-camera"
@@ -22,14 +22,8 @@ import {
 } from "phosphor-react-native"
 import { ICON_COLORS } from "@/constants/icons"
 import { useToastStore } from "@/stores/toast"
-
-// ============================================================================
-// ADDRESS VALIDATION
-// ============================================================================
-
-const SOLANA_ADDRESS_REGEX = /^[1-9A-HJ-NP-Za-km-z]{32,44}$/
-const STEALTH_ADDRESS_REGEX = /^sip:solana:[1-9A-HJ-NP-Za-km-z]{32,44}:[1-9A-HJ-NP-Za-km-z]{32,44}$/
-const SOLANA_PAY_REGEX = /^solana:([1-9A-HJ-NP-Za-km-z]{32,44})/
+import { hapticMedium } from "@/utils/haptics"
+import { SOLANA_ADDRESS_REGEX, STEALTH_ADDRESS_REGEX, SOLANA_PAY_REGEX } from "@/utils/validation"
 
 /**
  * Parse and validate scanned QR data
@@ -87,9 +81,7 @@ export default function ScannerScreen() {
       const parsed = parseQRData(data)
 
       // Haptic feedback
-      if (Platform.OS !== "web") {
-        Vibration.vibrate(100)
-      }
+      hapticMedium()
 
       if (parsed.type === "invalid") {
         addToast({
@@ -138,7 +130,7 @@ export default function ScannerScreen() {
           <CameraIcon size={48} color={ICON_COLORS.muted} weight="regular" />
         </View>
         <Text className="text-white text-xl font-semibold text-center mb-4">
-          CameraIcon Permission Required
+          Camera Permission Required
         </Text>
         <Text className="text-dark-400 text-center mb-8">
           We need camera access to scan QR codes containing wallet addresses.
@@ -158,7 +150,7 @@ export default function ScannerScreen() {
 
   return (
     <View testID="qr-scanner-screen" className="flex-1 bg-black">
-      {/* CameraIcon View */}
+      {/* Camera View */}
       <CameraView
         style={StyleSheet.absoluteFillObject}
         facing="back"
@@ -176,6 +168,8 @@ export default function ScannerScreen() {
           <TouchableOpacity
             className="bg-black/50 rounded-full p-3"
             onPress={() => router.back()}
+            accessibilityLabel="Close scanner"
+            accessibilityRole="button"
           >
             <XIcon size={24} color={ICON_COLORS.white} weight="bold" />
           </TouchableOpacity>
@@ -185,6 +179,8 @@ export default function ScannerScreen() {
           <TouchableOpacity
             className="bg-black/50 rounded-full p-3"
             onPress={() => setFlashOn(!flashOn)}
+            accessibilityLabel={flashOn ? "Turn off flashlight" : "Turn on flashlight"}
+            accessibilityRole="button"
           >
             <FlashlightIcon
               size={24}

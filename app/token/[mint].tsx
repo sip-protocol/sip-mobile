@@ -9,7 +9,7 @@ import { View, Text, TouchableOpacity, ScrollView } from "react-native"
 import { SafeAreaView } from "react-native-safe-area-context"
 import { router, useLocalSearchParams } from "expo-router"
 import * as Clipboard from "expo-clipboard"
-import { ArrowLeftIcon, ShareIcon, StarIcon, CheckCircleIcon } from "phosphor-react-native"
+import { ArrowLeftIcon, ShareIcon, StarIcon } from "phosphor-react-native"
 import { ICON_COLORS } from "@/constants/icons"
 import { TokenIcon } from "@/components/TokenIcon"
 import { TokenStats } from "@/components/TokenStats"
@@ -18,62 +18,46 @@ import { useBalance } from "@/hooks/useBalance"
 import { useSettingsStore } from "@/stores/settings"
 import { toast } from "@/stores/toast"
 import { getTokenByMint, TOKENS } from "@/data/tokens"
+import { formatAddress } from "@/stores/wallet"
 import { hapticLight } from "@/utils/haptics"
 
 // ============================================================================
 // MOCK DATA (placeholder until Jupiter Price API integration)
 // ============================================================================
 
-const MOCK_PRICES: Record<string, number> = {
-  SOL: 178.42,
-  USDC: 1.0,
-  USDT: 1.0,
-  BONK: 0.0000234,
-  JUP: 1.87,
-  RAY: 5.12,
-  PYTH: 0.48,
-  WIF: 2.34,
-  JTO: 3.67,
-  ORCA: 4.21,
-  SKR: 0.015,
-}
+const MOCK_PRICES: Record<string, number> = __DEV__
+  ? {
+      SOL: 178.42, USDC: 1.0, USDT: 1.0, BONK: 0.0000234, JUP: 1.87,
+      RAY: 5.12, PYTH: 0.48, WIF: 2.34, JTO: 3.67, ORCA: 4.21, SKR: 0.015,
+    }
+  : {}
 
-const MOCK_STATS: Record<string, { marketCap: number; liquidity: number; holders: number; privacyScore: number }> = {
-  SOL: { marketCap: 49_700_000_000, liquidity: 646_200_000, holders: 2_340_000, privacyScore: 45 },
-  USDC: { marketCap: 32_100_000_000, liquidity: 1_200_000_000, holders: 5_100_000, privacyScore: 30 },
-  USDT: { marketCap: 83_200_000_000, liquidity: 890_000_000, holders: 4_800_000, privacyScore: 25 },
-  BONK: { marketCap: 1_450_000_000, liquidity: 23_400_000, holders: 890_000, privacyScore: 60 },
-  JUP: { marketCap: 2_530_000_000, liquidity: 45_600_000, holders: 1_200_000, privacyScore: 55 },
-  RAY: { marketCap: 1_340_000_000, liquidity: 34_500_000, holders: 450_000, privacyScore: 50 },
-  PYTH: { marketCap: 720_000_000, liquidity: 12_300_000, holders: 320_000, privacyScore: 40 },
-  WIF: { marketCap: 2_340_000_000, liquidity: 56_700_000, holders: 670_000, privacyScore: 65 },
-  JTO: { marketCap: 450_000_000, liquidity: 8_900_000, holders: 180_000, privacyScore: 35 },
-  ORCA: { marketCap: 380_000_000, liquidity: 7_600_000, holders: 120_000, privacyScore: 42 },
-  SKR: { marketCap: 15_000_000, liquidity: 2_100_000, holders: 45_000, privacyScore: 70 },
-}
+const MOCK_STATS: Record<string, { marketCap: number; liquidity: number; holders: number; privacyScore: number }> = __DEV__
+  ? {
+      SOL: { marketCap: 49_700_000_000, liquidity: 646_200_000, holders: 2_340_000, privacyScore: 45 },
+      USDC: { marketCap: 32_100_000_000, liquidity: 1_200_000_000, holders: 5_100_000, privacyScore: 30 },
+      USDT: { marketCap: 83_200_000_000, liquidity: 890_000_000, holders: 4_800_000, privacyScore: 25 },
+      BONK: { marketCap: 1_450_000_000, liquidity: 23_400_000, holders: 890_000, privacyScore: 60 },
+      JUP: { marketCap: 2_530_000_000, liquidity: 45_600_000, holders: 1_200_000, privacyScore: 55 },
+      RAY: { marketCap: 1_340_000_000, liquidity: 34_500_000, holders: 450_000, privacyScore: 50 },
+      PYTH: { marketCap: 720_000_000, liquidity: 12_300_000, holders: 320_000, privacyScore: 40 },
+      WIF: { marketCap: 2_340_000_000, liquidity: 56_700_000, holders: 670_000, privacyScore: 65 },
+      JTO: { marketCap: 450_000_000, liquidity: 8_900_000, holders: 180_000, privacyScore: 35 },
+      ORCA: { marketCap: 380_000_000, liquidity: 7_600_000, holders: 120_000, privacyScore: 42 },
+      SKR: { marketCap: 15_000_000, liquidity: 2_100_000, holders: 45_000, privacyScore: 70 },
+    }
+  : {}
 
-const MOCK_CHANGE_24H: Record<string, number> = {
-  SOL: 3.42,
-  USDC: 0.01,
-  USDT: -0.02,
-  BONK: -5.67,
-  JUP: 8.12,
-  RAY: 2.34,
-  PYTH: -1.23,
-  WIF: 12.45,
-  JTO: -3.21,
-  ORCA: 1.56,
-  SKR: 15.8,
-}
+const MOCK_CHANGE_24H: Record<string, number> = __DEV__
+  ? {
+      SOL: 3.42, USDC: 0.01, USDT: -0.02, BONK: -5.67, JUP: 8.12,
+      RAY: 2.34, PYTH: -1.23, WIF: 12.45, JTO: -3.21, ORCA: 1.56, SKR: 15.8,
+    }
+  : {}
 
 // ============================================================================
 // HELPERS
 // ============================================================================
-
-function formatAddress(address: string): string {
-  if (address.length <= 12) return address
-  return `${address.slice(0, 6)}...${address.slice(-4)}`
-}
 
 function formatPrice(price: number): string {
   if (price >= 1) return `$${price.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
@@ -182,6 +166,10 @@ export default function TokenDetailScreen() {
               className="w-10 h-10 items-center justify-center rounded-full bg-dark-900"
               accessibilityLabel="Favorite"
               accessibilityRole="button"
+              onPress={() => {
+                hapticLight()
+                toast.info("Coming soon", "Favorites will be available in a future update")
+              }}
             >
               <StarIcon size={20} color={ICON_COLORS.muted} />
             </TouchableOpacity>
@@ -189,6 +177,10 @@ export default function TokenDetailScreen() {
               className="w-10 h-10 items-center justify-center rounded-full bg-dark-900"
               accessibilityLabel="Share"
               accessibilityRole="button"
+              onPress={() => {
+                hapticLight()
+                toast.info("Coming soon", "Share will be available in a future update")
+              }}
             >
               <ShareIcon size={20} color={ICON_COLORS.muted} />
             </TouchableOpacity>
@@ -201,7 +193,6 @@ export default function TokenDetailScreen() {
 
           <View className="flex-row items-center mt-3 gap-1.5">
             <Text className="text-white text-xl font-bold">{token.name}</Text>
-            <CheckCircleIcon size={18} color={ICON_COLORS.brand} weight="fill" />
           </View>
 
           <TouchableOpacity onPress={handleCopyMint} activeOpacity={0.7}>

@@ -13,7 +13,7 @@
  */
 
 import { View, Text, TouchableOpacity } from "react-native"
-import { useState, useCallback } from "react"
+import React, { useState, useCallback, useEffect, useRef } from "react"
 import { BackspaceIcon } from "phosphor-react-native"
 import { useSettingsStore } from "@/stores/settings"
 import { hapticLight } from "@/utils/haptics"
@@ -43,8 +43,11 @@ export interface NumpadInputProps {
  */
 export function truncateToDecimals(value: number, decimals: number): number {
   if (decimals <= 0) return Math.floor(value)
-  const factor = Math.pow(10, decimals)
-  return Math.floor(value * factor) / factor
+  const str = value.toString()
+  const dotIndex = str.indexOf(".")
+  if (dotIndex === -1) return value
+  const truncated = str.slice(0, dotIndex + 1 + decimals)
+  return parseFloat(truncated)
 }
 
 /**
@@ -62,6 +65,9 @@ export function computePreset(balance: number, percentage: number, decimals: num
  * Validate whether appending a character to the display string is allowed
  */
 export function canAppendChar(display: string, char: string, maxDecimals: number): boolean {
+  // Max 15 characters to prevent overflow
+  if (display.length >= 15) return false
+
   // Dot: only one allowed, and only if decimals > 0
   if (char === ".") {
     if (maxDecimals <= 0) return false
@@ -120,6 +126,16 @@ export function NumpadInput({
 }: NumpadInputProps) {
   const [display, setDisplay] = useState("0")
   const hideBalances = useSettingsStore((s) => s.hideBalances)
+
+  // Reset display when token changes
+  const prevMintRef = useRef(token.mint)
+  useEffect(() => {
+    if (prevMintRef.current !== token.mint) {
+      setDisplay("0")
+      onAmountChange(0)
+      prevMintRef.current = token.mint
+    }
+  }, [token.mint, onAmountChange])
 
   const amount = parseDisplay(display)
   const isCtaActive = amount > 0 && !disabled
@@ -209,6 +225,8 @@ export function NumpadInput({
             className="flex-1 py-3 items-center justify-center"
             onPress={() => handlePreset(1)}
             testID="preset-max"
+            accessibilityLabel="Maximum amount"
+            accessibilityRole="button"
           >
             <Text className="text-brand-400 text-base font-semibold">MAX</Text>
           </TouchableOpacity>
@@ -218,6 +236,8 @@ export function NumpadInput({
               className="flex-1 py-3 items-center justify-center"
               onPress={() => handleKeyPress(d)}
               testID={`key-${d}`}
+              accessibilityLabel={d}
+              accessibilityRole="button"
             >
               <Text className="text-white text-2xl font-medium">{d}</Text>
             </TouchableOpacity>
@@ -230,6 +250,8 @@ export function NumpadInput({
             className="flex-1 py-3 items-center justify-center"
             onPress={() => handlePreset(0.75)}
             testID="preset-75"
+            accessibilityLabel="75 percent"
+            accessibilityRole="button"
           >
             <Text className="text-brand-400 text-base font-semibold">75%</Text>
           </TouchableOpacity>
@@ -239,6 +261,8 @@ export function NumpadInput({
               className="flex-1 py-3 items-center justify-center"
               onPress={() => handleKeyPress(d)}
               testID={`key-${d}`}
+              accessibilityLabel={d}
+              accessibilityRole="button"
             >
               <Text className="text-white text-2xl font-medium">{d}</Text>
             </TouchableOpacity>
@@ -251,6 +275,8 @@ export function NumpadInput({
             className="flex-1 py-3 items-center justify-center"
             onPress={() => handlePreset(0.5)}
             testID="preset-50"
+            accessibilityLabel="50 percent"
+            accessibilityRole="button"
           >
             <Text className="text-brand-400 text-base font-semibold">50%</Text>
           </TouchableOpacity>
@@ -260,6 +286,8 @@ export function NumpadInput({
               className="flex-1 py-3 items-center justify-center"
               onPress={() => handleKeyPress(d)}
               testID={`key-${d}`}
+              accessibilityLabel={d}
+              accessibilityRole="button"
             >
               <Text className="text-white text-2xl font-medium">{d}</Text>
             </TouchableOpacity>
@@ -272,6 +300,8 @@ export function NumpadInput({
             className="flex-1 py-3 items-center justify-center"
             onPress={() => handlePreset(0)}
             testID="preset-clear"
+            accessibilityLabel="Clear amount"
+            accessibilityRole="button"
           >
             <Text className="text-brand-400 text-base font-semibold">CLEAR</Text>
           </TouchableOpacity>
@@ -279,6 +309,8 @@ export function NumpadInput({
             className="flex-1 py-3 items-center justify-center"
             onPress={() => handleKeyPress(".")}
             testID="key-dot"
+            accessibilityLabel="Decimal point"
+            accessibilityRole="button"
           >
             <Text className="text-white text-2xl font-medium">.</Text>
           </TouchableOpacity>
@@ -286,6 +318,8 @@ export function NumpadInput({
             className="flex-1 py-3 items-center justify-center"
             onPress={() => handleKeyPress("0")}
             testID="key-0"
+            accessibilityLabel="0"
+            accessibilityRole="button"
           >
             <Text className="text-white text-2xl font-medium">0</Text>
           </TouchableOpacity>
@@ -293,6 +327,8 @@ export function NumpadInput({
             className="flex-1 py-3 items-center justify-center"
             onPress={handleBackspace}
             testID="key-backspace"
+            accessibilityLabel="Delete"
+            accessibilityRole="button"
           >
             <BackspaceIcon size={24} color={ICON_COLORS.white} weight="regular" />
           </TouchableOpacity>
@@ -306,6 +342,8 @@ export function NumpadInput({
           onPress={handleCtaPress}
           disabled={!isCtaActive}
           testID="cta-button"
+          accessibilityRole="button"
+          accessibilityLabel={isCtaActive ? ctaLabel : (ctaDisabledLabel ?? ctaLabel)}
         >
           <Text
             className={`text-lg font-semibold ${

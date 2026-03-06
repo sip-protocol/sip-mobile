@@ -23,11 +23,18 @@ export interface TokenStatsProps {
 // ============================================================================
 
 export function formatLargeNumber(n?: number): string {
-  if (!n) return "\u2014"
+  if (n === undefined || n === null) return "\u2014"
   if (n >= 1e9) return `$${(n / 1e9).toFixed(2)}B`
   if (n >= 1e6) return `$${(n / 1e6).toFixed(2)}M`
   if (n >= 1e3) return `$${(n / 1e3).toFixed(2)}K`
   return `$${n.toFixed(2)}`
+}
+
+function formatHolders(n?: number): string {
+  if (n === undefined || n === null) return "\u2014"
+  if (n >= 1e6) return `${(n / 1e6).toFixed(2)}M`
+  if (n >= 1e3) return `${(n / 1e3).toFixed(1)}K`
+  return n.toString()
 }
 
 // ============================================================================
@@ -38,7 +45,7 @@ export function TokenStats({ marketCap, liquidity, holders, privacyScore }: Toke
   const stats = [
     { label: "Mkt Cap", value: formatLargeNumber(marketCap) },
     { label: "Liquidity", value: formatLargeNumber(liquidity) },
-    { label: "Holders", value: holders ? `${(holders / 1e6).toFixed(2)}M` : "\u2014" },
+    { label: "Holders", value: formatHolders(holders) },
     { label: "Privacy", value: privacyScore !== undefined ? `${privacyScore}%` : "\u2014" },
   ]
 

@@ -10,6 +10,12 @@ import { vi, beforeEach } from "vitest"
 // @ts-expect-error - __DEV__ is a React Native global
 globalThis.__DEV__ = true
 
+// Mock phosphor-react-native (native module, can't load in Node)
+vi.mock("phosphor-react-native", () => {
+  const iconMock = vi.fn(() => null)
+  return new Proxy({}, { get: () => iconMock })
+})
+
 // Mock AsyncStorage
 vi.mock("@react-native-async-storage/async-storage", () => ({
   default: {

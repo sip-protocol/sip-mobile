@@ -50,7 +50,7 @@ export default function RootLayout() {
       markPerformance("hiding_splash")
       SplashScreen.hideAsync()
         .then(() => markPerformance("splash_hidden"))
-        .catch(() => {})
+        .catch((e) => console.warn("[Splash] hideAsync failed:", e))
     }
   }, [isReady])
 

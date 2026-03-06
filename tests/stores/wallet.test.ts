@@ -276,17 +276,35 @@ describe("Wallet Store", () => {
 
 describe("Wallet Utilities", () => {
   describe("formatAddress", () => {
+    it("should return empty string for null", () => {
+      expect(formatAddress(null)).toBe("")
+    })
+
+    it("should return empty string for empty string", () => {
+      expect(formatAddress("")).toBe("")
+    })
+
+    it("should return short addresses unchanged", () => {
+      expect(formatAddress("abcdef")).toBe("abcdef")
+    })
+
+    it("should return addresses of exactly 10 chars unchanged", () => {
+      expect(formatAddress("1234567890")).toBe("1234567890")
+    })
+
+    it("should truncate addresses longer than 10 chars", () => {
+      expect(formatAddress("12345678901")).toBe("123456...8901")
+    })
+
+    it("should format typical Solana address", () => {
+      const addr = "7xK9abcDEF123456789ABCDEF"
+      const result = formatAddress(addr)
+      expect(result).toBe("7xK9ab...CDEF")
+    })
+
     it("should format long addresses", () => {
       const formatted = formatAddress("ABC123DEF456GHI789JKL012")
       expect(formatted).toBe("ABC123...L012")
-    })
-
-    it("should return short addresses as-is", () => {
-      expect(formatAddress("ABC123")).toBe("ABC123")
-    })
-
-    it("should return empty for null", () => {
-      expect(formatAddress(null)).toBe("")
     })
   })
 

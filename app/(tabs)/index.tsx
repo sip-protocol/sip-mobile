@@ -326,7 +326,7 @@ export default function HomeScreen() {
               <TouchableOpacity
                 testID="setup-wallet-button"
                 className="mt-4 bg-brand-600 rounded-xl py-3 items-center"
-                onPress={() => router.push("/wallet-setup")}
+                onPress={() => router.push("/(auth)/wallet-setup")}
                 accessibilityRole="button"
                 accessibilityLabel="Set up wallet"
                 accessibilityHint="Opens the wallet setup flow"

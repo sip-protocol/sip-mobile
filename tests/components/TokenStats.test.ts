@@ -17,8 +17,8 @@ describe("TokenStats", () => {
       expect(formatLargeNumber(undefined)).toBe("\u2014")
     })
 
-    it("returns em-dash for 0", () => {
-      expect(formatLargeNumber(0)).toBe("\u2014")
+    it("formats zero as $0.00", () => {
+      expect(formatLargeNumber(0)).toBe("$0.00")
     })
 
     it("formats billions", () => {

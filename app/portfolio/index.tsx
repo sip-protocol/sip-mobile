@@ -8,6 +8,7 @@
  */
 
 import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator } from "react-native"
+import { useMemo } from "react"
 import { SafeAreaView } from "react-native-safe-area-context"
 import { router } from "expo-router"
 import { ShieldCheckIcon } from "phosphor-react-native"
@@ -16,6 +17,8 @@ import { usePortfolioStore } from "@/stores/portfolio"
 import { PrivacyScoreBadge } from "@/components/PrivacyScoreBadge"
 import { EmptyState } from "@/components/ui/EmptyState"
 import { TokenIcon } from "@/components/TokenIcon"
+
+const PRIVACY_SHIELD_THRESHOLD = 67
 
 // ============================================================================
 // TOKEN ROW
@@ -34,7 +37,7 @@ function TokenRow({
   balanceUsd: number
   privacyScore: number
 }) {
-  const needsShield = privacyScore < 67
+  const needsShield = privacyScore < PRIVACY_SHIELD_THRESHOLD
 
   return (
     <View
@@ -88,8 +91,8 @@ export default function PortfolioScreen() {
   const getAggregateScore = usePortfolioStore((s) => s.getAggregateScore)
   const getTokensSortedByValue = usePortfolioStore((s) => s.getTokensSortedByValue)
 
-  const aggregateScore = getAggregateScore()
-  const sortedTokens = getTokensSortedByValue()
+  const aggregateScore = useMemo(() => getAggregateScore(), [tokens])
+  const sortedTokens = useMemo(() => getTokensSortedByValue(), [tokens])
 
   return (
     <SafeAreaView className="flex-1 bg-dark-950">

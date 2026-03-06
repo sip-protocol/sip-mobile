@@ -24,7 +24,7 @@ export interface PositionCardProps {
 // ============================================================================
 
 export function PositionCard({ balance, symbol, usdValue, pnlPercent }: PositionCardProps) {
-  const { hideBalances } = useSettingsStore()
+  const hideBalances = useSettingsStore((s) => s.hideBalances)
   const pnlColor = (pnlPercent ?? 0) >= 0 ? "text-green-400" : "text-red-400"
 
   return (

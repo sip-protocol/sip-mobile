@@ -116,11 +116,14 @@ export const useSettingsStore = create<SettingsStore>()(
 
       // API Keys (user overrides)
       heliusApiKey: null,
-      setHeliusApiKey: (key) => set({ heliusApiKey: key }),
+      setHeliusApiKey: (key) => set({ heliusApiKey: key?.trim() || null }),
       quicknodeApiKey: null,
-      setQuicknodeApiKey: (key) => set({ quicknodeApiKey: key }),
+      setQuicknodeApiKey: (key) => set({ quicknodeApiKey: key?.trim() || null }),
       tritonEndpoint: null,
-      setTritonEndpoint: (endpoint) => set({ tritonEndpoint: endpoint }),
+      setTritonEndpoint: (endpoint) => {
+        if (endpoint && !endpoint.startsWith("http")) return
+        set({ tritonEndpoint: endpoint?.trim() || null })
+      },
     }),
     {
       name: "sip-settings",

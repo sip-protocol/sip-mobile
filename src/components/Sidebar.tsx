@@ -13,7 +13,7 @@
  */
 
 import React from "react"
-import { View, Text, TouchableOpacity, Modal, ScrollView } from "react-native"
+import { View, Text, TouchableOpacity, Modal, ScrollView, Linking } from "react-native"
 import { router } from "expo-router"
 import { useWalletStore, formatAddress } from "@/stores/wallet"
 import { useSettingsStore } from "@/stores/settings"
@@ -102,8 +102,12 @@ export function Sidebar({ visible, onClose }: SidebarProps) {
   }
 
   const handleCopyAddress = async () => {
-    await Clipboard.setStringAsync(activeAccount.address)
-    hapticLight()
+    try {
+      await Clipboard.setStringAsync(activeAccount.address)
+      hapticLight()
+    } catch {
+      // Clipboard unavailable on some devices
+    }
   }
 
   // --------------------------------------------------------------------------
@@ -157,12 +161,12 @@ export function Sidebar({ visible, onClose }: SidebarProps) {
     {
       icon: <ICONS.about.docs size={22} color={ICON_COLORS.inactive} />,
       label: "Documentation",
-      onPress: () => navigate("/settings"),
+      onPress: () => Linking.openURL("https://docs.sip-protocol.org"),
     },
     {
       icon: <ICONS.about.bug size={22} color={ICON_COLORS.inactive} />,
       label: "Report Issue",
-      onPress: () => navigate("/settings"),
+      onPress: () => Linking.openURL("https://github.com/sip-protocol/sip-mobile/issues"),
     },
   ]
 

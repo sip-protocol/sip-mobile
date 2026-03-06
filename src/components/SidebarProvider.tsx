@@ -5,7 +5,7 @@
  * Consumed by avatar tap (open) and Sidebar component (visibility).
  */
 
-import { createContext, useContext, useState, useCallback } from "react"
+import { createContext, useContext, useState, useCallback, useMemo } from "react"
 import type { ReactNode } from "react"
 
 // ============================================================================
@@ -23,12 +23,7 @@ interface SidebarContextType {
 // CONTEXT
 // ============================================================================
 
-const SidebarContext = createContext<SidebarContextType>({
-  isOpen: false,
-  open: () => {},
-  close: () => {},
-  toggle: () => {},
-})
+const SidebarContext = createContext<SidebarContextType | null>(null)
 
 // ============================================================================
 // PROVIDER
@@ -41,8 +36,10 @@ export function SidebarProvider({ children }: { children: ReactNode }) {
   const close = useCallback(() => setIsOpen(false), [])
   const toggle = useCallback(() => setIsOpen((prev) => !prev), [])
 
+  const value = useMemo(() => ({ isOpen, open, close, toggle }), [isOpen, open, close, toggle])
+
   return (
-    <SidebarContext.Provider value={{ isOpen, open, close, toggle }}>
+    <SidebarContext.Provider value={value}>
       {children}
     </SidebarContext.Provider>
   )
@@ -52,4 +49,8 @@ export function SidebarProvider({ children }: { children: ReactNode }) {
 // HOOK
 // ============================================================================
 
-export const useSidebar = () => useContext(SidebarContext)
+export function useSidebar(): SidebarContextType {
+  const ctx = useContext(SidebarContext)
+  if (!ctx) throw new Error("useSidebar must be used within SidebarProvider")
+  return ctx
+}

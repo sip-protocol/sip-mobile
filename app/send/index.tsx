@@ -48,13 +48,11 @@ import { NumpadInput } from "@/components"
 import { Button, Modal, EmptyState } from "@/components/ui"
 import type { PrivacyLevel } from "@/types"
 import type { PrivacySendStatus } from "@/privacy-providers"
+import { SOLANA_ADDRESS_REGEX, STEALTH_ADDRESS_REGEX } from "@/utils/validation"
 
 // ============================================================================
 // VALIDATION HELPERS
 // ============================================================================
-
-const SOLANA_ADDRESS_REGEX = /^[1-9A-HJ-NP-Za-km-z]{32,44}$/
-const STEALTH_ADDRESS_REGEX = /^sip:solana:[1-9A-HJ-NP-Za-km-z]{32,44}:[1-9A-HJ-NP-Za-km-z]{32,44}$/
 
 function validateAddress(address: string): { isValid: boolean; error?: string } {
   if (!address || address.trim() === "") {

@@ -336,7 +336,9 @@ describe("Sidebar", () => {
     })
   })
 
-  describe("formatAddress integration", () => {
+  // Note: These test the mock's behavior, not the real formatAddress.
+  // Real formatAddress is tested in tests/stores/wallet.test.ts
+  describe("formatAddress (mock verification)", () => {
     it("formats address with 6...4 pattern", async () => {
       const { formatAddress } = await import("@/stores/wallet")
       expect(formatAddress("7xK9abcDEF123")).toBe("7xK9ab...F123")
