@@ -33,10 +33,10 @@ function countOccurrences(source: string, pattern: string): number {
 
 const SCREEN_FILES = {
   home: "app/(tabs)/index.tsx",
-  send: "app/(tabs)/send.tsx",
-  receive: "app/(tabs)/receive.tsx",
+  send: "app/send/index.tsx",
+  receive: "app/receive/index.tsx",
   swap: "app/(tabs)/swap.tsx",
-  settings: "app/(tabs)/settings.tsx",
+  privacy: "app/(tabs)/privacy.tsx",
   contacts: "app/contacts/index.tsx",
   addContact: "app/contacts/add.tsx",
   portfolio: "app/portfolio/index.tsx",
@@ -189,24 +189,19 @@ describe("Accessibility Audit: Screen Files", () => {
     })
   })
 
-  describe("Settings Screen", () => {
-    const source = readScreen(SCREEN_FILES.settings)
+  describe("Privacy Screen", () => {
+    const source = readScreen(SCREEN_FILES.privacy)
 
-    it("should have accessibilityRole on SettingsItem", () => {
+    it("should have accessibilityRole on feature items", () => {
       expect(source).toContain('accessibilityRole="button"')
     })
 
-    it("should have accessibilityLabel on SettingsItem", () => {
-      // SettingsItem uses template literal label
-      expect(source).toContain("accessibilityLabel={`${title}")
+    it("should have accessibilityLabel on feature items", () => {
+      expect(source).toContain("accessibilityLabel={f.label}")
     })
 
-    it("should have accessibilityRole=switch on Switch", () => {
-      expect(source).toContain('accessibilityRole="switch"')
-    })
-
-    it("should have accessibilityState on Switch", () => {
-      expect(source).toContain("accessibilityState={{ checked: value")
+    it("should have accessibilityHint on feature items", () => {
+      expect(source).toContain("accessibilityHint={f.desc}")
     })
   })
 

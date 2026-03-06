@@ -84,6 +84,8 @@ export default function RootLayout() {
             }}
           >
             <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+            <Stack.Screen name="send" options={{ headerShown: false }} />
+            <Stack.Screen name="receive" options={{ headerShown: false }} />
           </Stack>
         </SidebarProvider>
       </WalletProvider>

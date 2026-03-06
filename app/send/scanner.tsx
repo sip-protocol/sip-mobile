@@ -114,7 +114,7 @@ export default function ScannerScreen() {
       // Navigate back with the address
       // Use replace to avoid scanner staying in history
       router.replace({
-        pathname: returnTo === "receive" ? "/(tabs)/receive" : "/(tabs)/send",
+        pathname: returnTo === "receive" ? "/receive" : "/send",
         params: { scannedAddress: parsed.address },
       })
     },

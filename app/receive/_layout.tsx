@@ -1,6 +1,6 @@
 import { Stack } from "expo-router"
 
-export default function SendLayout() {
+export default function ReceiveLayout() {
   return (
     <Stack
       screenOptions={{
@@ -9,7 +9,6 @@ export default function SendLayout() {
       }}
     >
       <Stack.Screen name="index" />
-      <Stack.Screen name="scanner" />
     </Stack>
   )
 }

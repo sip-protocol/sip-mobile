@@ -8,10 +8,10 @@
  *
  * SCREEN                   LOADING       EMPTY          ERROR          WALLET GUARD
  * (tabs)/index.tsx         balance "..." activity list   -              shows setup CTA
- * (tabs)/send.tsx          provider init  -              tx modal       EmptyState
- * (tabs)/receive.tsx       LoadingState   -              ErrorState     EmptyState
+ * send/index.tsx           provider init  -              tx modal       EmptyState
+ * receive/index.tsx        LoadingState   -              ErrorState     EmptyState
  * (tabs)/swap.tsx          quote spinner  -              quote/result   mainnet overlay
- * (tabs)/settings.tsx      static         -              -              -
+ * settings (sidebar)       static         -              -              -
  * contacts/index.tsx       -              EmptyState     -              -
  * contacts/add.tsx         -              -              inline errors  -
  * portfolio/index.tsx      indicator      EmptyState     -              -
@@ -199,8 +199,8 @@ describe("Empty state screen coverage", () => {
 describe("Wallet guard screen coverage", () => {
   // All screens that check isConnected before showing content
   const screensWithWalletGuard = [
-    "(tabs)/send",
-    "(tabs)/receive",
+    "send/index",
+    "receive/index",
     "claim/index",
     "scan/index",
   ]
@@ -213,7 +213,7 @@ describe("Wallet guard screen coverage", () => {
 
   // Screens that don't need wallet guard
   const screensWithoutGuard = [
-    "(tabs)/settings",
+    "settings",
     "contacts/index",
     "contacts/add",
     "portfolio/index",
@@ -221,11 +221,11 @@ describe("Wallet guard screen coverage", () => {
   ]
 
   it("should have wallet guard on send screen", () => {
-    expect(screensWithWalletGuard).toContain("(tabs)/send")
+    expect(screensWithWalletGuard).toContain("send/index")
   })
 
   it("should have wallet guard on receive screen", () => {
-    expect(screensWithWalletGuard).toContain("(tabs)/receive")
+    expect(screensWithWalletGuard).toContain("receive/index")
   })
 
   it("should have wallet guard on claim screen", () => {
@@ -241,7 +241,7 @@ describe("Wallet guard screen coverage", () => {
   })
 
   it("should not require wallet guard for static screens", () => {
-    expect(screensWithoutGuard).toContain("(tabs)/settings")
+    expect(screensWithoutGuard).toContain("settings")
     expect(screensWithoutGuard).toContain("contacts/index")
   })
 })
@@ -252,8 +252,8 @@ describe("Wallet guard screen coverage", () => {
 
 describe("Error handling screen coverage", () => {
   const errorPatterns: Record<string, string[]> = {
-    "(tabs)/send": ["txError modal", "validation errors", "provider error toast"],
-    "(tabs)/receive": ["ErrorState component", "regenerate toast"],
+    "send/index": ["txError modal", "validation errors", "provider error toast"],
+    "receive/index": ["ErrorState component", "regenerate toast"],
     "(tabs)/swap": ["quoteError inline", "swapError result modal", "insufficient balance"],
     "contacts/add": ["inline validation errors"],
     "claim/index": ["error banner with retry"],
@@ -262,11 +262,11 @@ describe("Error handling screen coverage", () => {
   }
 
   it("should have transaction error display in send modal", () => {
-    expect(errorPatterns["(tabs)/send"]).toContain("txError modal")
+    expect(errorPatterns["send/index"]).toContain("txError modal")
   })
 
   it("should have ErrorState component on receive screen", () => {
-    expect(errorPatterns["(tabs)/receive"]).toContain("ErrorState component")
+    expect(errorPatterns["receive/index"]).toContain("ErrorState component")
   })
 
   it("should have quote and swap error displays on swap screen", () => {

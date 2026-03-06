@@ -66,7 +66,7 @@ function TokenRow({
         <TouchableOpacity
           className="bg-brand-600 px-3 py-1.5 rounded-lg"
           activeOpacity={0.7}
-          onPress={() => router.push("/(tabs)/send")}
+          onPress={() => router.push("/send")}
           accessibilityLabel={`Shield ${symbol}`}
           accessibilityHint="Navigate to shield this token for better privacy"
           accessibilityRole="button"

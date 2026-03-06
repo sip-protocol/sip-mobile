@@ -380,7 +380,7 @@ export default function HomeScreen() {
             label="Private"
             sublabel="Shield funds"
             variant="primary"
-            onPress={() => router.push("/(tabs)/send")}
+            onPress={() => router.push("/send")}
           />
           <QuickAction
             Icon={ClockCounterClockwiseIcon}

@@ -27,7 +27,7 @@ function ContactRow({ contact }: { contact: Contact }) {
   const handlePress = () => {
     hapticLight()
     router.push({
-      pathname: "/(tabs)/send",
+      pathname: "/send",
       params: {
         recipient: contact.address,
         contactName: contact.name,
