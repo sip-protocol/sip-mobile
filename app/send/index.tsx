@@ -3,7 +3,7 @@
  *
  * Privacy-aware transfer flow using Privacy Provider architecture:
  * - Supports multiple privacy backends (SIP Native, Arcium, Privacy Cash, etc.)
- * - Amount input with USD conversion
+ * - NumpadInput for amount entry (MAX/75%/50%/CLEAR presets)
  * - Recipient address (stealth or regular)
  * - Privacy level selection
  * - Confirmation modal
@@ -20,8 +20,6 @@ import {
   ScrollView,
   ActivityIndicator,
   Keyboard,
-  KeyboardAvoidingView,
-  Platform,
 } from "react-native"
 import { SafeAreaView } from "react-native-safe-area-context"
 import { useState, useCallback, useEffect } from "react"
@@ -46,6 +44,7 @@ import { useSettingsStore } from "@/stores/settings"
 import { useContactsStore } from "@/stores/contacts"
 import { useToastStore } from "@/stores/toast"
 import { useBalance } from "@/hooks/useBalance"
+import { NumpadInput } from "@/components"
 import { Button, Modal, EmptyState } from "@/components/ui"
 import type { PrivacyLevel } from "@/types"
 import type { PrivacySendStatus } from "@/privacy-providers"
@@ -140,7 +139,7 @@ export default function SendScreen() {
   const { isConnected } = useWalletStore()
   const { defaultPrivacyLevel } = useSettingsStore()
   const { addToast } = useToastStore()
-  const { balance, usdValue, solPrice } = useBalance()
+  const { balance, solPrice } = useBalance()
 
   // Form state
   const [amount, setAmount] = useState("")
@@ -155,7 +154,6 @@ export default function SendScreen() {
 
   // Validation state
   const [addressError, setAddressError] = useState<string | null>(null)
-  const [amountError, setAmountError] = useState<string | null>(null)
 
   // Reset on success + record payment for contacts
   useEffect(() => {
@@ -172,20 +170,11 @@ export default function SendScreen() {
     }
   }, [status, txHash, recipient])
 
-  const handleAmountChange = useCallback(
-    (value: string) => {
-      // Only allow valid decimal numbers
-      if (value && !/^\d*\.?\d*$/.test(value)) return
-
-      setAmount(value)
-      if (value) {
-        const validation = validateAmount(value, balance)
-        setAmountError(validation.isValid ? null : validation.error || null)
-      } else {
-        setAmountError(null)
-      }
+  const handleNumpadAmountChange = useCallback(
+    (value: number) => {
+      setAmount(value > 0 ? value.toString() : "")
     },
-    [balance]
+    []
   )
 
   const handleRecipientChange = useCallback((value: string) => {
@@ -214,12 +203,6 @@ export default function SendScreen() {
     }
   }, [recipientParam, handleRecipientChange])
 
-  const handleMaxAmount = useCallback(() => {
-    const maxAmount = Math.max(0, balance - 0.001).toFixed(6) // Leave for fees
-    setAmount(maxAmount)
-    setAmountError(null)
-  }, [balance])
-
   const handleReview = useCallback(() => {
     Keyboard.dismiss()
 
@@ -232,7 +215,11 @@ export default function SendScreen() {
 
     const amtValidation = validateAmount(amount, balance)
     if (!amtValidation.isValid) {
-      setAmountError(amtValidation.error || "Invalid amount")
+      addToast({
+        type: "error",
+        title: "Invalid amount",
+        message: amtValidation.error || "Please enter a valid amount",
+      })
       return
     }
 
@@ -348,7 +335,6 @@ export default function SendScreen() {
     }
   }
 
-  const isValid = !addressError && !amountError && amount && recipient
   const isStealth = recipient && isStealthAddress(recipient)
 
   if (!isConnected) {
@@ -367,239 +353,180 @@ export default function SendScreen() {
     )
   }
 
+  const isValidRecipient = !!recipient && !addressError
+  const ctaLabel = providerInitializing
+    ? "Initializing..."
+    : defaultPrivacyLevel !== "transparent"
+    ? "Send Privately"
+    : "Send"
+
   return (
     <SafeAreaView className="flex-1 bg-dark-950">
-      <KeyboardAvoidingView
-        behavior={Platform.OS === "ios" ? "padding" : "height"}
-        className="flex-1"
-      >
-        <ScrollView className="flex-1" keyboardShouldPersistTaps="handled">
-          <View className="px-6 pt-6 pb-4">
-            {/* Header */}
-            <Text className="text-3xl font-bold text-white">Send</Text>
-            <Text className="text-dark-400 mt-1">
-              Send SOL or tokens privately
-            </Text>
+      {/* Top section: recipient, privacy level, warnings */}
+      <ScrollView className="flex-shrink" keyboardShouldPersistTaps="handled">
+        <View className="px-6 pt-6 pb-4">
+          {/* Header */}
+          <Text className="text-3xl font-bold text-white">Send</Text>
+          <Text className="text-dark-400 mt-1">
+            Send SOL or tokens privately
+          </Text>
 
-            {/* Provider Badge */}
-            {providerInfo && (
-              <View className="mt-3 flex-row items-center">
-                <View className="bg-dark-800 px-3 py-1.5 rounded-lg flex-row items-center">
-                  <Text className="text-dark-400 text-xs mr-2">Provider:</Text>
-                  <Text className="text-white text-xs font-medium">
-                    {providerInfo.name}
-                  </Text>
-                  {providerInitializing && (
-                    <ActivityIndicator size="small" color="#8b5cf6" style={{ marginLeft: 8 }} />
-                  )}
-                </View>
-              </View>
-            )}
-
-            {/* Balance Display */}
-            <View className="mt-4 flex-row items-center justify-between bg-dark-900 rounded-xl p-4 border border-dark-800">
-              <View>
-                <Text className="text-dark-500 text-sm">Available Balance</Text>
-                <Text className="text-white text-xl font-bold mt-0.5">
-                  {balance.toFixed(4)} SOL
+          {/* Provider Badge */}
+          {providerInfo && (
+            <View className="mt-3 flex-row items-center">
+              <View className="bg-dark-800 px-3 py-1.5 rounded-lg flex-row items-center">
+                <Text className="text-dark-400 text-xs mr-2">Provider:</Text>
+                <Text className="text-white text-xs font-medium">
+                  {providerInfo.name}
                 </Text>
-              </View>
-              <Text className="text-dark-400">
-                ≈ ${usdValue.toLocaleString(undefined, { maximumFractionDigits: 2 })}
-              </Text>
-            </View>
-
-            {/* Amount Input */}
-            <View className="mt-6">
-              <View className="flex-row items-center justify-between mb-2">
-                <Text className="text-dark-400 text-sm">Amount</Text>
-                <TouchableOpacity
-                  testID="max-button"
-                  onPress={handleMaxAmount}
-                  accessibilityRole="button"
-                  accessibilityLabel="Use maximum amount"
-                  accessibilityHint="Sets the amount to your full available balance"
-                >
-                  <Text className="text-brand-400 text-sm">MAX</Text>
-                </TouchableOpacity>
-              </View>
-              <View
-                className={`bg-dark-900 rounded-xl border p-4 ${
-                  amountError ? "border-red-500" : "border-dark-800"
-                }`}
-              >
-                <View className="flex-row items-center">
-                  <TextInput
-                    testID="amount-input"
-                    className="flex-1 text-3xl font-bold text-white"
-                    placeholder="0.00"
-                    placeholderTextColor="#71717a"
-                    keyboardType="decimal-pad"
-                    value={amount}
-                    onChangeText={handleAmountChange}
-                  />
-                  <Text className="text-dark-400 text-xl font-medium ml-2">SOL</Text>
-                </View>
-                <Text className="text-dark-500 mt-2">{formatUsdValue(amount, solPrice)}</Text>
-              </View>
-              {amountError && (
-                <Text className="text-red-400 text-sm mt-2">{amountError}</Text>
-              )}
-            </View>
-
-            {/* Contact Name Banner */}
-            {contactName && (
-              <View testID="contact-name-banner" className="mt-6 bg-brand-900/20 border border-brand-700/50 rounded-xl p-3">
-                <Text className="text-brand-400 font-semibold text-base">
-                  Sending to {contactName}
-                </Text>
-              </View>
-            )}
-
-            {/* Recipient Input */}
-            <View className="mt-6">
-              <View className="flex-row items-center justify-between mb-2">
-                <Text className="text-dark-400 text-sm">Recipient</Text>
-                {isStealth && (
-                  <View testID="stealth-address-badge" className="bg-brand-600/20 px-2 py-0.5 rounded">
-                    <Text className="text-brand-400 text-xs">Stealth Address</Text>
-                  </View>
+                {providerInitializing && (
+                  <ActivityIndicator size="small" color="#8b5cf6" style={{ marginLeft: 8 }} />
                 )}
               </View>
-              <View
-                className={`bg-dark-900 rounded-xl border p-4 ${
-                  addressError ? "border-red-500" : "border-dark-800"
-                }`}
-              >
-                <TextInput
-                  testID="recipient-input"
-                  className="text-white"
-                  placeholder="Wallet address or sip: stealth address"
-                  placeholderTextColor="#71717a"
-                  value={recipient}
-                  onChangeText={handleRecipientChange}
-                  autoCapitalize="none"
-                  autoCorrect={false}
-                  multiline
-                  numberOfLines={2}
-                />
-              </View>
-              {addressError && (
-                <Text className="text-red-400 text-sm mt-2">{addressError}</Text>
-              )}
-
-              {/* Quick Actions */}
-              <View className="flex-row gap-2 mt-3">
-                <TouchableOpacity
-                  testID="scan-qr-button"
-                  className="flex-row items-center bg-dark-800 rounded-lg px-3 py-2"
-                  onPress={() => router.push("/send/scanner")}
-                  accessibilityRole="button"
-                  accessibilityLabel="Scan QR code"
-                  accessibilityHint="Opens the QR scanner to scan a recipient address"
-                >
-                  <QrCodeIcon size={16} color={ICON_COLORS.muted} weight="regular" />
-                  <Text className="text-dark-400 text-sm ml-1">Scan QR</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  className="flex-row items-center bg-dark-800 rounded-lg px-3 py-2"
-                  onPress={() => router.push("/contacts")}
-                  accessibilityRole="button"
-                  accessibilityLabel="Choose from contacts"
-                  accessibilityHint="Opens your contact list to select a recipient"
-                >
-                  <AddressBookIcon size={16} color={ICON_COLORS.muted} weight="regular" />
-                  <Text className="text-dark-400 text-sm ml-1">Contacts</Text>
-                </TouchableOpacity>
-              </View>
             </View>
+          )}
 
-            {/* Privacy Level Display (read-only, configured in Settings) */}
-            <TouchableOpacity
-              testID="privacy-toggle"
-              className="mt-6"
-              onPress={() => {
-                hapticLight()
-                router.push("/settings")
-              }}
-              activeOpacity={0.7}
-              accessibilityRole="button"
-              accessibilityLabel={`Privacy level: ${getPrivacyLevelInfo(defaultPrivacyLevel).title}`}
-              accessibilityHint="Opens settings to change privacy level"
-            >
-              <Text className="text-dark-400 text-sm mb-3">Privacy Level</Text>
-              {(() => {
-                const levelInfo = getPrivacyLevelInfo(defaultPrivacyLevel)
-                const LevelIcon = levelInfo.Icon
-                return (
-                  <View
-                    className={`p-4 rounded-xl border ${
-                      defaultPrivacyLevel === "shielded"
-                        ? "bg-brand-900/20 border-brand-700"
-                        : defaultPrivacyLevel === "compliant"
-                        ? "bg-cyan-900/20 border-cyan-700"
-                        : "bg-dark-800 border-dark-600"
-                    }`}
-                  >
-                    <View className="flex-row items-center justify-between">
-                      <View className="flex-row items-center gap-3">
-                        <LevelIcon size={24} color={levelInfo.iconColor} weight="regular" />
-                        <View>
-                          <Text className={`font-medium ${levelInfo.textColor}`}>
-                            {levelInfo.title}
-                          </Text>
-                          <Text className="text-dark-500 text-xs">
-                            {levelInfo.description}
-                          </Text>
-                        </View>
-                      </View>
-                      <View className="flex-row items-center gap-2">
-                        <Text className="text-dark-500 text-xs">Change</Text>
-                        <Text className="text-dark-500">›</Text>
-                      </View>
-                    </View>
-                  </View>
-                )
-              })()}
-            </TouchableOpacity>
+          {/* Contact Name Banner */}
+          {contactName && (
+            <View testID="contact-name-banner" className="mt-4 bg-brand-900/20 border border-brand-700/50 rounded-xl p-3">
+              <Text className="text-brand-400 font-semibold text-base">
+                Sending to {contactName}
+              </Text>
+            </View>
+          )}
 
-            {/* Warning for non-stealth address with private transfer */}
-            {recipient &&
-              !isStealth &&
-              defaultPrivacyLevel !== "transparent" &&
-              !addressError && (
-                <View className="mt-4 bg-yellow-900/20 border border-yellow-700/50 rounded-xl p-3">
-                  <View className="flex-row items-start gap-2">
-                    <WarningIcon size={20} color={ICON_COLORS.warning} weight="fill" />
-                    <Text className="text-yellow-400 text-sm flex-1">
-                      For full privacy, ask the recipient for their stealth address
-                      (sip:...). Regular addresses can still receive private transfers
-                      but with reduced privacy.
-                    </Text>
-                  </View>
+          {/* Recipient Input */}
+          <View className="mt-4">
+            <View className="flex-row items-center justify-between mb-2">
+              <Text className="text-dark-400 text-sm">Recipient</Text>
+              {isStealth && (
+                <View testID="stealth-address-badge" className="bg-brand-600/20 px-2 py-0.5 rounded">
+                  <Text className="text-brand-400 text-xs">Stealth Address</Text>
                 </View>
               )}
-          </View>
-        </ScrollView>
+            </View>
+            <View
+              className={`bg-dark-900 rounded-xl border p-4 ${
+                addressError ? "border-red-500" : "border-dark-800"
+              }`}
+            >
+              <TextInput
+                testID="recipient-input"
+                className="text-white"
+                placeholder="Wallet address or sip: stealth address"
+                placeholderTextColor="#71717a"
+                value={recipient}
+                onChangeText={handleRecipientChange}
+                autoCapitalize="none"
+                autoCorrect={false}
+                multiline
+                numberOfLines={2}
+              />
+            </View>
+            {addressError && (
+              <Text className="text-red-400 text-sm mt-2">{addressError}</Text>
+            )}
 
-        {/* Send Button */}
-        <View className="px-6 pb-6 pt-2 border-t border-dark-900">
-          <Button
-            testID="send-button"
-            fullWidth
-            size="lg"
-            onPress={handleReview}
-            disabled={!isValid || !providerReady}
-            loading={providerInitializing}
+            {/* Quick Actions */}
+            <View className="flex-row gap-2 mt-3">
+              <TouchableOpacity
+                testID="scan-qr-button"
+                className="flex-row items-center bg-dark-800 rounded-lg px-3 py-2"
+                onPress={() => router.push("/send/scanner")}
+                accessibilityRole="button"
+                accessibilityLabel="Scan QR code"
+                accessibilityHint="Opens the QR scanner to scan a recipient address"
+              >
+                <QrCodeIcon size={16} color={ICON_COLORS.muted} weight="regular" />
+                <Text className="text-dark-400 text-sm ml-1">Scan QR</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                className="flex-row items-center bg-dark-800 rounded-lg px-3 py-2"
+                onPress={() => router.push("/contacts")}
+                accessibilityRole="button"
+                accessibilityLabel="Choose from contacts"
+                accessibilityHint="Opens your contact list to select a recipient"
+              >
+                <AddressBookIcon size={16} color={ICON_COLORS.muted} weight="regular" />
+                <Text className="text-dark-400 text-sm ml-1">Contacts</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+
+          {/* Privacy Level Display (read-only, configured in Settings) */}
+          <TouchableOpacity
+            testID="privacy-toggle"
+            className="mt-4"
+            onPress={() => {
+              hapticLight()
+              router.push("/settings")
+            }}
+            activeOpacity={0.7}
+            accessibilityRole="button"
+            accessibilityLabel={`Privacy level: ${getPrivacyLevelInfo(defaultPrivacyLevel).title}`}
+            accessibilityHint="Opens settings to change privacy level"
           >
-            {providerInitializing
-              ? "Initializing..."
-              : defaultPrivacyLevel !== "transparent"
-              ? "Send Privately"
-              : "Send"}
-          </Button>
+            {(() => {
+              const levelInfo = getPrivacyLevelInfo(defaultPrivacyLevel)
+              const LevelIcon = levelInfo.Icon
+              return (
+                <View
+                  className={`p-3 rounded-xl border ${
+                    defaultPrivacyLevel === "shielded"
+                      ? "bg-brand-900/20 border-brand-700"
+                      : defaultPrivacyLevel === "compliant"
+                      ? "bg-cyan-900/20 border-cyan-700"
+                      : "bg-dark-800 border-dark-600"
+                  }`}
+                >
+                  <View className="flex-row items-center justify-between">
+                    <View className="flex-row items-center gap-3">
+                      <LevelIcon size={20} color={levelInfo.iconColor} weight="regular" />
+                      <View>
+                        <Text className={`text-sm font-medium ${levelInfo.textColor}`}>
+                          {levelInfo.title}
+                        </Text>
+                        <Text className="text-dark-500 text-xs">
+                          {levelInfo.description}
+                        </Text>
+                      </View>
+                    </View>
+                    <Text className="text-dark-500 text-xs">Change ›</Text>
+                  </View>
+                </View>
+              )
+            })()}
+          </TouchableOpacity>
+
+          {/* Warning for non-stealth address with private transfer */}
+          {recipient &&
+            !isStealth &&
+            defaultPrivacyLevel !== "transparent" &&
+            !addressError && (
+              <View className="mt-3 bg-yellow-900/20 border border-yellow-700/50 rounded-xl p-3">
+                <View className="flex-row items-start gap-2">
+                  <WarningIcon size={20} color={ICON_COLORS.warning} weight="fill" />
+                  <Text className="text-yellow-400 text-sm flex-1">
+                    For full privacy, ask the recipient for their stealth address
+                    (sip:...). Regular addresses can still receive private transfers
+                    but with reduced privacy.
+                  </Text>
+                </View>
+              </View>
+            )}
         </View>
-      </KeyboardAvoidingView>
+      </ScrollView>
+
+      {/* NumpadInput: amount entry + CTA */}
+      <NumpadInput
+        token={{ symbol: "SOL", name: "Solana", mint: "So11111111111111111111111111111111111111112", decimals: 9 }}
+        balance={balance}
+        onAmountChange={handleNumpadAmountChange}
+        ctaLabel={ctaLabel}
+        ctaDisabledLabel="Enter Amount"
+        onCtaPress={handleReview}
+        disabled={!isValidRecipient || !providerReady}
+      />
 
       {/* Confirmation Modal */}
       <Modal
