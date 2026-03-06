@@ -137,7 +137,22 @@ export default function SendScreen() {
   const { isConnected } = useWalletStore()
   const { defaultPrivacyLevel } = useSettingsStore()
   const { addToast } = useToastStore()
-  const { balance, solPrice } = useBalance()
+  const { balance, solPrice, tokenBalances } = useBalance()
+
+  // Token selection state
+  const SOL_TOKEN: { symbol: string; name: string; mint: string; decimals: number } = {
+    symbol: "SOL",
+    name: "Solana",
+    mint: "So11111111111111111111111111111111111111112",
+    decimals: 9,
+  }
+  const [selectedToken, setSelectedToken] = useState(SOL_TOKEN)
+  const isSOL = selectedToken.mint === SOL_TOKEN.mint
+
+  // Get balance for selected token
+  const selectedBalance = isSOL
+    ? balance
+    : tokenBalances.find((t) => t.mint === selectedToken.mint)?.uiAmount ?? 0
 
   // Form state
   const [amount, setAmount] = useState("")
@@ -211,7 +226,7 @@ export default function SendScreen() {
       return
     }
 
-    const amtValidation = validateAmount(amount, balance)
+    const amtValidation = validateAmount(amount, selectedBalance)
     if (!amtValidation.isValid) {
       addToast({
         type: "error",
@@ -233,7 +248,7 @@ export default function SendScreen() {
 
     hapticMedium()
     setShowConfirmModal(true)
-  }, [recipient, amount, balance, providerReady, providerError, addToast])
+  }, [recipient, amount, selectedBalance, providerReady, providerError, addToast])
 
   const handleConfirmSend = useCallback(async () => {
     logger.debug("[Send] Starting transaction...")
@@ -249,6 +264,7 @@ export default function SendScreen() {
           amount,
           recipient,
           privacyLevel: defaultPrivacyLevel,
+          tokenMint: isSOL ? undefined : selectedToken.mint,
         },
         (newStatus) => setStatus(newStatus)
       )
@@ -281,7 +297,7 @@ export default function SendScreen() {
         message: errorMessage,
       })
     }
-  }, [send, amount, recipient, defaultPrivacyLevel, addToast])
+  }, [send, amount, recipient, defaultPrivacyLevel, isSOL, selectedToken.mint, addToast])
 
   const handleCloseSuccess = useCallback(() => {
     setShowSuccessModal(false)
@@ -366,7 +382,7 @@ export default function SendScreen() {
           {/* Header */}
           <Text className="text-3xl font-bold text-white">Send</Text>
           <Text className="text-dark-400 mt-1">
-            Send SOL or tokens privately
+            Send {selectedToken.symbol} privately
           </Text>
 
           {/* Provider Badge */}
@@ -496,6 +512,68 @@ export default function SendScreen() {
             })()}
           </TouchableOpacity>
 
+          {/* Token Selector */}
+          {tokenBalances.length > 0 && (
+            <View className="mt-4">
+              <Text className="text-dark-400 text-sm mb-2">Token</Text>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                <View className="flex-row gap-2">
+                  {/* SOL chip */}
+                  <TouchableOpacity
+                    className={`px-4 py-2 rounded-xl border ${
+                      isSOL
+                        ? "bg-brand-600/20 border-brand-600"
+                        : "bg-dark-800 border-dark-700"
+                    }`}
+                    onPress={() => {
+                      setSelectedToken(SOL_TOKEN)
+                      setAmount("")
+                      hapticLight()
+                    }}
+                  >
+                    <Text className={`font-medium ${isSOL ? "text-brand-400" : "text-dark-300"}`}>
+                      SOL
+                    </Text>
+                    <Text className="text-dark-500 text-xs">
+                      {balance.toFixed(4)}
+                    </Text>
+                  </TouchableOpacity>
+                  {/* SPL token chips */}
+                  {tokenBalances.map((t) => {
+                    const isSelected = selectedToken.mint === t.mint
+                    return (
+                      <TouchableOpacity
+                        key={t.mint}
+                        className={`px-4 py-2 rounded-xl border ${
+                          isSelected
+                            ? "bg-brand-600/20 border-brand-600"
+                            : "bg-dark-800 border-dark-700"
+                        }`}
+                        onPress={() => {
+                          setSelectedToken({
+                            symbol: t.symbol || t.mint.slice(0, 4),
+                            name: t.name || "Token",
+                            mint: t.mint,
+                            decimals: t.decimals,
+                          })
+                          setAmount("")
+                          hapticLight()
+                        }}
+                      >
+                        <Text className={`font-medium ${isSelected ? "text-brand-400" : "text-dark-300"}`}>
+                          {t.symbol || t.mint.slice(0, 4)}
+                        </Text>
+                        <Text className="text-dark-500 text-xs">
+                          {t.uiAmount.toFixed(t.decimals > 6 ? 4 : 2)}
+                        </Text>
+                      </TouchableOpacity>
+                    )
+                  })}
+                </View>
+              </ScrollView>
+            </View>
+          )}
+
           {/* Warning for non-stealth address with private transfer */}
           {recipient &&
             !isStealth &&
@@ -517,8 +595,8 @@ export default function SendScreen() {
 
       {/* NumpadInput: amount entry + CTA */}
       <NumpadInput
-        token={{ symbol: "SOL", name: "Solana", mint: "So11111111111111111111111111111111111111112", decimals: 9 }}
-        balance={balance}
+        token={selectedToken}
+        balance={selectedBalance}
         onAmountChange={handleNumpadAmountChange}
         ctaLabel={ctaLabel}
         ctaDisabledLabel="Enter Amount"
@@ -535,8 +613,10 @@ export default function SendScreen() {
         <View className="gap-4">
           {/* Amount Summary */}
           <View className="items-center py-4">
-            <Text className="text-4xl font-bold text-white">{amount} SOL</Text>
-            <Text className="text-dark-400 mt-1">{formatUsdValue(amount, solPrice)}</Text>
+            <Text className="text-4xl font-bold text-white">{amount} {selectedToken.symbol}</Text>
+            {isSOL && (
+              <Text className="text-dark-400 mt-1">{formatUsdValue(amount, solPrice)}</Text>
+            )}
           </View>
 
           {/* Details */}
@@ -634,7 +714,7 @@ export default function SendScreen() {
             <View className="w-20 h-20 bg-green-600/20 rounded-full items-center justify-center mb-4">
               <CheckCircleIcon size={48} color={ICON_COLORS.success} weight="fill" />
             </View>
-            <Text className="text-2xl font-bold text-white">{amount} SOL</Text>
+            <Text className="text-2xl font-bold text-white">{amount} {selectedToken.symbol}</Text>
             <Text className="text-green-400 mt-1">Successfully sent!</Text>
           </View>
 

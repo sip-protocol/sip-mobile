@@ -185,25 +185,117 @@ export class SipNativeAdapter implements PrivacyProviderAdapter {
         const addressBytes = hexToBytes(stealthAddress.address)
         recipientAddress = bs58.default.encode(addressBytes)
 
-        // Get SIP Privacy client
-        const client = getSipPrivacyClient(connection)
+        if (params.tokenMint) {
+          // SPL Token transfer to stealth address
+          // Direct transfer to stealth-derived ATA (no SIP Privacy Program involvement)
+          const { buildSplTransferTransaction } = await import("@/lib/spl")
 
-        // Build shielded transfer
-        const transferParams: ShieldedTransferParams = {
-          amount: parseFloat(params.amount),
-          stealthPubkey: new PublicKey(recipientAddress),
-          recipientSpendingKey: hexToBytes(metaAddress.spendingKey),
-          recipientViewingKey: hexToBytes(metaAddress.viewingKey),
-          memo: params.memo,
-          ephemeralPrivateKey: hexToBytes(ephemeralPrivateKey),
+          const stealthPubkey = new PublicKey(recipientAddress)
+          const mintPubkey = new PublicKey(params.tokenMint)
+          const amount = parseFloat(params.amount)
+
+          debug(`SIP Native stealth SPL transfer: ${amount} tokens to ${recipientAddress}`)
+
+          const transaction = await buildSplTransferTransaction(
+            connection,
+            fromPubkey,
+            stealthPubkey,
+            mintPubkey,
+            amount
+          )
+
+          setStatus("signing")
+
+          const signedTx = await signTransaction(
+            transaction.serialize({ requireAllSignatures: false, verifySignatures: false })
+          )
+          if (!signedTx) {
+            throw new Error("Transaction signing rejected")
+          }
+
+          setStatus("submitting")
+
+          const signature = await connection.sendRawTransaction(signedTx, {
+            skipPreflight: false,
+            preflightCommitment: "confirmed",
+          })
+
+          const { blockhash: confirmBlockhash, lastValidBlockHeight } =
+            await connection.getLatestBlockhash()
+          await connection.confirmTransaction({
+            signature,
+            blockhash: confirmBlockhash,
+            lastValidBlockHeight,
+          })
+
+          txHash = signature
+          debug("SIP Native stealth SPL transfer:", txHash)
+        } else {
+          // SOL transfer to stealth address via SIP Privacy Program
+          // Get SIP Privacy client
+          const client = getSipPrivacyClient(connection)
+
+          // Build shielded transfer
+          const transferParams: ShieldedTransferParams = {
+            amount: parseFloat(params.amount),
+            stealthPubkey: new PublicKey(recipientAddress),
+            recipientSpendingKey: hexToBytes(metaAddress.spendingKey),
+            recipientViewingKey: hexToBytes(metaAddress.viewingKey),
+            memo: params.memo,
+            ephemeralPrivateKey: hexToBytes(ephemeralPrivateKey),
+          }
+
+          const { transaction } = await client.buildShieldedTransfer(fromPubkey, transferParams)
+
+          setStatus("signing")
+
+          // Sign transaction
+          // IMPORTANT: Use requireAllSignatures: false since transaction is unsigned at this point
+          const signedTx = await signTransaction(
+            transaction.serialize({ requireAllSignatures: false, verifySignatures: false })
+          )
+          if (!signedTx) {
+            throw new Error("Transaction signing rejected")
+          }
+
+          setStatus("submitting")
+
+          // Send the signed transaction directly (already fully signed)
+          const signature = await connection.sendRawTransaction(signedTx, {
+            skipPreflight: false,
+            preflightCommitment: "confirmed",
+          })
+
+          // Wait for confirmation
+          const { blockhash: confirmBlockhash, lastValidBlockHeight } =
+            await connection.getLatestBlockhash()
+          await connection.confirmTransaction({
+            signature,
+            blockhash: confirmBlockhash,
+            lastValidBlockHeight,
+          })
+
+          txHash = signature
+          debug("SIP Native shielded SOL transfer:", txHash)
         }
+      } else if (params.tokenMint) {
+        // SPL Token transfer to regular address
+        const { buildSplTransferTransaction } = await import("@/lib/spl")
 
-        const { transaction } = await client.buildShieldedTransfer(fromPubkey, transferParams)
+        const toPubkey = new PublicKey(recipientAddress)
+        const mintPubkey = new PublicKey(params.tokenMint)
+        const amount = parseFloat(params.amount)
+
+        const transaction = await buildSplTransferTransaction(
+          connection,
+          fromPubkey,
+          toPubkey,
+          mintPubkey,
+          amount
+        )
 
         setStatus("signing")
 
-        // Sign transaction
-        // IMPORTANT: Use requireAllSignatures: false since transaction is unsigned at this point
         const signedTx = await signTransaction(
           transaction.serialize({ requireAllSignatures: false, verifySignatures: false })
         )
@@ -213,13 +305,11 @@ export class SipNativeAdapter implements PrivacyProviderAdapter {
 
         setStatus("submitting")
 
-        // Send the signed transaction directly (already fully signed)
         const signature = await connection.sendRawTransaction(signedTx, {
           skipPreflight: false,
           preflightCommitment: "confirmed",
         })
 
-        // Wait for confirmation
         const { blockhash: confirmBlockhash, lastValidBlockHeight } =
           await connection.getLatestBlockhash()
         await connection.confirmTransaction({
@@ -229,8 +319,6 @@ export class SipNativeAdapter implements PrivacyProviderAdapter {
         })
 
         txHash = signature
-
-        debug("SIP Native shielded transfer:", txHash)
       } else {
         // Regular SOL transfer
         const toPubkey = new PublicKey(recipientAddress)
