@@ -459,7 +459,7 @@ export default function SendScreen() {
             className="mt-4"
             onPress={() => {
               hapticLight()
-              router.push("/settings")
+              router.push("/(tabs)/privacy")
             }}
             activeOpacity={0.7}
             accessibilityRole="button"
