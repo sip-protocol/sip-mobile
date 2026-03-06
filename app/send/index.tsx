@@ -361,7 +361,7 @@ export default function SendScreen() {
   return (
     <SafeAreaView className="flex-1 bg-dark-950">
       {/* Top section: recipient, privacy level, warnings */}
-      <ScrollView className="flex-shrink" keyboardShouldPersistTaps="handled">
+      <ScrollView style={{ flexGrow: 0 }} keyboardShouldPersistTaps="handled">
         <View className="px-6 pt-6 pb-4">
           {/* Header */}
           <Text className="text-3xl font-bold text-white">Send</Text>
