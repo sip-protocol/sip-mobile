@@ -14,7 +14,7 @@ import { router } from "expo-router"
 import { useState, useEffect } from "react"
 import { Button, LoadingState } from "@/components/ui"
 import { useNativeWallet } from "@/hooks"
-import { deleteWallet as deleteWalletStorage } from "@/utils/keyStorage"
+import { useWalletStore } from "@/stores/wallet"
 import { copyToClipboardSecure } from "@/utils/security"
 import {
   ArrowLeftIcon,
@@ -41,6 +41,8 @@ function getVerificationIndices(): number[] {
 
 export default function CreateWalletScreen() {
   const { createWallet, isLoading } = useNativeWallet()
+  const { accounts } = useWalletStore()
+  const isAdditionalWallet = accounts.length > 0
 
   const [step, setStep] = useState<Step>("generate")
   const [mnemonic, setMnemonic] = useState<string[]>([])
@@ -63,23 +65,6 @@ export default function CreateWalletScreen() {
         setStep("display")
       } catch (err) {
         const walletError = err as { code?: string; message?: string }
-
-        // If wallet already exists (stale state from incomplete setup),
-        // clear storage and retry once
-        if (walletError.code === "WALLET_EXISTS") {
-          try {
-            await deleteWalletStorage()
-            const result = await createWallet(12)
-            const words = result.mnemonic.split(" ")
-            setMnemonic(words)
-            setVerifyIndices(getVerificationIndices())
-            setStep("display")
-            return
-          } catch {
-            // Fall through to error handling
-          }
-        }
-
         setGenerateError(true)
         Alert.alert(
           "Error",
@@ -100,9 +85,13 @@ export default function CreateWalletScreen() {
   }
 
   const handleContinueToVerify = () => {
-    setSelectedWords(["", "", ""])
-    setVerifyError(null)
-    setStep("verify")
+    if (isAdditionalWallet) {
+      setStep("complete")
+    } else {
+      setSelectedWords(["", "", ""])
+      setVerifyError(null)
+      setStep("verify")
+    }
   }
 
   const handleWordSelect = (position: number, word: string) => {
@@ -249,7 +238,7 @@ export default function CreateWalletScreen() {
         {/* Continue Button */}
         <View className="px-6 pb-8">
           <Button fullWidth size="lg" onPress={handleContinueToVerify}>
-            I've Written It Down
+            {isAdditionalWallet ? "I've Saved My Recovery Phrase" : "I've Written It Down"}
           </Button>
         </View>
       </SafeAreaView>
