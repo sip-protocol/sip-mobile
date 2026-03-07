@@ -185,7 +185,12 @@ async function executeJupiterSwap(
 
   if (destinationTokenAccount) {
     swapBody.destinationTokenAccount = destinationTokenAccount
-    swapBody.wrapAndUnwrapSol = false
+    // Only disable wrapAndUnwrapSol when input is NOT native SOL
+    // When input IS SOL, Jupiter must wrap it to WSOL for the swap to work
+    const SOL_MINT = "So11111111111111111111111111111111111111112"
+    if (jupiterQuote.inputMint !== SOL_MINT) {
+      swapBody.wrapAndUnwrapSol = false
+    }
   }
 
   const swapResponse = await fetch(JUPITER_SWAP_API, {
