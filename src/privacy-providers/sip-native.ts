@@ -37,7 +37,7 @@ import { Buffer } from "buffer"
 
 const STEALTH_PREFIX = "sip:"
 const SOLANA_ADDRESS_REGEX = /^[1-9A-HJ-NP-Za-km-z]{32,44}$/
-const JUPITER_SWAP_API = "https://quote-api.jup.ag/v6/swap"
+const JUPITER_SWAP_API = "https://lite-api.jup.ag/swap/v1/swap"
 
 // ============================================================================
 // HELPERS

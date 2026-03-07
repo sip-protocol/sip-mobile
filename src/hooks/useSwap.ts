@@ -148,7 +148,7 @@ function getSwapErrorMessage(err: unknown): {
 }
 
 /** Jupiter Swap API endpoint */
-const JUPITER_SWAP_API = "https://quote-api.jup.ag/v6/swap"
+const JUPITER_SWAP_API = "https://lite-api.jup.ag/swap/v1/swap"
 
 /** RPC endpoint for submitting transactions */
 function getRpcEndpoint(network: string): string {
