@@ -43,6 +43,34 @@ const JUPITER_SWAP_API = "https://quote-api.jup.ag/v6/swap"
 // HELPERS
 // ============================================================================
 
+/**
+ * Parse raw Solana transaction errors into user-friendly messages
+ */
+function parseTransactionError(raw: string): string {
+  if (raw.includes("insufficient lamports")) {
+    return "Insufficient SOL balance. You need enough SOL to cover the transfer amount, network fees, and account rent."
+  }
+  if (raw.includes("insufficient funds")) {
+    return "Insufficient funds for this transaction."
+  }
+  if (raw.includes("AccountNotFound")) {
+    return "Recipient account not found on-chain."
+  }
+  if (raw.includes("BlockhashNotFound") || raw.includes("blockhash")) {
+    return "Transaction expired. Please try again."
+  }
+  if (raw.includes("Transaction signing rejected")) {
+    return "Transaction was cancelled."
+  }
+  if (raw.includes("Transaction simulation failed")) {
+    // Extract the first meaningful log line
+    const logMatch = raw.match(/Program log: (.+?)(?:"|$)/)
+    if (logMatch) return `Transaction failed: ${logMatch[1]}`
+    return "Transaction simulation failed. Please try again with a smaller amount."
+  }
+  return raw
+}
+
 function getRpcEndpoint(network: string): string {
   switch (network) {
     case "mainnet-beta":
@@ -377,13 +405,13 @@ export class SipNativeAdapter implements PrivacyProviderAdapter {
         txHash,
       }
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : "Transaction failed"
-      console.error("[SIP Native] Send failed:", errorMessage)
-      debug(`SIP Native send error: ${errorMessage}`)
+      const rawMessage = err instanceof Error ? err.message : "Transaction failed"
+      console.error("[SIP Native] Send failed:", rawMessage)
+      debug(`SIP Native send error: ${rawMessage}`)
       setStatus("error")
       return {
         success: false,
-        error: errorMessage,
+        error: parseTransactionError(rawMessage),
       }
     }
   }

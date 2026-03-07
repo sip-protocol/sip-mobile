@@ -11,7 +11,7 @@ export default {
   expo: {
     name: IS_DEV ? "SIP Privacy (Dev)" : "SIP Privacy",
     slug: "sip-privacy",
-    version: "0.1.8",
+    version: "0.1.9",
     scheme: "sipprotocol",
     orientation: "portrait",
     icon: "./assets/icon.png",
@@ -32,7 +32,7 @@ export default {
       },
     },
     android: {
-      versionCode: 9,
+      versionCode: 10,
       package: "org.sip_protocol.privacy",
       adaptiveIcon: {
         foregroundImage: "./assets/adaptive-icon.png",
@@ -44,7 +44,6 @@ export default {
         "android.permission.USE_BIOMETRIC",
         "android.permission.USE_FINGERPRINT",
         "android.permission.CAMERA",
-        "android.permission.RECEIVE_BOOT_COMPLETED",
         "android.permission.VIBRATE",
       ],
     },
@@ -92,6 +91,15 @@ export default {
             enableMinifyInReleaseBuilds: true,
             // Solana Mobile SDK Maven repository for Seed Vault
             extraMavenRepos: ["https://maven.solanamobile.com/releases"],
+            // Block auto-added permissions not needed for a privacy wallet
+            blockedPermissions: [
+              "android.permission.RECORD_AUDIO",
+              "android.permission.SYSTEM_ALERT_WINDOW",
+              "android.permission.READ_EXTERNAL_STORAGE",
+              "android.permission.WRITE_EXTERNAL_STORAGE",
+              "android.permission.WAKE_LOCK",
+              "android.permission.RECEIVE_BOOT_COMPLETED",
+            ],
           },
         },
       ],

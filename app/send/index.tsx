@@ -77,9 +77,14 @@ function validateAddress(address: string): { isValid: boolean; error?: string } 
   return { isValid: false, error: "Invalid Solana address" }
 }
 
+// Estimated overhead for stealth SOL transfers (tx fee + PDA rent + rent-exempt minimum)
+const STEALTH_SOL_OVERHEAD = 0.004
+
 function validateAmount(
   amount: string,
-  balance: number
+  balance: number,
+  isStealth: boolean,
+  isSOL: boolean
 ): { isValid: boolean; error?: string } {
   if (!amount || amount.trim() === "") {
     return { isValid: false, error: "Amount is required" }
@@ -93,6 +98,15 @@ function validateAmount(
 
   if (numAmount > balance) {
     return { isValid: false, error: "Insufficient balance" }
+  }
+
+  // For stealth SOL transfers, account for tx fee + PDA rent
+  if (isSOL && isStealth && numAmount + STEALTH_SOL_OVERHEAD > balance) {
+    const maxSend = Math.max(0, balance - STEALTH_SOL_OVERHEAD)
+    return {
+      isValid: false,
+      error: `Insufficient SOL for fees. Max send: ~${maxSend.toFixed(4)} SOL`,
+    }
   }
 
   // Minimum 0.000001 SOL
@@ -226,7 +240,7 @@ export default function SendScreen() {
       return
     }
 
-    const amtValidation = validateAmount(amount, selectedBalance)
+    const amtValidation = validateAmount(amount, selectedBalance, !!isStealth, isSOL)
     if (!amtValidation.isValid) {
       addToast({
         type: "error",
