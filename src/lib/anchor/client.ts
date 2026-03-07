@@ -418,6 +418,123 @@ export class SipPrivacyClient {
   }
 
   /**
+   * Build a TransferRecord announcement for a private swap.
+   *
+   * Creates the on-chain announcement so the recipient (self) can
+   * scan and claim the swap output from the stealth ATA.
+   * Also creates the stealth ATA if it doesn't exist yet.
+   */
+  async buildSwapAnnouncement(
+    sender: PublicKey,
+    params: {
+      amount: number
+      decimals: number
+      tokenMint: PublicKey
+      stealthPubkey: PublicKey
+      recipientSpendingKey: Uint8Array
+      recipientViewingKey: Uint8Array
+      ephemeralPrivateKey: Uint8Array
+    }
+  ): Promise<{
+    transaction: Transaction
+    transferRecord: PublicKey
+    ephemeralPubkey: Uint8Array
+  }> {
+    const config = await this.fetchConfig()
+    if (!config) {
+      throw new Error("Program not initialized")
+    }
+
+    const rawAmount = BigInt(Math.floor(params.amount * Math.pow(10, params.decimals)))
+
+    const { ed25519 } = await import("@noble/curves/ed25519")
+    const publicKeyRaw = ed25519.getPublicKey(params.ephemeralPrivateKey)
+    const ephemeralPubkey = new Uint8Array(33)
+    ephemeralPubkey[0] = 0x02
+    ephemeralPubkey.set(publicKeyRaw, 1)
+
+    const sharedSecret = deriveSharedSecret(
+      params.ephemeralPrivateKey,
+      params.recipientSpendingKey
+    )
+
+    const { commitment, blindingFactor } = await createCommitment(rawAmount)
+    const encryptedAmount = await encryptAmount(rawAmount, sharedSecret)
+    const viewingKeyHash = computeViewingKeyHash(params.recipientViewingKey)
+    const proof = await generateMockProof(commitment, blindingFactor, rawAmount)
+
+    const [configPda] = getConfigPda(this.programId)
+    const [transferRecordPda] = getTransferRecordPda(
+      sender,
+      config.totalTransfers,
+      this.programId
+    )
+
+    const instructionData = this.encodeShieldedTransferData({
+      amountCommitment: Array.from(commitment),
+      stealthPubkey: params.stealthPubkey,
+      ephemeralPubkey: Array.from(ephemeralPubkey),
+      viewingKeyHash: Array.from(viewingKeyHash),
+      encryptedAmount: Buffer.concat([
+        encryptedAmount.nonce,
+        encryptedAmount.ciphertext,
+      ]),
+      proof: Buffer.from(proof),
+      actualAmount: rawAmount,
+    })
+
+    // Use shielded_token_transfer discriminator
+    Buffer.from([0x6e, 0x31, 0xe7, 0xe8, 0x5d, 0x8d, 0x58, 0xab])
+      .copy(instructionData, 0)
+
+    const senderAta = getAssociatedTokenAddress(sender, params.tokenMint)
+    const stealthAta = getAssociatedTokenAddress(params.stealthPubkey, params.tokenMint)
+    const feeCollectorAta = getAssociatedTokenAddress(config.authority, params.tokenMint)
+
+    const transaction = new Transaction()
+
+    if (!(await tokenAccountExists(this.connection, stealthAta))) {
+      transaction.add(
+        createAssociatedTokenAccountInstruction(sender, stealthAta, params.stealthPubkey, params.tokenMint)
+      )
+    }
+
+    if (!(await tokenAccountExists(this.connection, feeCollectorAta))) {
+      transaction.add(
+        createAssociatedTokenAccountInstruction(sender, feeCollectorAta, config.authority, params.tokenMint)
+      )
+    }
+
+    const instruction = new web3.TransactionInstruction({
+      keys: [
+        { pubkey: configPda, isSigner: false, isWritable: true },
+        { pubkey: transferRecordPda, isSigner: false, isWritable: true },
+        { pubkey: sender, isSigner: true, isWritable: true },
+        { pubkey: params.tokenMint, isSigner: false, isWritable: false },
+        { pubkey: senderAta, isSigner: false, isWritable: true },
+        { pubkey: stealthAta, isSigner: false, isWritable: true },
+        { pubkey: feeCollectorAta, isSigner: false, isWritable: true },
+        { pubkey: TOKEN_PROGRAM_ID, isSigner: false, isWritable: false },
+        { pubkey: web3.SystemProgram.programId, isSigner: false, isWritable: false },
+      ],
+      programId: this.programId,
+      data: instructionData,
+    })
+
+    transaction.add(instruction)
+
+    const { blockhash } = await this.connection.getLatestBlockhash()
+    transaction.recentBlockhash = blockhash
+    transaction.feePayer = sender
+
+    return {
+      transaction,
+      transferRecord: transferRecordPda,
+      ephemeralPubkey,
+    }
+  }
+
+  /**
    * Encode shielded transfer instruction data
    *
    * Layout:
