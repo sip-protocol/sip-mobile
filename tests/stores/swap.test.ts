@@ -97,4 +97,71 @@ describe("Swap Store", () => {
       expect(swaps).toHaveLength(0)
     })
   })
+
+  describe("Private Swap Fields", () => {
+    it("should store isPrivate flag on swap record", () => {
+      const { addSwap } = useSwapStore.getState()
+
+      addSwap({
+        id: "swap-private-1",
+        fromToken: "SOL",
+        toToken: "SKR",
+        fromAmount: "0.01",
+        toAmount: "34.23",
+        status: "completed",
+        timestamp: Date.now(),
+        privacyLevel: "shielded",
+        isPrivate: true,
+        stealthAddress: "StealthAddr123",
+        claimStatus: "unclaimed",
+      })
+
+      const { swaps } = useSwapStore.getState()
+      expect(swaps[0].isPrivate).toBe(true)
+      expect(swaps[0].stealthAddress).toBe("StealthAddr123")
+      expect(swaps[0].claimStatus).toBe("unclaimed")
+    })
+
+    it("should not require private swap fields for public swaps", () => {
+      const { addSwap } = useSwapStore.getState()
+
+      addSwap({
+        id: "swap-public-1",
+        fromToken: "SOL",
+        toToken: "SKR",
+        fromAmount: "0.01",
+        toAmount: "34.23",
+        status: "completed",
+        timestamp: Date.now(),
+        privacyLevel: "transparent",
+      })
+
+      const { swaps } = useSwapStore.getState()
+      expect(swaps[0].isPrivate).toBeUndefined()
+      expect(swaps[0].stealthAddress).toBeUndefined()
+      expect(swaps[0].claimStatus).toBeUndefined()
+    })
+
+    it("should update claimStatus from unclaimed to claimed", () => {
+      const { addSwap, updateSwap } = useSwapStore.getState()
+
+      addSwap({
+        id: "swap-claim-1",
+        fromToken: "SOL",
+        toToken: "SKR",
+        fromAmount: "0.01",
+        toAmount: "34.23",
+        status: "completed",
+        timestamp: Date.now(),
+        privacyLevel: "shielded",
+        isPrivate: true,
+        claimStatus: "unclaimed",
+      })
+
+      updateSwap("swap-claim-1", { claimStatus: "claimed" })
+
+      const { swaps } = useSwapStore.getState()
+      expect(swaps[0].claimStatus).toBe("claimed")
+    })
+  })
 })
