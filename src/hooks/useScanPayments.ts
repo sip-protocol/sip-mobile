@@ -438,27 +438,64 @@ export function useScanPayments(): UseScanPaymentsReturn {
             if (isOurs) {
               result.found++
 
-              // Try to decrypt the amount
-              let amountSol = "0"
-              const decryptedAmount = decryptRecordAmount(
-                record,
-                spendingPrivateKey
-              )
-              if (decryptedAmount !== null) {
-                amountSol = (Number(decryptedAmount) / LAMPORTS_PER_SOL).toFixed(
-                  4
-                )
-              } else {
-                // Fallback: fetch stealth address balance directly
-                debug("[SCAN] Decryption failed, fetching balance from RPC...")
+              const isSplToken = record.tokenMint !== null
+              let amount = "0"
+              let tokenSymbol = "SOL"
+              let tokenMintStr: string | undefined
+              let tokenDecimals: number | undefined
+
+              if (isSplToken) {
+                // SPL token: get balance from stealth ATA
+                tokenMintStr = record.tokenMint!.toBase58()
+
+                // Resolve symbol from known token registry, fallback to truncated mint
+                const { getTokenByMint } = await import("@/data/tokens")
+                const knownToken = getTokenByMint(tokenMintStr)
+                tokenSymbol = knownToken?.symbol ?? tokenMintStr.slice(0, 4)
+
                 try {
-                  const balance = await connection.getBalance(record.stealthRecipient)
-                  if (balance > 0) {
-                    amountSol = (balance / LAMPORTS_PER_SOL).toFixed(4)
-                    debug(`[SCAN] Fetched balance: ${amountSol} SOL`)
+                  const { getAssociatedTokenAddress, getTokenAccountBalance, getMintDecimals } =
+                    await import("@/lib/spl")
+                  const stealthAta = getAssociatedTokenAddress(record.stealthRecipient, record.tokenMint!)
+                  const decimals = await getMintDecimals(connection, record.tokenMint!)
+                  tokenDecimals = decimals
+
+                  // Try decryption first
+                  const decryptedAmount = decryptRecordAmount(record, spendingPrivateKey)
+                  if (decryptedAmount !== null) {
+                    amount = (Number(decryptedAmount) / Math.pow(10, decimals)).toFixed(
+                      decimals > 4 ? 4 : decimals
+                    )
+                  } else {
+                    // Fallback: fetch token balance from stealth ATA
+                    debug("[SCAN] Decryption failed, fetching SPL balance from ATA...")
+                    const balance = await getTokenAccountBalance(connection, stealthAta)
+                    if (balance > 0n) {
+                      amount = (Number(balance) / Math.pow(10, decimals)).toFixed(
+                        decimals > 4 ? 4 : decimals
+                      )
+                      debug(`[SCAN] Fetched SPL balance: ${amount} (${tokenMintStr})`)
+                    }
                   }
-                } catch (balanceErr) {
-                  console.error("[SCAN] Failed to fetch balance:", balanceErr)
+                } catch (err) {
+                  debug("[SCAN] Failed to get SPL token balance:", err)
+                }
+              } else {
+                // SOL: existing logic
+                const decryptedAmount = decryptRecordAmount(record, spendingPrivateKey)
+                if (decryptedAmount !== null) {
+                  amount = (Number(decryptedAmount) / LAMPORTS_PER_SOL).toFixed(4)
+                } else {
+                  debug("[SCAN] Decryption failed, fetching SOL balance from RPC...")
+                  try {
+                    const balance = await connection.getBalance(record.stealthRecipient)
+                    if (balance > 0) {
+                      amount = (balance / LAMPORTS_PER_SOL).toFixed(4)
+                      debug(`[SCAN] Fetched balance: ${amount} SOL`)
+                    }
+                  } catch (balanceErr) {
+                    console.error("[SCAN] Failed to fetch balance:", balanceErr)
+                  }
                 }
               }
 
@@ -470,28 +507,26 @@ export function useScanPayments(): UseScanPaymentsReturn {
               const stealthRecipientBase58 = record.stealthRecipient.toBase58()
               const claimableStealthAddress = `sip:solana:${ephemeralHex}:${stealthRecipientBase58}`
 
-              // Create payment record with keyId for archival claim support (#72)
-              // Use the user's default privacy level setting for display purposes
-              // Note: On-chain, all stealth transfers have the same privacy guarantees;
-              // the "compliant" vs "shielded" distinction is about viewing key disclosure intent
               const payment: PaymentRecord = {
                 id: `payment_${Date.now()}_${result.found}`,
                 type: "receive",
-                amount: amountSol,
-                token: record.tokenMint ? "SPL" : "SOL",
+                amount,
+                token: tokenSymbol,
                 status: "completed",
                 stealthAddress: claimableStealthAddress,
-                txHash: record.pubkey.toBase58(), // Use PDA as reference
-                timestamp: Number(record.timestamp) * 1000, // Convert to ms
+                txHash: record.pubkey.toBase58(),
+                timestamp: Number(record.timestamp) * 1000,
                 privacyLevel: defaultPrivacyLevel,
                 claimed: false,
-                keyId: activeKeyId ?? undefined, // Link to active key set for claiming
-                network, // Track which network this payment was made on
+                keyId: activeKeyId ?? undefined,
+                network,
+                tokenMint: tokenMintStr,
+                tokenDecimals,
               }
 
               result.newPayments.push(payment)
               addPayment(payment)
-              debug(`Found payment: ${amountSol} SOL to ${record.stealthRecipient.toBase58()}`)
+              debug(`Found payment: ${amount} ${tokenSymbol} to ${record.stealthRecipient.toBase58()}`)
             }
           }
 

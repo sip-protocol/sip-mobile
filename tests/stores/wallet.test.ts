@@ -3,7 +3,7 @@
  */
 
 import { describe, it, expect, beforeEach } from "vitest"
-import { useWalletStore, formatAddress, WALLET_INFO } from "@/stores/wallet"
+import { useWalletStore, formatAddress, WALLET_INFO, WALLET_EMOJIS } from "@/stores/wallet"
 
 describe("Wallet Store", () => {
   beforeEach(() => {
@@ -231,21 +231,80 @@ describe("Wallet Store", () => {
       expect(active?.address).toBe("ABC123")
     })
   })
+
+  describe("Account Emoji", () => {
+    it("should assign random emoji on account creation via addAccount", () => {
+      const { addAccount } = useWalletStore.getState()
+
+      const account = addAccount({
+        address: "EMOJI_TEST_123",
+        providerType: "phantom",
+        chain: "solana",
+      })
+
+      expect(account.emoji).toBeDefined()
+      expect(account.emoji?.length).toBeGreaterThan(0)
+      expect(WALLET_EMOJIS).toContain(account.emoji)
+    })
+
+    it("should assign random emoji on account creation via connect", () => {
+      const { connect } = useWalletStore.getState()
+
+      connect("phantom", "solana", "EMOJI_CONNECT_123", "deeplink")
+
+      const account = useWalletStore.getState().accounts[0]
+      expect(account.emoji).toBeDefined()
+      expect(WALLET_EMOJIS).toContain(account.emoji)
+    })
+
+    it("should update account emoji", () => {
+      const { addAccount, updateAccountEmoji } = useWalletStore.getState()
+
+      const account = addAccount({
+        address: "EMOJI_UPDATE_123",
+        providerType: "phantom",
+        chain: "solana",
+      })
+
+      updateAccountEmoji(account.id, "\u{1F525}")
+
+      const updated = useWalletStore.getState().accounts[0]
+      expect(updated.emoji).toBe("\u{1F525}")
+    })
+  })
 })
 
 describe("Wallet Utilities", () => {
   describe("formatAddress", () => {
+    it("should return empty string for null", () => {
+      expect(formatAddress(null)).toBe("")
+    })
+
+    it("should return empty string for empty string", () => {
+      expect(formatAddress("")).toBe("")
+    })
+
+    it("should return short addresses unchanged", () => {
+      expect(formatAddress("abcdef")).toBe("abcdef")
+    })
+
+    it("should return addresses of exactly 10 chars unchanged", () => {
+      expect(formatAddress("1234567890")).toBe("1234567890")
+    })
+
+    it("should truncate addresses longer than 10 chars", () => {
+      expect(formatAddress("12345678901")).toBe("123456...8901")
+    })
+
+    it("should format typical Solana address", () => {
+      const addr = "7xK9abcDEF123456789ABCDEF"
+      const result = formatAddress(addr)
+      expect(result).toBe("7xK9ab...CDEF")
+    })
+
     it("should format long addresses", () => {
       const formatted = formatAddress("ABC123DEF456GHI789JKL012")
       expect(formatted).toBe("ABC123...L012")
-    })
-
-    it("should return short addresses as-is", () => {
-      expect(formatAddress("ABC123")).toBe("ABC123")
-    })
-
-    it("should return empty for null", () => {
-      expect(formatAddress(null)).toBe("")
     })
   })
 

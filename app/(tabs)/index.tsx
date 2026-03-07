@@ -2,15 +2,19 @@
  * Home Screen
  *
  * Main dashboard showing:
- * - Wallet balance
- * - Quick actions (Shield, History, Keys)
+ * - Avatar + sidebar trigger
+ * - Balance card with hide toggle
+ * - Send/Receive/Scan quick actions
+ * - Featured tokens list
+ * - Privacy stats row
  * - Recent transaction activity
  */
 
-import { View, Text, ScrollView, TouchableOpacity, RefreshControl, Image } from "react-native"
+import { View, Text, ScrollView, TouchableOpacity, RefreshControl } from "react-native"
 import { SafeAreaView } from "react-native-safe-area-context"
 import { router } from "expo-router"
 import { useCallback, useState, useMemo, useEffect } from "react"
+import { resolveTokenSymbol } from "@/data/tokens"
 import { markPerformance } from "@/utils/performance"
 import { hapticLight } from "@/utils/haptics"
 
@@ -23,13 +27,11 @@ import { useSettingsStore } from "@/stores/settings"
 import { useClaim } from "@/hooks/useClaim"
 import { useBalance } from "@/hooks/useBalance"
 import { useToastStore } from "@/stores/toast"
-import { AccountIndicator } from "@/components/AccountSwitcher"
+import { AccountAvatar, useSidebar, Sidebar } from "@/components"
 import { FEATURED_TOKENS, getToken, formatTokenAmount } from "@/data/tokens"
 import { TokenIcon } from "@/components/TokenIcon"
+import { ICONS, ICON_COLORS } from "@/constants/icons"
 import {
-  ShieldCheckIcon,
-  ClockCounterClockwiseIcon,
-  KeyIcon,
   CoinsIcon,
   ArrowDownIcon,
   ArrowUpIcon,
@@ -38,9 +40,8 @@ import {
   ClockIcon,
   LockIcon,
   EyeIcon,
+  ShieldCheckIcon,
 } from "phosphor-react-native"
-import type { IconProps } from "phosphor-react-native"
-import type { ComponentType } from "react"
 import type { PaymentRecord } from "@/types"
 
 // ============================================================================
@@ -109,59 +110,13 @@ function getNetworkBadgeColor(network: "mainnet-beta" | "devnet" | "testnet"): s
 // COMPONENTS
 // ============================================================================
 
-interface QuickActionProps {
-  Icon: ComponentType<IconProps>
-  label: string
-  sublabel: string
-  variant?: "primary" | "default"
-  onPress: () => void
-}
-
-function QuickAction({
-  Icon,
-  label,
-  sublabel,
-  variant = "default",
-  onPress,
-}: QuickActionProps) {
-  return (
-    <TouchableOpacity
-      className={`flex-1 rounded-xl p-4 items-center ${
-        variant === "primary"
-          ? "bg-brand-900/20 border border-brand-800/30"
-          : "bg-dark-900 border border-dark-800"
-      }`}
-      onPress={() => {
-        hapticLight()
-        onPress()
-      }}
-      accessibilityRole="button"
-      accessibilityLabel={label}
-      accessibilityHint={sublabel}
-    >
-      <Icon
-        size={28}
-        weight="duotone"
-        color={variant === "primary" ? "#a78bfa" : "#e4e4e7"}
-      />
-      <Text
-        className={`mt-2 font-medium ${
-          variant === "primary" ? "text-brand-400" : "text-white"
-        }`}
-      >
-        {label}
-      </Text>
-      <Text className="text-dark-500 text-xs mt-1">{sublabel}</Text>
-    </TouchableOpacity>
-  )
-}
-
 interface TransactionRowProps {
   payment: PaymentRecord
   onPress: () => void
+  hideBalances?: boolean
 }
 
-function TransactionRow({ payment, onPress }: TransactionRowProps) {
+function TransactionRow({ payment, onPress, hideBalances = false }: TransactionRowProps) {
   const isReceive = payment.type === "receive"
 
   // Privacy level indicator
@@ -213,8 +168,9 @@ function TransactionRow({ payment, onPress }: TransactionRowProps) {
         <Text
           className={`font-semibold ${isReceive ? "text-green-400" : "text-white"}`}
         >
-          {isReceive ? "+" : "-"}
-          {parseFloat(payment.amount).toFixed(4)} {payment.token}
+          {hideBalances
+            ? "******"
+            : `${isReceive ? "+" : "-"}${parseFloat(payment.amount).toFixed(4)} ${payment.token}`}
         </Text>
         <Text className={`text-xs ${getStatusColor(payment.status)}`}>
           {payment.status.charAt(0).toUpperCase() + payment.status.slice(1)}
@@ -229,12 +185,14 @@ function TransactionRow({ payment, onPress }: TransactionRowProps) {
 // ============================================================================
 
 export default function HomeScreen() {
-  const { isConnected, address } = useWalletStore()
+  const { isConnected, address, accounts, activeAccountId } = useWalletStore()
   const { payments } = usePrivacyStore()
-  const { network } = useSettingsStore()
+  const { hideBalances, toggleHideBalances, network } = useSettingsStore()
   const { addToast } = useToastStore()
-  const { getClaimableAmount } = useClaim()
-  const { balance, usdValue, isLoading: balanceLoading, refresh: refreshBalance } = useBalance()
+  const sidebar = useSidebar()
+  const activeAccount = accounts.find((a) => a.id === activeAccountId)
+  const { getClaimableAmount, getUnclaimedPayments } = useClaim()
+  const { balance, usdValue, isLoading: balanceLoading, refresh: refreshBalance, tokenBalances } = useBalance()
   const [refreshing, setRefreshing] = useState(false)
 
   // Mark when home screen first renders
@@ -252,6 +210,9 @@ export default function HomeScreen() {
   const recentPayments = useMemo(() => networkPayments.slice(0, 5), [networkPayments])
   const claimable = useMemo(() => getClaimableAmount(), [payments])
   const { count: unclaimedCount, amount: unclaimedAmount } = claimable
+  const unclaimedPayments = getUnclaimedPayments()
+  const unclaimedTokenSymbols = [...new Set(unclaimedPayments.map((p) => resolveTokenSymbol(p)))]
+  const unclaimedToken = unclaimedTokenSymbols.length === 1 ? unclaimedTokenSymbols[0] : "tokens"
 
   // Memoize privacy stats (now using network-filtered payments)
   const privacyStats = useMemo(() => ({
@@ -294,24 +255,21 @@ export default function HomeScreen() {
           />
         }
       >
-        {/* Header */}
+        {/* Top Bar */}
         <View className="pt-6 pb-4 flex-row items-center justify-between">
-          <View>
-            <View className="flex-row items-center">
-              <Image
-                source={require("../../assets/logo-mark.png")}
-                style={{ width: 36, height: 36 }}
-                resizeMode="contain"
-              />
-              <Text className="text-3xl font-bold text-white ml-2">SIP Privacy</Text>
-            </View>
-            <Text className="text-dark-400 mt-1">
-              Private transactions on Solana
-            </Text>
+          <View className="flex-row items-center">
+            <AccountAvatar
+              emoji={activeAccount?.emoji || ""}
+              size="md"
+              onPress={sidebar.open}
+            />
+            <Text className="text-xl font-bold text-white ml-3">Wallet</Text>
           </View>
-          {isConnected && (
-            <AccountIndicator onPress={() => router.push("/settings/accounts")} />
-          )}
+          <View className="flex-row items-center gap-3">
+            <TouchableOpacity onPress={() => router.push("/scan")} accessibilityRole="button" accessibilityLabel="Scan QR code">
+              <ICONS.actions.scan size={24} color={ICON_COLORS.white} />
+            </TouchableOpacity>
+          </View>
         </View>
 
         {/* Balance Card */}
@@ -336,11 +294,21 @@ export default function HomeScreen() {
           {isConnected ? (
             <>
               <Text testID="wallet-balance" className="text-4xl font-bold text-white mt-2">
-                {balanceLoading ? "..." : balance.toFixed(4)} SOL
+                {hideBalances ? "******" : `${balanceLoading ? "..." : balance.toFixed(4)} SOL`}
               </Text>
               <Text className="text-dark-500 mt-1">
-                ≈ ${usdValue.toLocaleString(undefined, { maximumFractionDigits: 2 })}
+                {hideBalances ? "******" : `≈ $${usdValue.toLocaleString(undefined, { maximumFractionDigits: 2 })}`}
               </Text>
+              <TouchableOpacity
+                onPress={toggleHideBalances}
+                accessibilityRole="button"
+                accessibilityLabel="Toggle balance visibility"
+                className="mt-2"
+              >
+                {hideBalances
+                  ? <ICONS.security.hideBalance size={20} color={ICON_COLORS.inactive} />
+                  : <ICONS.privacy.transparent size={20} color={ICON_COLORS.inactive} />}
+              </TouchableOpacity>
               <TouchableOpacity
                 className="flex-row items-center mt-3 pt-3 border-t border-dark-800"
                 onPress={handleCopyAddress}
@@ -362,7 +330,7 @@ export default function HomeScreen() {
               <TouchableOpacity
                 testID="setup-wallet-button"
                 className="mt-4 bg-brand-600 rounded-xl py-3 items-center"
-                onPress={() => router.push("/wallet-setup")}
+                onPress={() => router.push("/(auth)/wallet-setup")}
                 accessibilityRole="button"
                 accessibilityLabel="Set up wallet"
                 accessibilityHint="Opens the wallet setup flow"
@@ -374,26 +342,25 @@ export default function HomeScreen() {
         </View>
 
         {/* Quick Actions */}
-        <View className="flex-row mt-6 gap-3">
-          <QuickAction
-            Icon={ShieldCheckIcon}
-            label="Private"
-            sublabel="Shield funds"
-            variant="primary"
-            onPress={() => router.push("/(tabs)/send")}
-          />
-          <QuickAction
-            Icon={ClockCounterClockwiseIcon}
-            label="History"
-            sublabel="View activity"
-            onPress={() => router.push("/history")}
-          />
-          <QuickAction
-            Icon={KeyIcon}
-            label="Keys"
-            sublabel="Manage keys"
-            onPress={() => router.push("/settings/viewing-keys")}
-          />
+        <View className="flex-row justify-center gap-8 mt-6">
+          {[
+            { icon: <ICONS.transaction.send size={24} color={ICON_COLORS.white} weight="bold" />, label: "Send", onPress: () => router.push("/send") },
+            { icon: <ICONS.transaction.receive size={24} color={ICON_COLORS.white} weight="bold" />, label: "Receive", onPress: () => router.push("/receive") },
+            { icon: <ICONS.actions.scan size={24} color={ICON_COLORS.white} weight="bold" />, label: "Scan", onPress: () => router.push("/scan") },
+          ].map((action) => (
+            <TouchableOpacity
+              key={action.label}
+              className="items-center"
+              onPress={() => { hapticLight(); action.onPress() }}
+              accessibilityRole="button"
+              accessibilityLabel={action.label}
+            >
+              <View className="w-14 h-14 rounded-full bg-brand-600 items-center justify-center">
+                {action.icon}
+              </View>
+              <Text className="text-dark-400 text-xs mt-2">{action.label}</Text>
+            </TouchableOpacity>
+          ))}
         </View>
 
         {/* Featured Tokens */}
@@ -407,7 +374,10 @@ export default function HomeScreen() {
                 const token = getToken(symbol)
                 if (!token) return null
                 const isSol = symbol === "SOL"
-                const tokenBalance = isSol ? balance : 0
+                const rpcToken = !isSol && token.mint
+                  ? tokenBalances.find((t) => t.mint === token.mint)
+                  : undefined
+                const tokenBalance = isSol ? balance : (rpcToken?.uiAmount ?? 0)
                 const tokenUsd = isSol ? usdValue : 0
                 return (
                   <View
@@ -428,12 +398,14 @@ export default function HomeScreen() {
                       )}
                     </View>
                     <Text className="text-white text-lg mt-2">
-                      {balanceLoading && isSol
-                        ? "..."
-                        : formatTokenAmount(tokenBalance, token.decimals)}
+                      {hideBalances
+                        ? "******"
+                        : balanceLoading && isSol
+                          ? "..."
+                          : formatTokenAmount(tokenBalance, token.decimals)}
                     </Text>
                     <Text className="text-dark-500 text-sm mt-0.5">
-                      ${tokenUsd.toLocaleString(undefined, { maximumFractionDigits: 2 })}
+                      {hideBalances ? "******" : `$${tokenUsd.toLocaleString(undefined, { maximumFractionDigits: 2 })}`}
                     </Text>
                   </View>
                 )
@@ -448,7 +420,7 @@ export default function HomeScreen() {
             className="mt-6 bg-green-900/20 border border-green-700/50 rounded-xl p-4 flex-row items-center"
             onPress={() => router.push("/claim")}
             accessibilityRole="button"
-            accessibilityLabel={`${unclaimedCount} unclaimed payment${unclaimedCount !== 1 ? "s" : ""}, ${unclaimedAmount.toFixed(4)} SOL`}
+            accessibilityLabel={`${unclaimedCount} unclaimed payment${unclaimedCount !== 1 ? "s" : ""}, ${unclaimedAmount.toFixed(4)} ${unclaimedToken}`}
             accessibilityHint="Opens the claim payments screen"
           >
             <View className="w-12 h-12 bg-green-900/30 rounded-full items-center justify-center">
@@ -459,7 +431,7 @@ export default function HomeScreen() {
                 {unclaimedCount} Unclaimed Payment{unclaimedCount !== 1 ? "s" : ""}
               </Text>
               <Text className="text-dark-400 text-sm">
-                {unclaimedAmount.toFixed(4)} SOL ready to claim
+                {unclaimedAmount.toFixed(4)} {unclaimedToken} ready to claim
               </Text>
             </View>
             <ArrowDownIcon size={24} weight="bold" color="#4ade80" style={{ transform: [{ rotate: '-90deg' }] }} />
@@ -523,6 +495,7 @@ export default function HomeScreen() {
                 <TransactionRow
                   key={payment.id}
                   payment={payment}
+                  hideBalances={hideBalances}
                   onPress={() => handleTransactionPress(payment)}
                 />
               ))}
@@ -539,6 +512,7 @@ export default function HomeScreen() {
           )}
         </View>
       </ScrollView>
+      <Sidebar visible={sidebar.isOpen} onClose={sidebar.close} />
     </SafeAreaView>
   )
 }

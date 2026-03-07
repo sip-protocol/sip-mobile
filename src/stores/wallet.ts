@@ -38,13 +38,47 @@ export interface WalletState {
   removeAccount: (accountId: string) => void
   setActiveAccount: (accountId: string) => void
   updateAccountNickname: (accountId: string, nickname: string) => void
+  updateAccountEmoji: (accountId: string, emoji: string) => void
   getAccountByAddress: (address: string) => StoredAccount | undefined
   getActiveAccount: () => StoredAccount | undefined
 }
 
 // ============================================================================
+// CONSTANTS
+// ============================================================================
+
+/**
+ * Fun emojis for wallet account avatars
+ */
+export const WALLET_EMOJIS = [
+  "\u{1F680}", // rocket
+  "\u{1F525}", // fire
+  "\u{1F48E}", // gem
+  "\u{1F6E1}\uFE0F", // shield
+  "\u{2B50}", // star
+  "\u{26A1}", // lightning
+  "\u{1F30A}", // wave
+  "\u{1F9E0}", // brain
+  "\u{1F3C6}", // trophy
+  "\u{2728}", // sparkles
+  "\u{1F43B}", // bear
+  "\u{1F985}", // eagle
+  "\u{1F308}", // rainbow
+  "\u{1F331}", // seedling
+  "\u{1F512}", // lock
+  "\u{1F47E}", // alien monster
+] as const
+
+// ============================================================================
 // HELPERS
 // ============================================================================
+
+/**
+ * Get a random emoji from WALLET_EMOJIS
+ */
+export function getRandomEmoji(): string {
+  return WALLET_EMOJIS[Math.floor(Math.random() * WALLET_EMOJIS.length)]
+}
 
 /**
  * Generate unique account ID
@@ -98,6 +132,7 @@ export const useWalletStore = create<WalletState>()(
             id: generateAccountId(),
             address,
             nickname: generateNickname(address, state.accounts.length),
+            emoji: getRandomEmoji(),
             providerType: walletTypeToProvider(walletType),
             chain,
             createdAt: Date.now(),
@@ -139,6 +174,8 @@ export const useWalletStore = create<WalletState>()(
           chain: null,
           walletType: null,
           connectionMethod: null,
+          accounts: [],
+          activeAccountId: null,
         }),
 
       // Multi-account actions
@@ -154,6 +191,7 @@ export const useWalletStore = create<WalletState>()(
           id: generateAccountId(),
           address: input.address,
           nickname: input.nickname || generateNickname(input.address, state.accounts.length),
+          emoji: getRandomEmoji(),
           providerType: input.providerType,
           chain: input.chain,
           createdAt: Date.now(),
@@ -225,9 +263,24 @@ export const useWalletStore = create<WalletState>()(
       },
 
       updateAccountNickname: (accountId, nickname) => {
+        const trimmed = nickname.trim()
+        if (!trimmed || trimmed.length > 32) return
+        const state = get()
+        if (!state.accounts.find((a) => a.id === accountId)) return
         set((s) => ({
           accounts: s.accounts.map((a) =>
-            a.id === accountId ? { ...a, nickname } : a
+            a.id === accountId ? { ...a, nickname: trimmed } : a
+          ),
+        }))
+      },
+
+      updateAccountEmoji: (accountId, emoji) => {
+        if (!emoji) return
+        const state = get()
+        if (!state.accounts.find((a) => a.id === accountId)) return
+        set((s) => ({
+          accounts: s.accounts.map((a) =>
+            a.id === accountId ? { ...a, emoji } : a
           ),
         }))
       },
@@ -275,8 +328,12 @@ function walletTypeToProvider(walletType: WalletType): WalletProviderType {
     case "solflare":
     case "backpack":
       return "phantom" // All deeplink wallets use phantom-style connection
-    default:
+    case "walletconnect":
+      return "phantom" // WalletConnect uses phantom-style interface
+    default: {
+      const _exhaustive: never = walletType
       return "phantom"
+    }
   }
 }
 

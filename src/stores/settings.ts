@@ -48,6 +48,10 @@ interface SettingsStore {
   rpcProvider: "helius" | "quicknode" | "triton" | "publicnode"
   setRpcProvider: (provider: "helius" | "quicknode" | "triton" | "publicnode") => void
 
+  // Balance visibility
+  hideBalances: boolean
+  toggleHideBalances: () => void
+
   // Explorer preference
   defaultExplorer: ExplorerType
   setDefaultExplorer: (explorer: ExplorerType) => void
@@ -98,9 +102,13 @@ export const useSettingsStore = create<SettingsStore>()(
       network: "mainnet-beta",
       setNetwork: (network) => set({ network }),
 
-      // RPC Provider
-      rpcProvider: "helius",
+      // RPC Provider (publicnode = free, no key required)
+      rpcProvider: "publicnode",
       setRpcProvider: (provider) => set({ rpcProvider: provider }),
+
+      // Balance visibility (privacy wallet defaults to hidden)
+      hideBalances: true,
+      toggleHideBalances: () => set((s) => ({ hideBalances: !s.hideBalances })),
 
       // Explorer preference
       defaultExplorer: "solscan",
@@ -108,11 +116,14 @@ export const useSettingsStore = create<SettingsStore>()(
 
       // API Keys (user overrides)
       heliusApiKey: null,
-      setHeliusApiKey: (key) => set({ heliusApiKey: key }),
+      setHeliusApiKey: (key) => set({ heliusApiKey: key?.trim() || null }),
       quicknodeApiKey: null,
-      setQuicknodeApiKey: (key) => set({ quicknodeApiKey: key }),
+      setQuicknodeApiKey: (key) => set({ quicknodeApiKey: key?.trim() || null }),
       tritonEndpoint: null,
-      setTritonEndpoint: (endpoint) => set({ tritonEndpoint: endpoint }),
+      setTritonEndpoint: (endpoint) => {
+        if (endpoint && !endpoint.startsWith("http")) return
+        set({ tritonEndpoint: endpoint?.trim() || null })
+      },
     }),
     {
       name: "sip-settings",
@@ -123,6 +134,7 @@ export const useSettingsStore = create<SettingsStore>()(
         defaultPrivacyLevel: state.defaultPrivacyLevel,
         privacyProvider: state.privacyProvider,
         biometricsEnabled: state.biometricsEnabled,
+        hideBalances: state.hideBalances,
         network: state.network,
         rpcProvider: state.rpcProvider,
         defaultExplorer: state.defaultExplorer,

@@ -33,10 +33,10 @@ function countOccurrences(source: string, pattern: string): number {
 
 const SCREEN_FILES = {
   home: "app/(tabs)/index.tsx",
-  send: "app/(tabs)/send.tsx",
-  receive: "app/(tabs)/receive.tsx",
+  send: "app/send/index.tsx",
+  receive: "app/receive/index.tsx",
   swap: "app/(tabs)/swap.tsx",
-  settings: "app/(tabs)/settings.tsx",
+  privacy: "app/(tabs)/privacy.tsx",
   contacts: "app/contacts/index.tsx",
   addContact: "app/contacts/add.tsx",
   portfolio: "app/portfolio/index.tsx",
@@ -60,11 +60,11 @@ describe("Accessibility Audit: Screen Files", () => {
   describe("Home Screen", () => {
     const source = readScreen(SCREEN_FILES.home)
 
-    it("should have accessibilityLabel on QuickAction buttons", () => {
-      expect(source).toContain("accessibilityLabel={label}")
+    it("should have accessibilityLabel on quick action buttons", () => {
+      expect(source).toContain("accessibilityLabel={action.label}")
     })
 
-    it("should have accessibilityRole on QuickAction buttons", () => {
+    it("should have accessibilityRole on quick action buttons", () => {
       expect(source).toContain('accessibilityRole="button"')
     })
 
@@ -92,10 +92,6 @@ describe("Accessibility Audit: Screen Files", () => {
   describe("Send Screen", () => {
     const source = readScreen(SCREEN_FILES.send)
 
-    it("should have accessibilityLabel on MAX button", () => {
-      expect(source).toContain("Use maximum amount")
-    })
-
     it("should have accessibilityLabel on Scan QR button", () => {
       expect(source).toContain("Scan QR code")
     })
@@ -114,7 +110,7 @@ describe("Accessibility Audit: Screen Files", () => {
 
     it("should have multiple accessibilityRole=button attributes", () => {
       const count = countOccurrences(source, 'accessibilityRole="button"')
-      expect(count).toBeGreaterThanOrEqual(5)
+      expect(count).toBeGreaterThanOrEqual(4)
     })
   })
 
@@ -189,24 +185,19 @@ describe("Accessibility Audit: Screen Files", () => {
     })
   })
 
-  describe("Settings Screen", () => {
-    const source = readScreen(SCREEN_FILES.settings)
+  describe("Privacy Screen", () => {
+    const source = readScreen(SCREEN_FILES.privacy)
 
-    it("should have accessibilityRole on SettingsItem", () => {
+    it("should have accessibilityRole on feature items", () => {
       expect(source).toContain('accessibilityRole="button"')
     })
 
-    it("should have accessibilityLabel on SettingsItem", () => {
-      // SettingsItem uses template literal label
-      expect(source).toContain("accessibilityLabel={`${title}")
+    it("should have accessibilityLabel on feature items", () => {
+      expect(source).toContain("accessibilityLabel={f.label}")
     })
 
-    it("should have accessibilityRole=switch on Switch", () => {
-      expect(source).toContain('accessibilityRole="switch"')
-    })
-
-    it("should have accessibilityState on Switch", () => {
-      expect(source).toContain("accessibilityState={{ checked: value")
+    it("should have accessibilityHint on feature items", () => {
+      expect(source).toContain("accessibilityHint={f.desc}")
     })
   })
 

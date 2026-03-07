@@ -84,7 +84,7 @@ export default function AccountsScreen() {
             // For native wallets, also delete from SecureStore
             if (account.providerType === "native" || account.providerType === "seed-vault") {
               try {
-                await deleteWallet()
+                await deleteWallet(account.id)
               } catch {
                 // deleteWallet handles its own errors, just proceed
               }
@@ -263,19 +263,13 @@ export default function AccountsScreen() {
 
         {/* Add Account Button */}
         <View className="py-6">
-          <View className="opacity-50">
-            <Button
-              fullWidth
-              variant="secondary"
-              disabled
-              onPress={() => {}}
-            >
-              + Add Another Account
-            </Button>
-          </View>
-          <Text className="text-dark-600 text-center text-xs mt-2">
-            Multi-account support coming soon
-          </Text>
+          <Button
+            fullWidth
+            variant="secondary"
+            onPress={() => router.push("/(auth)/wallet-setup?addAccount=true" as any)}
+          >
+            + Add Another Account
+          </Button>
         </View>
 
         {/* Info Text */}

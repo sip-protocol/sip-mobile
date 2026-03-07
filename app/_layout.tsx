@@ -5,6 +5,7 @@ import { StatusBar } from "expo-status-bar"
 import { GestureHandlerRootView } from "react-native-gesture-handler"
 import * as SplashScreen from "expo-splash-screen"
 import { WalletProvider } from "@/providers"
+import { SidebarProvider } from "@/components"
 import {
   markPerformance,
   logPerformanceSummary,
@@ -49,7 +50,7 @@ export default function RootLayout() {
       markPerformance("hiding_splash")
       SplashScreen.hideAsync()
         .then(() => markPerformance("splash_hidden"))
-        .catch(() => {})
+        .catch((e) => console.warn("[Splash] hideAsync failed:", e))
     }
   }, [isReady])
 
@@ -74,15 +75,20 @@ export default function RootLayout() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }} onLayout={onLayoutRootView}>
       <WalletProvider>
-        <StatusBar style="light" />
-        <Stack
-          screenOptions={{
-            headerShown: false,
-            contentStyle: { backgroundColor: "#0a0a0a" },
-          }}
-        >
-          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-        </Stack>
+        <SidebarProvider>
+          <StatusBar style="light" />
+          <Stack
+            screenOptions={{
+              headerShown: false,
+              contentStyle: { backgroundColor: "#0a0a0a" },
+            }}
+          >
+            <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+            <Stack.Screen name="send" options={{ headerShown: false }} />
+            <Stack.Screen name="receive" options={{ headerShown: false }} />
+            <Stack.Screen name="token" options={{ headerShown: false }} />
+          </Stack>
+        </SidebarProvider>
       </WalletProvider>
     </GestureHandlerRootView>
   )

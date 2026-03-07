@@ -81,8 +81,8 @@ export interface JupiterQuoteResponse {
 // CONSTANTS
 // ============================================================================
 
-/** Jupiter Quote API endpoint */
-const JUPITER_QUOTE_API = "https://quote-api.jup.ag/v6/quote"
+/** Jupiter Quote API endpoint (lite = free, no API key required) */
+const JUPITER_QUOTE_API = "https://lite-api.jup.ag/swap/v1/quote"
 
 /** Quote is fresh for 30 seconds */
 const QUOTE_FRESH_DURATION = 30_000
@@ -459,16 +459,20 @@ export function useExchangeRate(
     const fetchRate = async () => {
       setIsLoading(true)
       try {
-        // Use Jupiter Price API for real-time rates
-        const response = await fetch(
-          `https://price.jup.ag/v6/price?ids=${fromToken.mint},${toToken.mint}`
-        )
+        // Derive rate from a small Jupiter quote (free lite-api, no key needed)
+        const oneUnit = Math.pow(10, fromToken.decimals)
+        const params = new URLSearchParams({
+          inputMint: fromToken.mint,
+          outputMint: toToken.mint,
+          amount: oneUnit.toString(),
+          slippageBps: "50",
+        })
+        const response = await fetch(`${JUPITER_QUOTE_API}?${params}`)
         if (response.ok) {
           const data = await response.json()
-          const fromPrice = data.data[fromToken.mint]?.price || 0
-          const toPrice = data.data[toToken.mint]?.price || 0
-          if (fromPrice > 0 && toPrice > 0) {
-            setRate(fromPrice / toPrice)
+          const outAmount = parseInt(data.outAmount, 10) / Math.pow(10, toToken.decimals)
+          if (outAmount > 0) {
+            setRate(outAmount)
           }
         }
       } catch (err) {

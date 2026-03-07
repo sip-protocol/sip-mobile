@@ -130,6 +130,19 @@ export function getTokenByMint(mint: string): TokenInfo | undefined {
   return TOKEN_LIST.find((t) => t.mint === mint)
 }
 
+/**
+ * Resolve display symbol for a payment record.
+ * Prefers tokenMint lookup (handles legacy records with token="SPL").
+ */
+export function resolveTokenSymbol(payment: { tokenMint?: string; token: string }): string {
+  if (payment.tokenMint) {
+    const known = getTokenByMint(payment.tokenMint)
+    if (known) return known.symbol
+    return payment.tokenMint.slice(0, 4) + "..."
+  }
+  return payment.token
+}
+
 export function formatTokenAmount(
   amount: string | number,
   decimals: number,

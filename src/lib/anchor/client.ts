@@ -24,6 +24,16 @@ import {
   generateMockProof,
   generateEphemeralKeyPair,
 } from "./crypto"
+import {
+  getAssociatedTokenAddress,
+  tokenAccountExists,
+  createAssociatedTokenAccountInstruction,
+  createIdempotentAtaInstruction,
+  createTransferCheckedInstruction,
+  createCloseAccountInstruction,
+  getTokenAccountBalance,
+  TOKEN_PROGRAM_ID,
+} from "@/lib/spl"
 
 // ─── Types ─────────────────────────────────────────────────────────────────
 
@@ -44,6 +54,23 @@ export interface ShieldedTransferParams {
    * CRITICAL: Must be the same key used to derive the stealthPubkey!
    */
   ephemeralPrivateKey?: Uint8Array
+}
+
+export interface ShieldedTokenTransferParams {
+  /** Amount in token units (e.g., 5.0 for 5 tokens) */
+  amount: number
+  /** Token decimals */
+  decimals: number
+  /** Token mint address */
+  tokenMint: PublicKey
+  /** Stealth recipient address (ed25519 public key) */
+  stealthPubkey: PublicKey
+  /** Recipient's spending public key (for shared secret derivation) */
+  recipientSpendingKey: Uint8Array
+  /** Recipient's viewing public key */
+  recipientViewingKey: Uint8Array
+  /** Ephemeral private key from generateStealthAddress */
+  ephemeralPrivateKey: Uint8Array
 }
 
 export interface ShieldedTransferResult {
@@ -260,6 +287,133 @@ export class SipPrivacyClient {
       transaction,
       transferRecord: transferRecordPda,
       ephemeralPubkey: ephemeralKeyPair.publicKey,
+    }
+  }
+
+  /**
+   * Build a shielded token transfer instruction (SPL tokens via SIP Privacy Program)
+   *
+   * Creates a TransferRecord PDA on-chain so the scanner can discover SPL stealth payments.
+   * Uses the program's shielded_token_transfer instruction.
+   */
+  async buildShieldedTokenTransfer(
+    sender: PublicKey,
+    params: ShieldedTokenTransferParams
+  ): Promise<{
+    transaction: Transaction
+    transferRecord: PublicKey
+    ephemeralPubkey: Uint8Array
+  }> {
+    const config = await this.fetchConfig()
+    if (!config) {
+      throw new Error("Program not initialized")
+    }
+    if (config.paused) {
+      throw new Error("Program is paused")
+    }
+
+    // Convert token amount to smallest units
+    const rawAmount = BigInt(Math.floor(params.amount * Math.pow(10, params.decimals)))
+
+    // Build ephemeral key from provided private key
+    const { ed25519 } = await import("@noble/curves/ed25519")
+    const publicKeyRaw = ed25519.getPublicKey(params.ephemeralPrivateKey)
+    const ephemeralPubkey = new Uint8Array(33)
+    ephemeralPubkey[0] = 0x02
+    ephemeralPubkey.set(publicKeyRaw, 1)
+
+    // Derive shared secret
+    const sharedSecret = deriveSharedSecret(
+      params.ephemeralPrivateKey,
+      params.recipientSpendingKey
+    )
+
+    // Create Pedersen commitment
+    const { commitment, blindingFactor } = await createCommitment(rawAmount)
+
+    // Encrypt amount
+    const encryptedAmount = await encryptAmount(rawAmount, sharedSecret)
+
+    // Compute viewing key hash
+    const viewingKeyHash = computeViewingKeyHash(params.recipientViewingKey)
+
+    // Mock proof
+    const proof = await generateMockProof(commitment, blindingFactor, rawAmount)
+
+    // Derive PDAs
+    const [configPda] = getConfigPda(this.programId)
+    const [transferRecordPda] = getTransferRecordPda(
+      sender,
+      config.totalTransfers,
+      this.programId
+    )
+
+    // Build instruction data (same layout as shielded_transfer, different discriminator)
+    const instructionData = this.encodeShieldedTransferData({
+      amountCommitment: Array.from(commitment),
+      stealthPubkey: params.stealthPubkey,
+      ephemeralPubkey: Array.from(ephemeralPubkey),
+      viewingKeyHash: Array.from(viewingKeyHash),
+      encryptedAmount: Buffer.concat([
+        encryptedAmount.nonce,
+        encryptedAmount.ciphertext,
+      ]),
+      proof: Buffer.from(proof),
+      actualAmount: rawAmount,
+    })
+
+    // Override discriminator for shielded_token_transfer
+    Buffer.from([0x6e, 0x31, 0xe7, 0xe8, 0x5d, 0x8d, 0x58, 0xab])
+      .copy(instructionData, 0)
+
+    // Derive ATAs
+    const senderAta = getAssociatedTokenAddress(sender, params.tokenMint)
+    const stealthAta = getAssociatedTokenAddress(params.stealthPubkey, params.tokenMint)
+    const feeCollectorAta = getAssociatedTokenAddress(config.authority, params.tokenMint)
+
+    const transaction = new Transaction()
+
+    // Create stealth ATA if needed
+    if (!(await tokenAccountExists(this.connection, stealthAta))) {
+      transaction.add(
+        createAssociatedTokenAccountInstruction(sender, stealthAta, params.stealthPubkey, params.tokenMint)
+      )
+    }
+
+    // Create fee collector ATA if needed
+    if (!(await tokenAccountExists(this.connection, feeCollectorAta))) {
+      transaction.add(
+        createAssociatedTokenAccountInstruction(sender, feeCollectorAta, config.authority, params.tokenMint)
+      )
+    }
+
+    // Add the shielded_token_transfer instruction
+    const instruction = new web3.TransactionInstruction({
+      keys: [
+        { pubkey: configPda, isSigner: false, isWritable: true },
+        { pubkey: transferRecordPda, isSigner: false, isWritable: true },
+        { pubkey: sender, isSigner: true, isWritable: true },
+        { pubkey: params.tokenMint, isSigner: false, isWritable: false },
+        { pubkey: senderAta, isSigner: false, isWritable: true },
+        { pubkey: stealthAta, isSigner: false, isWritable: true },
+        { pubkey: feeCollectorAta, isSigner: false, isWritable: true },
+        { pubkey: TOKEN_PROGRAM_ID, isSigner: false, isWritable: false },
+        { pubkey: web3.SystemProgram.programId, isSigner: false, isWritable: false },
+      ],
+      programId: this.programId,
+      data: instructionData,
+    })
+
+    transaction.add(instruction)
+
+    const { blockhash } = await this.connection.getLatestBlockhash()
+    transaction.recentBlockhash = blockhash
+    transaction.feePayer = sender
+
+    return {
+      transaction,
+      transferRecord: transferRecordPda,
+      ephemeralPubkey,
     }
   }
 
@@ -694,6 +848,93 @@ export async function buildClaimTransfer(
     stealthScalar: stealthPrivateKeyBytes,
     stealthPublicKey: stealthPublicKeyBytes,
     nullifier,
+  }
+}
+
+/**
+ * Build an SPL token claim transfer transaction
+ *
+ * For SPL stealth payments, we do a direct token transfer from stealth ATA
+ * to recipient ATA, signed by the stealth address. This avoids the PDA-owned
+ * ATA mismatch with the program's claim_token_transfer instruction.
+ */
+export async function buildSplClaimTransfer(
+  connection: Connection,
+  params: {
+    stealthAddress: PublicKey
+    stealthPrivateKey: string
+    recipientAddress: PublicKey
+    tokenMint: PublicKey
+    decimals: number
+  }
+): Promise<{
+  transaction: Transaction
+  stealthScalar: Uint8Array
+  stealthPublicKey: Uint8Array
+}> {
+  const { hexToBytes } = await import("@/lib/stealth")
+
+  const stealthPrivateKeyBytes = hexToBytes(params.stealthPrivateKey)
+  const stealthPublicKeyBytes = getPublicKeyFromScalar(stealthPrivateKeyBytes)
+  const computedPubkey = new PublicKey(stealthPublicKeyBytes)
+
+  if (!computedPubkey.equals(params.stealthAddress)) {
+    throw new Error("Stealth private key doesn't match stealth address")
+  }
+
+  // Derive ATAs
+  const stealthAta = getAssociatedTokenAddress(params.stealthAddress, params.tokenMint)
+  const recipientAta = getAssociatedTokenAddress(params.recipientAddress, params.tokenMint)
+
+  // Get token balance from stealth ATA
+  const balance = await getTokenAccountBalance(connection, stealthAta)
+  if (balance <= 0n) {
+    throw new Error("No token balance in stealth address")
+  }
+
+  const transaction = new Transaction()
+
+  // Idempotent ATA create — safe even if account already exists (no-ops)
+  // Avoids race condition where tokenAccountExists returns false due to RPC caching
+  transaction.add(
+    createIdempotentAtaInstruction(
+      params.recipientAddress,
+      recipientAta,
+      params.recipientAddress,
+      params.tokenMint
+    )
+  )
+
+  // TransferChecked from stealth ATA to recipient ATA
+  transaction.add(
+    createTransferCheckedInstruction(
+      stealthAta,
+      params.tokenMint,
+      recipientAta,
+      params.stealthAddress, // authority (stealth address signs)
+      balance,
+      params.decimals
+    )
+  )
+
+  // Close empty stealth ATA → reclaim rent SOL to fee payer (recipient)
+  // This offsets the cost of creating the recipient ATA
+  transaction.add(
+    createCloseAccountInstruction(
+      stealthAta,
+      params.recipientAddress, // rent SOL goes to fee payer
+      params.stealthAddress    // stealth address is the authority
+    )
+  )
+
+  const { blockhash } = await connection.getLatestBlockhash()
+  transaction.recentBlockhash = blockhash
+  transaction.feePayer = params.recipientAddress
+
+  return {
+    transaction,
+    stealthScalar: stealthPrivateKeyBytes,
+    stealthPublicKey: stealthPublicKeyBytes,
   }
 }
 
