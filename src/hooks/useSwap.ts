@@ -11,14 +11,19 @@
 
 import { useState, useCallback, useRef } from "react"
 import { Buffer } from "buffer"
+import { Connection, PublicKey } from "@solana/web3.js"
 import type { SwapQuote, PrivacyLevel } from "@/types"
 import { useSwapStore } from "@/stores/swap"
 import { useToastStore } from "@/stores/toast"
 import { useWalletStore } from "@/stores/wallet"
 import { useWallet } from "./useWallet"
 import { useNativeWallet } from "./useNativeWallet"
+import { useStealth } from "./useStealth"
 import { useSettingsStore } from "@/stores/settings"
 import { getExplorerTxUrl } from "@/utils/explorer"
+import { generateStealthAddress, hexToBytes, ed25519PublicKeyToSolanaAddress } from "@/lib/stealth"
+import { getAssociatedTokenAddress } from "@/lib/spl"
+import { SipPrivacyClient } from "@/lib/anchor/client"
 import type { JupiterQuoteResponse } from "./useQuote"
 
 // ============================================================================
@@ -166,19 +171,26 @@ async function executeJupiterSwap(
   jupiterQuote: JupiterQuoteResponse,
   userPublicKey: string,
   signTransaction: (tx: Uint8Array) => Promise<Uint8Array>,
-  network: string
+  network: string,
+  destinationTokenAccount?: string
 ): Promise<string> {
   // 1. Get swap transaction from Jupiter
+  const swapBody: Record<string, unknown> = {
+    quoteResponse: jupiterQuote,
+    userPublicKey,
+    wrapAndUnwrapSol: true,
+    dynamicComputeUnitLimit: true,
+    prioritizationFeeLamports: "auto",
+  }
+
+  if (destinationTokenAccount) {
+    swapBody.destinationTokenAccount = destinationTokenAccount
+  }
+
   const swapResponse = await fetch(JUPITER_SWAP_API, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      quoteResponse: jupiterQuote,
-      userPublicKey,
-      wrapAndUnwrapSol: true,
-      dynamicComputeUnitLimit: true,
-      prioritizationFeeLamports: "auto",
-    }),
+    body: JSON.stringify(swapBody),
   })
 
   if (!swapResponse.ok) {
@@ -300,6 +312,7 @@ export function useSwap(): SwapResult {
   const { signTransaction: nativeSignTransaction } = useNativeWallet()
   const { addSwap } = useSwapStore()
   const { addToast } = useToastStore()
+  const { getKeys } = useStealth()
 
   const [status, setStatus] = useState<SwapStatus>("idle")
   const [txSignature, setTxSignature] = useState<string | null>(null)
@@ -360,59 +373,163 @@ export function useSwap(): SwapResult {
       }
 
       try {
-        // Reset state
         setError(null)
         setTxSignature(null)
 
-        // Generate swap ID
         const newSwapId = generateSwapId()
         currentSwapId.current = newSwapId
         setSwapId(newSwapId)
 
-        // Step 1: Confirming
         setStatus("confirming")
 
-        // Step 2: Request wallet signature
-        setStatus("signing")
+        let signature: string
+        let stealthAddr: string | undefined
 
-        // Execute real Jupiter swap (transitions to submitting after signing)
-        const signature = await executeJupiterSwap(
-          jupiterQuote,
-          address,
-          async (tx: Uint8Array) => {
-            let signed: Uint8Array | null = null
+        if (privacyLevel === "shielded") {
+          // ── Private Swap Flow ──
+          const keys = await getKeys()
+          if (!keys) {
+            throw new Error("Stealth keys not available. Please set up privacy keys first.")
+          }
 
-            if (walletType === "native") {
-              // Native wallet: deserialize, sign with keypair, re-serialize
-              const { Transaction, VersionedTransaction } = await import("@solana/web3.js")
-              let txObj: InstanceType<typeof Transaction> | InstanceType<typeof VersionedTransaction>
-              try {
-                txObj = VersionedTransaction.deserialize(tx)
-              } catch {
-                txObj = Transaction.from(tx)
+          const selfMetaAddress = {
+            spendingKey: keys.spendingPublicKey,
+            viewingKey: keys.viewingPublicKey,
+            chain: "solana" as const,
+          }
+          const { stealthAddress: stealthResult, ephemeralPrivateKey } =
+            await generateStealthAddress(selfMetaAddress)
+
+          const stealthSolanaAddress = ed25519PublicKeyToSolanaAddress(stealthResult.address)
+          const stealthPubkey = new PublicKey(stealthSolanaAddress)
+          stealthAddr = stealthSolanaAddress
+
+          const outputMint = new PublicKey(jupiterQuote.outputMint)
+          const stealthAta = getAssociatedTokenAddress(stealthPubkey, outputMint)
+
+          const rpcEndpoint = getRpcEndpoint(network)
+          const connection = new Connection(rpcEndpoint)
+          const client = new SipPrivacyClient(connection)
+          const senderPubkey = new PublicKey(address)
+
+          // Determine output token decimals from quote
+          const outputDecimals = jupiterQuote.outputMint === "So11111111111111111111111111111111111111112" ? 9 : 6
+
+          const { transaction: announceTx } = await client.buildSwapAnnouncement(
+            senderPubkey,
+            {
+              amount: parseFloat(quote.outputAmount),
+              decimals: outputDecimals,
+              tokenMint: outputMint,
+              stealthPubkey,
+              recipientSpendingKey: hexToBytes(keys.spendingPublicKey),
+              recipientViewingKey: hexToBytes(keys.viewingPublicKey),
+              ephemeralPrivateKey: hexToBytes(ephemeralPrivateKey),
+            }
+          )
+
+          setStatus("signing")
+
+          // TX1: Sign and send announcement + ATA creation
+          if (walletType === "native") {
+            const signedAnnounceTx = await nativeSignTransaction(announceTx)
+            const announceBase64 = Buffer.from(signedAnnounceTx.serialize()).toString("base64")
+            const announceResponse = await fetch(rpcEndpoint, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                jsonrpc: "2.0",
+                id: 1,
+                method: "sendTransaction",
+                params: [announceBase64, { encoding: "base64", skipPreflight: false }],
+              }),
+            })
+            const announceRes = await announceResponse.json()
+            if (announceRes.error) {
+              throw new Error(announceRes.error.message || "Announcement transaction failed")
+            }
+            await waitForConfirmation(rpcEndpoint, announceRes.result)
+          } else {
+            const announceTxBytes = announceTx.serialize({ requireAllSignatures: false })
+            const signedBytes = await externalSignTransaction(new Uint8Array(announceTxBytes))
+            if (!signedBytes) throw new Error("Transaction signing rejected")
+            const announceBase64 = Buffer.from(signedBytes).toString("base64")
+            const announceResponse = await fetch(rpcEndpoint, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                jsonrpc: "2.0",
+                id: 1,
+                method: "sendTransaction",
+                params: [announceBase64, { encoding: "base64", skipPreflight: false }],
+              }),
+            })
+            const announceRes = await announceResponse.json()
+            if (announceRes.error) {
+              throw new Error(announceRes.error.message || "Announcement transaction failed")
+            }
+            await waitForConfirmation(rpcEndpoint, announceRes.result)
+          }
+
+          // TX2: Jupiter swap with output to stealth ATA
+          setStatus("submitting")
+          signature = await executeJupiterSwap(
+            jupiterQuote,
+            address,
+            async (tx: Uint8Array) => {
+              let signed: Uint8Array | null = null
+              if (walletType === "native") {
+                const { Transaction, VersionedTransaction } = await import("@solana/web3.js")
+                let txObj: InstanceType<typeof Transaction> | InstanceType<typeof VersionedTransaction>
+                try {
+                  txObj = VersionedTransaction.deserialize(tx)
+                } catch {
+                  txObj = Transaction.from(tx)
+                }
+                const signedTx = await nativeSignTransaction(txObj)
+                signed = signedTx.serialize()
+              } else {
+                signed = await externalSignTransaction(tx)
               }
-              const signedTx = await nativeSignTransaction(txObj)
-              signed = signedTx.serialize()
-            } else {
-              // External wallet (MWA/Phantom): pass raw bytes
-              signed = await externalSignTransaction(tx)
-            }
+              if (!signed) throw new Error("Transaction signing rejected")
+              return signed
+            },
+            network,
+            stealthAta.toBase58()
+          )
+        } else {
+          // ── Public Swap Flow (unchanged) ──
+          setStatus("signing")
+          signature = await executeJupiterSwap(
+            jupiterQuote,
+            address,
+            async (tx: Uint8Array) => {
+              let signed: Uint8Array | null = null
+              if (walletType === "native") {
+                const { Transaction, VersionedTransaction } = await import("@solana/web3.js")
+                let txObj: InstanceType<typeof Transaction> | InstanceType<typeof VersionedTransaction>
+                try {
+                  txObj = VersionedTransaction.deserialize(tx)
+                } catch {
+                  txObj = Transaction.from(tx)
+                }
+                const signedTx = await nativeSignTransaction(txObj)
+                signed = signedTx.serialize()
+              } else {
+                signed = await externalSignTransaction(tx)
+              }
+              if (!signed) throw new Error("Transaction signing rejected")
+              setStatus("submitting")
+              return signed
+            },
+            network
+          )
+        }
 
-            if (!signed) {
-              throw new Error("Transaction signing rejected")
-            }
-            // Step 3: Signed — now submitting
-            setStatus("submitting")
-            return signed
-          },
-          network
-        )
-
-        // Success
+        // Success (both paths)
         setTxSignature(signature)
         setStatus("success")
 
-        // Add to swap history
         addSwap({
           id: newSwapId,
           fromToken: quote.inputToken.symbol,
@@ -424,12 +541,17 @@ export function useSwap(): SwapResult {
           timestamp: Date.now(),
           txSignature: signature,
           explorerUrl: getExplorerTxUrl(signature, network, defaultExplorer),
+          isPrivate: privacyLevel === "shielded",
+          stealthAddress: stealthAddr,
+          claimStatus: privacyLevel === "shielded" ? "unclaimed" : undefined,
         })
 
         addToast({
           type: "success",
           title: privacyLevel === "shielded" ? "Private Swap Complete" : "Swap Complete",
-          message: `Swapped ${quote.inputAmount} ${quote.inputToken.symbol} → ${quote.outputAmount} ${quote.outputToken.symbol}`,
+          message: privacyLevel === "shielded"
+            ? `Swapped ${quote.inputAmount} ${quote.inputToken.symbol} to private balance. Claim from Receive tab.`
+            : `Swapped ${quote.inputAmount} ${quote.inputToken.symbol} → ${quote.outputAmount} ${quote.outputToken.symbol}`,
         })
 
         return true
@@ -462,7 +584,7 @@ export function useSwap(): SwapResult {
         return false
       }
     },
-    [isConnected, address, network, defaultExplorer, walletType, nativeSignTransaction, externalSignTransaction, addSwap, addToast]
+    [isConnected, address, network, defaultExplorer, walletType, nativeSignTransaction, externalSignTransaction, addSwap, addToast, getKeys]
   )
 
   // Generate explorer URL
