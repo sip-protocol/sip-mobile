@@ -447,7 +447,11 @@ export function useScanPayments(): UseScanPaymentsReturn {
               if (isSplToken) {
                 // SPL token: get balance from stealth ATA
                 tokenMintStr = record.tokenMint!.toBase58()
-                tokenSymbol = "SPL"
+
+                // Resolve symbol from known token registry, fallback to truncated mint
+                const { getTokenByMint } = await import("@/data/tokens")
+                const knownToken = getTokenByMint(tokenMintStr)
+                tokenSymbol = knownToken?.symbol ?? tokenMintStr.slice(0, 4)
 
                 try {
                   const { getAssociatedTokenAddress, getTokenAccountBalance, getMintDecimals } =
