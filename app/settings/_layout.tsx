@@ -11,8 +11,13 @@ export default function SettingsLayout() {
           animation: "slide_from_right",
         }}
       >
+        <Stack.Screen name="index" />
         <Stack.Screen name="accounts" />
         <Stack.Screen name="backup" />
+        <Stack.Screen name="security" />
+        <Stack.Screen name="viewing-keys" />
+        <Stack.Screen name="compliance" />
+        <Stack.Screen name="privacy-score" />
       </Stack>
     </View>
   )

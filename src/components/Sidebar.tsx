@@ -134,7 +134,7 @@ export function Sidebar({ visible, onClose }: SidebarProps) {
     {
       icon: <ICONS.wallet.security size={22} color={ICON_COLORS.inactive} />,
       label: "Security & Backup",
-      onPress: () => navigate("/settings/backup"),
+      onPress: () => navigate("/settings/security"),
     },
   ]
 
@@ -157,7 +157,7 @@ export function Sidebar({ visible, onClose }: SidebarProps) {
     {
       icon: <ICONS.about.info size={22} color={ICON_COLORS.inactive} />,
       label: "About SIP",
-      onPress: () => navigate("/settings"),
+      onPress: () => Linking.openURL("https://sip-protocol.org"),
     },
     {
       icon: <ICONS.about.docs size={22} color={ICON_COLORS.inactive} />,
@@ -271,7 +271,7 @@ export function Sidebar({ visible, onClose }: SidebarProps) {
           {/* Bottom bar */}
           <View className="flex-row items-center justify-between px-4 py-4 border-t border-zinc-800">
             <TouchableOpacity
-              onPress={() => navigate("/settings")}
+              onPress={() => Linking.openURL("https://docs.sip-protocol.org")}
               className="flex-row items-center"
               accessibilityRole="button"
               accessibilityLabel="Get help"
