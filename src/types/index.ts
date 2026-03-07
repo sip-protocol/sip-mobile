@@ -60,6 +60,9 @@ export interface SwapRecord {
   privacyLevel: PrivacyLevel
   depositAddress?: string
   error?: string // Error message if failed
+  isPrivate?: boolean
+  stealthAddress?: string
+  claimStatus?: "unclaimed" | "claimed"
 }
 
 /**
