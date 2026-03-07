@@ -1,6 +1,6 @@
-# Private Swap (Option B) Implementation Plan
+# Private Swap (Option B) Implementation Plan — COMPLETED
 
-> **For Claude:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task.
+> **Status:** ✅ Shipped Mar 7, 2026. Program upgraded on devnet + mainnet.
 
 **Goal:** Route Jupiter swap output to a stealth ATA when privacy toggle is ON, with on-chain TransferRecord announcement for scan+claim.
 
