@@ -420,8 +420,9 @@ export class SipPrivacyClient {
   /**
    * Build a TransferRecord announcement for a private swap.
    *
-   * Creates the on-chain announcement so the recipient (self) can
-   * scan and claim the swap output from the stealth ATA.
+   * Uses the `create_transfer_announcement` instruction which creates
+   * the on-chain record without any token transfer CPI. The actual
+   * token movement is handled by Jupiter via `destinationTokenAccount`.
    * Also creates the stealth ATA if it doesn't exist yet.
    */
   async buildSwapAnnouncement(
@@ -444,6 +445,9 @@ export class SipPrivacyClient {
     if (!config) {
       throw new Error("Program not initialized")
     }
+    if (config.paused) {
+      throw new Error("Program is paused")
+    }
 
     const rawAmount = BigInt(Math.floor(params.amount * Math.pow(10, params.decimals)))
 
@@ -458,10 +462,9 @@ export class SipPrivacyClient {
       params.recipientSpendingKey
     )
 
-    const { commitment, blindingFactor } = await createCommitment(rawAmount)
+    const { commitment } = await createCommitment(rawAmount)
     const encryptedAmount = await encryptAmount(rawAmount, sharedSecret)
     const viewingKeyHash = computeViewingKeyHash(params.recipientViewingKey)
-    const proof = await generateMockProof(commitment, blindingFactor, rawAmount)
 
     const [configPda] = getConfigPda(this.programId)
     const [transferRecordPda] = getTransferRecordPda(
@@ -470,51 +473,64 @@ export class SipPrivacyClient {
       this.programId
     )
 
-    const instructionData = this.encodeShieldedTransferData({
-      amountCommitment: Array.from(commitment),
-      stealthPubkey: params.stealthPubkey,
-      ephemeralPubkey: Array.from(ephemeralPubkey),
-      viewingKeyHash: Array.from(viewingKeyHash),
-      encryptedAmount: Buffer.concat([
-        encryptedAmount.nonce,
-        encryptedAmount.ciphertext,
-      ]),
-      proof: Buffer.from(proof),
-      actualAmount: rawAmount,
-    })
+    // Encode create_transfer_announcement instruction data:
+    // [8] discriminator + [33] commitment + [32] stealth_pubkey +
+    // [33] ephemeral_pubkey + [32] viewing_key_hash +
+    // [4 + n] encrypted_amount (vec) + [32] token_mint
+    const encryptedAmountBytes = Buffer.concat([
+      encryptedAmount.nonce,
+      encryptedAmount.ciphertext,
+    ])
+    const dataSize = 8 + 33 + 32 + 33 + 32 + 4 + encryptedAmountBytes.length + 32
+    const instructionData = Buffer.alloc(dataSize)
+    let offset = 0
 
-    // Use shielded_token_transfer discriminator
-    Buffer.from([0x6e, 0x31, 0xe7, 0xe8, 0x5d, 0x8d, 0x58, 0xab])
-      .copy(instructionData, 0)
+    // Discriminator: sha256("global:create_transfer_announcement")[0..8]
+    Buffer.from([0x9b, 0x34, 0xb1, 0x8f, 0xd3, 0x5b, 0xcd, 0x66]).copy(instructionData, offset)
+    offset += 8
 
-    const senderAta = getAssociatedTokenAddress(sender, params.tokenMint)
+    // amount_commitment: [u8; 33]
+    Buffer.from(commitment).copy(instructionData, offset)
+    offset += 33
+
+    // stealth_pubkey: Pubkey
+    params.stealthPubkey.toBuffer().copy(instructionData, offset)
+    offset += 32
+
+    // ephemeral_pubkey: [u8; 33]
+    Buffer.from(ephemeralPubkey).copy(instructionData, offset)
+    offset += 33
+
+    // viewing_key_hash: [u8; 32]
+    Buffer.from(viewingKeyHash).copy(instructionData, offset)
+    offset += 32
+
+    // encrypted_amount: Vec<u8> (4-byte LE length prefix + data)
+    instructionData.writeUInt32LE(encryptedAmountBytes.length, offset)
+    offset += 4
+    encryptedAmountBytes.copy(instructionData, offset)
+    offset += encryptedAmountBytes.length
+
+    // token_mint: Pubkey
+    params.tokenMint.toBuffer().copy(instructionData, offset)
+
     const stealthAta = getAssociatedTokenAddress(params.stealthPubkey, params.tokenMint)
-    const feeCollectorAta = getAssociatedTokenAddress(config.authority, params.tokenMint)
 
     const transaction = new Transaction()
 
+    // Create stealth ATA if needed (Jupiter will send output here)
     if (!(await tokenAccountExists(this.connection, stealthAta))) {
       transaction.add(
         createAssociatedTokenAccountInstruction(sender, stealthAta, params.stealthPubkey, params.tokenMint)
       )
     }
 
-    if (!(await tokenAccountExists(this.connection, feeCollectorAta))) {
-      transaction.add(
-        createAssociatedTokenAccountInstruction(sender, feeCollectorAta, config.authority, params.tokenMint)
-      )
-    }
-
+    // create_transfer_announcement: 4 accounts only (no token accounts)
     const instruction = new web3.TransactionInstruction({
       keys: [
         { pubkey: configPda, isSigner: false, isWritable: true },
         { pubkey: transferRecordPda, isSigner: false, isWritable: true },
         { pubkey: sender, isSigner: true, isWritable: true },
-        { pubkey: params.tokenMint, isSigner: false, isWritable: false },
-        { pubkey: senderAta, isSigner: false, isWritable: true },
-        { pubkey: stealthAta, isSigner: false, isWritable: true },
-        { pubkey: feeCollectorAta, isSigner: false, isWritable: true },
-        { pubkey: TOKEN_PROGRAM_ID, isSigner: false, isWritable: false },
         { pubkey: web3.SystemProgram.programId, isSigner: false, isWritable: false },
       ],
       programId: this.programId,

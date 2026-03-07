@@ -185,6 +185,7 @@ async function executeJupiterSwap(
 
   if (destinationTokenAccount) {
     swapBody.destinationTokenAccount = destinationTokenAccount
+    swapBody.wrapAndUnwrapSol = false
   }
 
   const swapResponse = await fetch(JUPITER_SWAP_API, {
@@ -372,6 +373,8 @@ export function useSwap(): SwapResult {
         return false
       }
 
+      let stealthAddr: string | undefined
+
       try {
         setError(null)
         setTxSignature(null)
@@ -383,7 +386,6 @@ export function useSwap(): SwapResult {
         setStatus("confirming")
 
         let signature: string
-        let stealthAddr: string | undefined
 
         if (privacyLevel === "shielded") {
           // ── Private Swap Flow ──
@@ -412,8 +414,7 @@ export function useSwap(): SwapResult {
           const client = new SipPrivacyClient(connection)
           const senderPubkey = new PublicKey(address)
 
-          // Determine output token decimals from quote
-          const outputDecimals = jupiterQuote.outputMint === "So11111111111111111111111111111111111111112" ? 9 : 6
+          const outputDecimals = quote.outputToken.decimals
 
           const { transaction: announceTx } = await client.buildSwapAnnouncement(
             senderPubkey,
@@ -560,7 +561,7 @@ export function useSwap(): SwapResult {
         setError(message)
         setStatus("error")
 
-        // Add failed swap to history
+        // Add failed swap to history (include stealth info for recovery)
         if (currentSwapId.current) {
           addSwap({
             id: currentSwapId.current,
@@ -572,6 +573,9 @@ export function useSwap(): SwapResult {
             status: "failed",
             timestamp: Date.now(),
             error: message,
+            isPrivate: privacyLevel === "shielded" ? true : undefined,
+            stealthAddress: stealthAddr || undefined,
+            claimStatus: privacyLevel === "shielded" && stealthAddr ? "unclaimed" : undefined,
           })
         }
 
