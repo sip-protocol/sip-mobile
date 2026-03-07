@@ -53,6 +53,7 @@ export default {
     },
     plugins: [
       "./plugins/withKotlinJvmTarget",
+      "./plugins/withBlockedPermissions",
       "expo-router",
       "expo-splash-screen",
       "expo-secure-store",
@@ -91,15 +92,6 @@ export default {
             enableMinifyInReleaseBuilds: true,
             // Solana Mobile SDK Maven repository for Seed Vault
             extraMavenRepos: ["https://maven.solanamobile.com/releases"],
-            // Block auto-added permissions not needed for a privacy wallet
-            blockedPermissions: [
-              "android.permission.RECORD_AUDIO",
-              "android.permission.SYSTEM_ALERT_WINDOW",
-              "android.permission.READ_EXTERNAL_STORAGE",
-              "android.permission.WRITE_EXTERNAL_STORAGE",
-              "android.permission.WAKE_LOCK",
-              "android.permission.RECEIVE_BOOT_COMPLETED",
-            ],
           },
         },
       ],
