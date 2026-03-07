@@ -16,6 +16,7 @@ import { useSwapStore } from "@/stores/swap"
 import { useToastStore } from "@/stores/toast"
 import { useWalletStore } from "@/stores/wallet"
 import { useWallet } from "./useWallet"
+import { useNativeWallet } from "./useNativeWallet"
 import { useSettingsStore } from "@/stores/settings"
 import { getExplorerTxUrl } from "@/utils/explorer"
 import type { JupiterQuoteResponse } from "./useQuote"
@@ -293,9 +294,10 @@ async function waitForConfirmation(
  * ```
  */
 export function useSwap(): SwapResult {
-  const { isConnected, address } = useWalletStore()
+  const { isConnected, address, walletType } = useWalletStore()
   const { network, defaultExplorer } = useSettingsStore()
-  const { signTransaction } = useWallet()
+  const { signTransaction: externalSignTransaction } = useWallet()
+  const { signTransaction: nativeSignTransaction } = useNativeWallet()
   const { addSwap } = useSwapStore()
   const { addToast } = useToastStore()
 
@@ -378,7 +380,24 @@ export function useSwap(): SwapResult {
           jupiterQuote,
           address,
           async (tx: Uint8Array) => {
-            const signed = await signTransaction(tx)
+            let signed: Uint8Array | null = null
+
+            if (walletType === "native") {
+              // Native wallet: deserialize, sign with keypair, re-serialize
+              const { Transaction, VersionedTransaction } = await import("@solana/web3.js")
+              let txObj: InstanceType<typeof Transaction> | InstanceType<typeof VersionedTransaction>
+              try {
+                txObj = VersionedTransaction.deserialize(tx)
+              } catch {
+                txObj = Transaction.from(tx)
+              }
+              const signedTx = await nativeSignTransaction(txObj)
+              signed = signedTx.serialize()
+            } else {
+              // External wallet (MWA/Phantom): pass raw bytes
+              signed = await externalSignTransaction(tx)
+            }
+
             if (!signed) {
               throw new Error("Transaction signing rejected")
             }
@@ -443,7 +462,7 @@ export function useSwap(): SwapResult {
         return false
       }
     },
-    [isConnected, address, network, defaultExplorer, signTransaction, addSwap, addToast]
+    [isConnected, address, network, defaultExplorer, walletType, nativeSignTransaction, externalSignTransaction, addSwap, addToast]
   )
 
   // Generate explorer URL
