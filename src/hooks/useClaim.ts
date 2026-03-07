@@ -21,7 +21,7 @@ import {
   deriveStealthPrivateKey,
   type StealthAddress,
 } from "@/lib/stealth"
-import { buildClaimTransfer, signClaimWithStealth } from "@/lib/anchor/client"
+import { buildClaimTransfer, buildSplClaimTransfer, signClaimWithStealth } from "@/lib/anchor/client"
 import { debug, logger } from "@/utils/logger"
 import bs58 from "bs58"
 
@@ -347,27 +347,44 @@ export function useClaim(): UseClaimReturn {
 
         // Setup connection
         const connection = new Connection(getRpcUrl(network), { commitment: "confirmed" })
-
-        // Find transfer record PDA
-        const transferRecordPubkey = await findTransferRecordPubkey(payment, connection)
-        if (!transferRecordPubkey) {
-          throw new Error("Transfer record not found on-chain")
-        }
-
-        // Build the claim transaction
         const recipientPubkey = new PublicKey(walletAddress)
-        const { transaction, stealthScalar, stealthPublicKey, nullifier } = await buildClaimTransfer(
-          connection,
-          {
+
+        let transaction: Transaction
+        let stealthScalar: Uint8Array
+        let stealthPublicKey: Uint8Array
+
+        if (payment.tokenMint) {
+          // SPL token claim — direct transfer from stealth ATA
+          const result = await buildSplClaimTransfer(connection, {
+            stealthAddress: stealthPubkey,
+            stealthPrivateKey: derivedKey,
+            recipientAddress: recipientPubkey,
+            tokenMint: new PublicKey(payment.tokenMint),
+            decimals: payment.tokenDecimals ?? 6,
+          })
+          transaction = result.transaction
+          stealthScalar = result.stealthScalar
+          stealthPublicKey = result.stealthPublicKey
+          debug("SPL claim transaction built")
+        } else {
+          // SOL claim via SIP Privacy Program
+          const transferRecordPubkey = await findTransferRecordPubkey(payment, connection)
+          if (!transferRecordPubkey) {
+            throw new Error("Transfer record not found on-chain")
+          }
+
+          const result = await buildClaimTransfer(connection, {
             transferRecordPubkey,
             stealthAddress: stealthPubkey,
             stealthPrivateKey: derivedKey,
             recipientAddress: recipientPubkey,
-          }
-        )
+          })
+          transaction = result.transaction
+          stealthScalar = result.stealthScalar
+          stealthPublicKey = result.stealthPublicKey
+          debug("Nullifier:", bs58.encode(result.nullifier))
+        }
 
-        debug("Claim transaction built")
-        debug("Nullifier:", bs58.encode(nullifier))
         debug("Stealth pubkey:", bs58.encode(stealthPublicKey))
         debug("Expected stealth pubkey:", stealthPubkey.toBase58())
 

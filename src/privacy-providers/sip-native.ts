@@ -186,23 +186,27 @@ export class SipNativeAdapter implements PrivacyProviderAdapter {
         recipientAddress = bs58.default.encode(addressBytes)
 
         if (params.tokenMint) {
-          // SPL Token transfer to stealth address
-          // Direct transfer to stealth-derived ATA (no SIP Privacy Program involvement)
-          const { buildSplTransferTransaction } = await import("@/lib/spl")
+          // SPL Token stealth transfer via SIP Privacy Program
+          // Creates TransferRecord PDA for scanner discovery
+          const { getMintDecimals } = await import("@/lib/spl")
 
           const stealthPubkey = new PublicKey(recipientAddress)
           const mintPubkey = new PublicKey(params.tokenMint)
           const amount = parseFloat(params.amount)
+          const decimals = await getMintDecimals(connection, mintPubkey)
 
-          debug(`SIP Native stealth SPL transfer: ${amount} tokens to ${recipientAddress}`)
+          debug(`SIP Native stealth SPL transfer: ${amount} tokens (${decimals} decimals) to ${recipientAddress}`)
 
-          const transaction = await buildSplTransferTransaction(
-            connection,
-            fromPubkey,
+          const client = getSipPrivacyClient(connection)
+          const { transaction } = await client.buildShieldedTokenTransfer(fromPubkey, {
+            amount,
+            decimals,
+            tokenMint: mintPubkey,
             stealthPubkey,
-            mintPubkey,
-            amount
-          )
+            recipientSpendingKey: hexToBytes(metaAddress.spendingKey),
+            recipientViewingKey: hexToBytes(metaAddress.viewingKey),
+            ephemeralPrivateKey: hexToBytes(ephemeralPrivateKey),
+          })
 
           setStatus("signing")
 
@@ -229,7 +233,7 @@ export class SipNativeAdapter implements PrivacyProviderAdapter {
           })
 
           txHash = signature
-          debug("SIP Native stealth SPL transfer:", txHash)
+          debug("SIP Native shielded SPL transfer:", txHash)
         } else {
           // SOL transfer to stealth address via SIP Privacy Program
           // Get SIP Privacy client

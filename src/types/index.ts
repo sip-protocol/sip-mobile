@@ -84,6 +84,10 @@ export interface PaymentRecord {
   keyId?: string
   /** Network where this payment was made (for filtering) */
   network?: "mainnet-beta" | "devnet" | "testnet"
+  /** Token mint address (for SPL token stealth payments) */
+  tokenMint?: string
+  /** Token decimals (for SPL token display/claim) */
+  tokenDecimals?: number
 }
 
 // ============================================================================
