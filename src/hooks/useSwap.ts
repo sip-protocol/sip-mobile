@@ -225,7 +225,7 @@ async function executeJupiterSwap(
       jsonrpc: "2.0",
       id: 1,
       method: "sendTransaction",
-      params: [signedBase64, { encoding: "base64", skipPreflight: false }],
+      params: [signedBase64, { encoding: "base64", skipPreflight: true, maxRetries: 3 }],
     }),
   })
 
