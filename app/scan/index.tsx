@@ -18,6 +18,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context"
 import { router } from "expo-router"
 import { useState } from "react"
+import { resolveTokenSymbol } from "@/data/tokens"
 import { useScanPayments } from "@/hooks/useScanPayments"
 import { useClaim } from "@/hooks/useClaim"
 import { useWalletStore } from "@/stores/wallet"
@@ -124,12 +125,15 @@ export default function ScanScreen() {
     cancelScan,
     getLastScanTime,
   } = useScanPayments()
-  const { getClaimableAmount } = useClaim()
+  const { getClaimableAmount, getUnclaimedPayments } = useClaim()
   const { isConnected } = useWalletStore()
   const { addToast } = useToastStore()
 
   // Get unclaimed payments count
   const { amount: unclaimedAmount, count: unclaimedCount } = getClaimableAmount()
+  const unclaimedPayments = getUnclaimedPayments()
+  const unclaimedTokenSymbols = [...new Set(unclaimedPayments.map((p) => resolveTokenSymbol(p)))]
+  const unclaimedToken = unclaimedTokenSymbols.length === 1 ? unclaimedTokenSymbols[0] : "tokens"
 
   const [hasScannedOnce, setHasScannedOnce] = useState(false)
 
@@ -321,7 +325,7 @@ export default function ScanScreen() {
                 className="mt-4 bg-green-900/20 border border-green-700 rounded-xl p-4"
                 onPress={() => router.push("/claim")}
                 accessibilityRole="button"
-                accessibilityLabel={`${unclaimedCount} unclaimed payment${unclaimedCount !== 1 ? "s" : ""}, ${unclaimedAmount.toFixed(4)} SOL`}
+                accessibilityLabel={`${unclaimedCount} unclaimed payment${unclaimedCount !== 1 ? "s" : ""}, ${unclaimedAmount.toFixed(4)} ${unclaimedToken}`}
                 accessibilityHint="Opens the claim payments screen"
               >
                 <View className="flex-row items-center justify-between">
@@ -332,7 +336,7 @@ export default function ScanScreen() {
                         {unclaimedCount} Unclaimed Payment{unclaimedCount !== 1 ? "s" : ""}
                       </Text>
                       <Text className="text-dark-400 text-sm">
-                        {unclaimedAmount.toFixed(4)} SOL ready to claim
+                        {unclaimedAmount.toFixed(4)} {unclaimedToken} ready to claim
                       </Text>
                     </View>
                   </View>

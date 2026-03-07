@@ -78,6 +78,32 @@ export function createAssociatedTokenAccountInstruction(
 }
 
 /**
+ * Create an idempotent Associated Token Account instruction
+ *
+ * Uses instruction data [1] which is the CreateIdempotent variant.
+ * Safe to call even if the ATA already exists — no-ops instead of failing.
+ */
+export function createIdempotentAtaInstruction(
+  payer: PublicKey,
+  associatedToken: PublicKey,
+  owner: PublicKey,
+  mint: PublicKey
+): TransactionInstruction {
+  return new TransactionInstruction({
+    keys: [
+      { pubkey: payer, isSigner: true, isWritable: true },
+      { pubkey: associatedToken, isSigner: false, isWritable: true },
+      { pubkey: owner, isSigner: false, isWritable: false },
+      { pubkey: mint, isSigner: false, isWritable: false },
+      { pubkey: SystemProgram.programId, isSigner: false, isWritable: false },
+      { pubkey: TOKEN_PROGRAM_ID, isSigner: false, isWritable: false },
+    ],
+    programId: ASSOCIATED_TOKEN_PROGRAM_ID,
+    data: Buffer.from([1]), // CreateIdempotent variant
+  })
+}
+
+/**
  * Create a TransferChecked instruction (SPL Token instruction index 12)
  *
  * Data layout: [12, amount (u64 LE), decimals (u8)]
@@ -110,6 +136,33 @@ export function createTransferCheckedInstruction(
     ],
     programId: TOKEN_PROGRAM_ID,
     data,
+  })
+}
+
+/**
+ * Close a token account and reclaim its rent-exempt SOL
+ *
+ * SPL Token instruction index 9 (CloseAccount).
+ * Account must have zero token balance.
+ *
+ * Accounts:
+ *   0. account (writable) — the token account to close
+ *   1. destination (writable) — receives the reclaimed SOL
+ *   2. authority (signer) — owner of the token account
+ */
+export function createCloseAccountInstruction(
+  account: PublicKey,
+  destination: PublicKey,
+  authority: PublicKey
+): TransactionInstruction {
+  return new TransactionInstruction({
+    keys: [
+      { pubkey: account, isSigner: false, isWritable: true },
+      { pubkey: destination, isSigner: false, isWritable: true },
+      { pubkey: authority, isSigner: true, isWritable: false },
+    ],
+    programId: TOKEN_PROGRAM_ID,
+    data: Buffer.from([9]), // CloseAccount instruction index
   })
 }
 

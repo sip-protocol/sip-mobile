@@ -14,6 +14,7 @@ import { View, Text, ScrollView, TouchableOpacity, RefreshControl } from "react-
 import { SafeAreaView } from "react-native-safe-area-context"
 import { router } from "expo-router"
 import { useCallback, useState, useMemo, useEffect } from "react"
+import { resolveTokenSymbol } from "@/data/tokens"
 import { markPerformance } from "@/utils/performance"
 import { hapticLight } from "@/utils/haptics"
 
@@ -190,7 +191,7 @@ export default function HomeScreen() {
   const { addToast } = useToastStore()
   const sidebar = useSidebar()
   const activeAccount = accounts.find((a) => a.id === activeAccountId)
-  const { getClaimableAmount } = useClaim()
+  const { getClaimableAmount, getUnclaimedPayments } = useClaim()
   const { balance, usdValue, isLoading: balanceLoading, refresh: refreshBalance, tokenBalances } = useBalance()
   const [refreshing, setRefreshing] = useState(false)
 
@@ -209,6 +210,9 @@ export default function HomeScreen() {
   const recentPayments = useMemo(() => networkPayments.slice(0, 5), [networkPayments])
   const claimable = useMemo(() => getClaimableAmount(), [payments])
   const { count: unclaimedCount, amount: unclaimedAmount } = claimable
+  const unclaimedPayments = getUnclaimedPayments()
+  const unclaimedTokenSymbols = [...new Set(unclaimedPayments.map((p) => resolveTokenSymbol(p)))]
+  const unclaimedToken = unclaimedTokenSymbols.length === 1 ? unclaimedTokenSymbols[0] : "tokens"
 
   // Memoize privacy stats (now using network-filtered payments)
   const privacyStats = useMemo(() => ({
@@ -416,7 +420,7 @@ export default function HomeScreen() {
             className="mt-6 bg-green-900/20 border border-green-700/50 rounded-xl p-4 flex-row items-center"
             onPress={() => router.push("/claim")}
             accessibilityRole="button"
-            accessibilityLabel={`${unclaimedCount} unclaimed payment${unclaimedCount !== 1 ? "s" : ""}, ${unclaimedAmount.toFixed(4)} SOL`}
+            accessibilityLabel={`${unclaimedCount} unclaimed payment${unclaimedCount !== 1 ? "s" : ""}, ${unclaimedAmount.toFixed(4)} ${unclaimedToken}`}
             accessibilityHint="Opens the claim payments screen"
           >
             <View className="w-12 h-12 bg-green-900/30 rounded-full items-center justify-center">
@@ -427,7 +431,7 @@ export default function HomeScreen() {
                 {unclaimedCount} Unclaimed Payment{unclaimedCount !== 1 ? "s" : ""}
               </Text>
               <Text className="text-dark-400 text-sm">
-                {unclaimedAmount.toFixed(4)} SOL ready to claim
+                {unclaimedAmount.toFixed(4)} {unclaimedToken} ready to claim
               </Text>
             </View>
             <ArrowDownIcon size={24} weight="bold" color="#4ade80" style={{ transform: [{ rotate: '-90deg' }] }} />

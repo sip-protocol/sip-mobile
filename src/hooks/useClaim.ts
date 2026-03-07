@@ -415,18 +415,25 @@ export function useClaim(): UseClaimReturn {
         })
 
         const signature = await connection.sendRawTransaction(
-          (signedTransaction as Transaction).serialize()
+          (signedTransaction as Transaction).serialize(),
+          { skipPreflight: false, preflightCommitment: "confirmed" }
         )
 
-        // Wait for confirmation
-        const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash()
-        await connection.confirmTransaction({
+        // Wait for confirmation using the SAME blockhash from the transaction
+        const txBlockhash = (signedTransaction as Transaction).recentBlockhash!
+        const { lastValidBlockHeight } = await connection.getLatestBlockhash()
+        const confirmation = await connection.confirmTransaction({
           signature,
-          blockhash,
+          blockhash: txBlockhash,
           lastValidBlockHeight,
         })
 
-        debug("Claim transaction submitted:", signature)
+        // Check for on-chain errors (confirmTransaction resolves even on failure)
+        if (confirmation.value.err) {
+          throw new Error(`Transaction failed on-chain: ${JSON.stringify(confirmation.value.err)}`)
+        }
+
+        debug("Claim transaction confirmed:", signature)
 
         // Update payment status
         // IMPORTANT: Don't overwrite txHash - it's the transfer record PDA used for sync

@@ -18,6 +18,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context"
 import { router } from "expo-router"
 import { useState } from "react"
+import { resolveTokenSymbol } from "@/data/tokens"
 import { useClaim } from "@/hooks/useClaim"
 import { useWalletStore } from "@/stores/wallet"
 import { useToastStore } from "@/stores/toast"
@@ -242,6 +243,10 @@ export default function ClaimScreen() {
   const unclaimedPayments = getUnclaimedPayments()
   const { amount: claimableAmount, count: claimableCount } = getClaimableAmount()
 
+  // Resolve display token: single token type → symbol, mixed → "tokens"
+  const tokenSymbols = [...new Set(unclaimedPayments.map((p) => resolveTokenSymbol(p)))]
+  const displayToken = tokenSymbols.length === 1 ? tokenSymbols[0] : "tokens"
+
   const selectedPayments = unclaimedPayments.filter((p) =>
     selectedIds.has(p.id)
   )
@@ -383,7 +388,7 @@ export default function ClaimScreen() {
               <View>
                 <Text className="text-dark-400 text-sm">Total Claimable</Text>
                 <Text className="text-3xl font-bold text-white mt-1">
-                  {claimableAmount.toFixed(4)} SOL
+                  {claimableAmount.toFixed(4)} {displayToken}
                 </Text>
                 <Text className="text-dark-500 text-sm mt-1">
                   {claimableCount} payment{claimableCount !== 1 ? "s" : ""}{" "}
@@ -518,7 +523,7 @@ export default function ClaimScreen() {
                   ? "Claiming..."
                   : selectedIds.size === 0
                     ? "Select Payments to Claim"
-                    : `Claim ${selectedIds.size} Payment${selectedIds.size !== 1 ? "s" : ""} (${selectedAmount.toFixed(4)} SOL)`}
+                    : `Claim ${selectedIds.size} Payment${selectedIds.size !== 1 ? "s" : ""} (${selectedAmount.toFixed(4)} ${displayToken})`}
               </Button>
             </View>
           )}

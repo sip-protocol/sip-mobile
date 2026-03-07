@@ -28,7 +28,9 @@ import {
   getAssociatedTokenAddress,
   tokenAccountExists,
   createAssociatedTokenAccountInstruction,
+  createIdempotentAtaInstruction,
   createTransferCheckedInstruction,
+  createCloseAccountInstruction,
   getTokenAccountBalance,
   TOKEN_PROGRAM_ID,
 } from "@/lib/spl"
@@ -892,17 +894,16 @@ export async function buildSplClaimTransfer(
 
   const transaction = new Transaction()
 
-  // Create recipient ATA if needed
-  if (!(await tokenAccountExists(connection, recipientAta))) {
-    transaction.add(
-      createAssociatedTokenAccountInstruction(
-        params.recipientAddress,
-        recipientAta,
-        params.recipientAddress,
-        params.tokenMint
-      )
+  // Idempotent ATA create — safe even if account already exists (no-ops)
+  // Avoids race condition where tokenAccountExists returns false due to RPC caching
+  transaction.add(
+    createIdempotentAtaInstruction(
+      params.recipientAddress,
+      recipientAta,
+      params.recipientAddress,
+      params.tokenMint
     )
-  }
+  )
 
   // TransferChecked from stealth ATA to recipient ATA
   transaction.add(
@@ -913,6 +914,16 @@ export async function buildSplClaimTransfer(
       params.stealthAddress, // authority (stealth address signs)
       balance,
       params.decimals
+    )
+  )
+
+  // Close empty stealth ATA → reclaim rent SOL to fee payer (recipient)
+  // This offsets the cost of creating the recipient ATA
+  transaction.add(
+    createCloseAccountInstruction(
+      stealthAta,
+      params.recipientAddress, // rent SOL goes to fee payer
+      params.stealthAddress    // stealth address is the authority
     )
   )
 
