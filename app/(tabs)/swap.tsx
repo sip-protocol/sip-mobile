@@ -580,8 +580,26 @@ export default function SwapScreen() {
     setShowConfirmModal(true)
   }
 
+  const PRIVATE_SWAP_OVERHEAD = 0.003
+
   const confirmSwap = async () => {
     if (!quote || !jupiterQuote) return
+
+    // SOL budget validation for private swaps
+    if (privacyLevel === "shielded") {
+      const swapInputSOL = fromToken.symbol === "SOL" ? parseFloat(fromAmount) : 0
+      const requiredExtra = swapInputSOL + PRIVATE_SWAP_OVERHEAD
+
+      if (solBalance < requiredExtra) {
+        addToast({
+          type: "error",
+          title: "Insufficient SOL",
+          message: `Private swap needs ~${PRIVATE_SWAP_OVERHEAD} SOL extra for stealth account rent.`,
+        })
+        setShowConfirmModal(false)
+        return
+      }
+    }
 
     setShowConfirmModal(false)
     setShowExecutingModal(true)
@@ -1140,16 +1158,28 @@ export default function SwapScreen() {
       <Modal
         visible={showResultModal}
         onClose={handleResultClose}
-        title={swapStatus === "success" ? "Swap Complete" : "Swap Failed"}
+        title={swapStatus === "success"
+          ? privacyLevel === "shielded"
+            ? "Private Swap Complete"
+            : "Swap Complete"
+          : "Swap Failed"}
       >
         <View className="items-center py-4">
           {swapStatus === "success" ? (
             <>
-              <View className="w-20 h-20 rounded-full bg-green-500/20 items-center justify-center mb-4">
-                <CheckIcon size={48} color={ICON_COLORS.success} weight="bold" />
+              <View className={`w-20 h-20 rounded-full items-center justify-center mb-4 ${
+                privacyLevel === "shielded" ? "bg-brand-500/20" : "bg-green-500/20"
+              }`}>
+                {privacyLevel === "shielded" ? (
+                  <LockSimpleIcon size={48} color={ICON_COLORS.brand} weight="fill" />
+                ) : (
+                  <CheckIcon size={48} color={ICON_COLORS.success} weight="bold" />
+                )}
               </View>
               <Text className="text-white text-xl font-semibold text-center">
-                Successfully swapped!
+                {privacyLevel === "shielded"
+                  ? "Private Swap Complete"
+                  : "Successfully swapped!"}
               </Text>
               <View className="flex-row items-center mt-2">
                 <Text className="text-dark-400">
@@ -1162,10 +1192,15 @@ export default function SwapScreen() {
               </View>
 
               {privacyLevel === "shielded" && (
-                <View className="bg-brand-900/30 px-3 py-1.5 rounded-full mt-3 flex-row items-center gap-1">
-                  <LockSimpleIcon size={14} color={ICON_COLORS.brand} weight="fill" />
-                  <Text className="text-brand-400 text-sm">Private Swap</Text>
-                </View>
+                <>
+                  <View className="bg-brand-900/30 px-3 py-1.5 rounded-full mt-3 flex-row items-center gap-1">
+                    <LockSimpleIcon size={14} color={ICON_COLORS.brand} weight="fill" />
+                    <Text className="text-brand-400 text-sm">Private Swap</Text>
+                  </View>
+                  <Text className="text-dark-400 text-sm text-center mt-3 px-4">
+                    Claim your {completedSwap?.toSymbol ?? toToken.symbol} from the Receive tab when ready
+                  </Text>
+                </>
               )}
 
               {txSignature && (
