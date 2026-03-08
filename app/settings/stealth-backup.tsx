@@ -88,7 +88,10 @@ export default function StealthBackupScreen() {
       try { backupFile.delete() } catch {}
 
       // Clear backup flag
-      await clearStealthBackupFlag()
+      // Note: shareAsync resolves whether user saved or cancelled — expo-sharing
+      // provides no way to distinguish. We accept this and clear the flag
+      // optimistically since the user saw the share dialog.
+      await clearStealthBackupFlag(address ?? undefined)
 
       addToast({
         type: "success",
@@ -121,10 +124,16 @@ export default function StealthBackupScreen() {
         return
       }
 
-      const fileUri = result.assets[0].uri
+      const asset = result.assets[0]
+
+      // Reject files over 1MB (stealth backups are typically <10KB)
+      if (asset.size && asset.size > 1_000_000) {
+        addToast({ type: "error", title: "File too large", message: "Backup files should be under 1MB" })
+        return
+      }
 
       // Read file
-      const pickedFile = new ExpoFile(fileUri)
+      const pickedFile = new ExpoFile(asset.uri)
       const encrypted = await pickedFile.text()
 
       // Get seed phrase for decryption
@@ -163,7 +172,7 @@ export default function StealthBackupScreen() {
               try {
                 const success = await importStealthStorage(address!, decrypted)
                 if (success) {
-                  await clearStealthBackupFlag()
+                  await clearStealthBackupFlag(address ?? undefined)
                   addToast({
                     type: "success",
                     title: "Keys restored",

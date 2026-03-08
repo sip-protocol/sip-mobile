@@ -50,7 +50,7 @@ export default function ReceiveScreen() {
     regenerateAddress,
     formatForDisplay,
   } = useStealth()
-  const { isConnected } = useWalletStore()
+  const { isConnected, address: walletAddress } = useWalletStore()
   const { getUnclaimedPaymentsCount } = usePrivacyStore()
   const { addToast } = useToastStore()
 
@@ -65,14 +65,18 @@ export default function ReceiveScreen() {
   const [showBackupBanner, setShowBackupBanner] = useState(false)
 
   useEffect(() => {
-    needsStealthBackup().then(setShowBackupBanner)
-  }, [])
+    if (walletAddress) {
+      needsStealthBackup(walletAddress).then(setShowBackupBanner)
+    }
+  }, [walletAddress])
 
   const handleDismissBackup = useCallback(async () => {
     setShowBackupBanner(false)
-    const AsyncStorage = (await import("@react-native-async-storage/async-storage")).default
-    await AsyncStorage.setItem("sip_stealth_backup_dismissed", "true")
-  }, [])
+    if (walletAddress) {
+      const AsyncStorage = (await import("@react-native-async-storage/async-storage")).default
+      await AsyncStorage.setItem(`sip_stealth_backup_dismissed_${walletAddress}`, "true")
+    }
+  }, [walletAddress])
 
   // Generate payment request URI with optional amount
   const getPaymentUri = useCallback((): string => {

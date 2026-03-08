@@ -65,7 +65,7 @@ export interface UseStealthReturn {
 const SECURE_STORE_KEY_V2 = "sip_stealth_keys_v2" // Previous shared key
 const LEGACY_STORE_KEY = "sip_stealth_keys" // For v1 migration
 const SIP_CHAIN = "solana"
-const NEEDS_BACKUP_KEY = "sip_stealth_needs_backup"
+const NEEDS_BACKUP_KEY_PREFIX = "sip_stealth_needs_backup"
 
 /**
  * Generate wallet-scoped storage key
@@ -169,8 +169,8 @@ async function migrateV2ToV3(walletAddress: string): Promise<StealthKeysStorage 
       }
     }
 
-    // Set backup flag
-    await AsyncStorage.setItem(NEEDS_BACKUP_KEY, "true")
+    // Set backup flag (wallet-scoped)
+    await AsyncStorage.setItem(`${NEEDS_BACKUP_KEY_PREFIX}_${walletAddress}`, "true")
 
     // Delete old shared key
     await SecureStore.deleteItemAsync(SECURE_STORE_KEY_V2)
@@ -202,12 +202,15 @@ export async function getKeyById(
 /**
  * Check if stealth backup is needed (post-migration)
  * Returns false if user has dismissed the prompt.
+ * Wallet-scoped: checks flag for the given wallet (or active wallet).
  */
-export async function needsStealthBackup(): Promise<boolean> {
+export async function needsStealthBackup(walletAddress?: string): Promise<boolean> {
   try {
-    const dismissed = await AsyncStorage.getItem("sip_stealth_backup_dismissed")
+    const addr = walletAddress || useWalletStore.getState().address
+    if (!addr) return false
+    const dismissed = await AsyncStorage.getItem(`sip_stealth_backup_dismissed_${addr}`)
     if (dismissed === "true") return false
-    const value = await AsyncStorage.getItem(NEEDS_BACKUP_KEY)
+    const value = await AsyncStorage.getItem(`${NEEDS_BACKUP_KEY_PREFIX}_${addr}`)
     return value === "true"
   } catch {
     return false
@@ -215,10 +218,12 @@ export async function needsStealthBackup(): Promise<boolean> {
 }
 
 /**
- * Clear the stealth backup needed flag
+ * Clear the stealth backup needed flag (wallet-scoped)
  */
-export async function clearStealthBackupFlag(): Promise<void> {
-  await AsyncStorage.removeItem(NEEDS_BACKUP_KEY)
+export async function clearStealthBackupFlag(walletAddress?: string): Promise<void> {
+  const addr = walletAddress || useWalletStore.getState().address
+  if (!addr) return
+  await AsyncStorage.removeItem(`${NEEDS_BACKUP_KEY_PREFIX}_${addr}`)
 }
 
 /**
@@ -232,17 +237,50 @@ export async function exportStealthStorage(walletAddress: string): Promise<strin
 
 /**
  * Import stealth storage from decrypted JSON (for backup restore)
+ *
+ * Merges imported records with existing ones by ID to prevent
+ * losing keys generated after the backup was created.
  */
 export async function importStealthStorage(
   walletAddress: string,
   storageJson: string
 ): Promise<boolean> {
   try {
-    const storage = JSON.parse(storageJson) as StealthKeysStorage
-    if (!storage.version || !Array.isArray(storage.records)) {
+    const imported = JSON.parse(storageJson) as StealthKeysStorage
+    if (!imported.version || !Array.isArray(imported.records)) {
       return false
     }
-    await saveStorage(walletAddress, storage)
+
+    const existing = await loadStorage(walletAddress)
+    if (existing) {
+      // Merge: keep local records not in backup, add backup records not local
+      const localIds = new Set(existing.records.map((r) => r.id))
+      const importedIds = new Set(imported.records.map((r) => r.id))
+
+      // Add imported records that don't exist locally
+      for (const record of imported.records) {
+        if (!localIds.has(record.id)) {
+          existing.records.push(record)
+        }
+      }
+
+      // Preserve imported activeKeyId if it has records we didn't have
+      if (imported.activeKeyId && !localIds.has(imported.activeKeyId) && importedIds.has(imported.activeKeyId)) {
+        // Archive current active, activate the imported one
+        existing.records = existing.records.map((r) => ({
+          ...r,
+          isActive: r.id === imported.activeKeyId,
+          archivedAt: r.isActive && r.id !== imported.activeKeyId ? Date.now() : r.archivedAt,
+        }))
+        existing.activeKeyId = imported.activeKeyId
+      }
+
+      await saveStorage(walletAddress, existing)
+    } else {
+      // No existing storage — use imported directly
+      await saveStorage(walletAddress, imported)
+    }
+
     return true
   } catch {
     return false
@@ -295,18 +333,6 @@ export function useStealth(): UseStealthReturn {
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  // Load or generate keys on mount
-  useEffect(() => {
-    if (isConnected && address) {
-      loadOrGenerateKeys(address)
-    } else {
-      setStealthAddress(null)
-      setKeys(null)
-      setActiveKeyId(null)
-      setIsLoading(false)
-    }
-  }, [isConnected, address])
-
   const loadOrGenerateKeys = useCallback(async (walletAddress: string) => {
     setIsLoading(true)
     setError(null)
@@ -325,7 +351,7 @@ export function useStealth(): UseStealthReturn {
         const legacyStorage = await migrateLegacyKeys()
         if (legacyStorage) {
           await saveStorage(walletAddress, legacyStorage)
-          await AsyncStorage.setItem(NEEDS_BACKUP_KEY, "true")
+          await AsyncStorage.setItem(`${NEEDS_BACKUP_KEY_PREFIX}_${walletAddress}`, "true")
           storage = legacyStorage
         }
       }
@@ -359,6 +385,18 @@ export function useStealth(): UseStealthReturn {
       setIsLoading(false)
     }
   }, [])
+
+  // Load or generate keys on mount and when wallet changes
+  useEffect(() => {
+    if (isConnected && address) {
+      loadOrGenerateKeys(address)
+    } else {
+      setStealthAddress(null)
+      setKeys(null)
+      setActiveKeyId(null)
+      setIsLoading(false)
+    }
+  }, [isConnected, address, loadOrGenerateKeys])
 
   const generateNewAddressInternal = useCallback(async (walletAddr?: string): Promise<StealthAddress | null> => {
     const targetAddress = walletAddr || address
