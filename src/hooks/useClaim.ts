@@ -15,7 +15,7 @@ import { usePrivacyStore } from "@/stores/privacy"
 import { useWalletStore } from "@/stores/wallet"
 import { useSettingsStore } from "@/stores/settings"
 import { useNativeWallet } from "./useNativeWallet"
-import { getKeyById } from "./useStealth"
+import { getKeyById, getStoreKey } from "./useStealth"
 import type { PaymentRecord, StealthKeys, StealthKeysStorage } from "@/types"
 import {
   deriveStealthPrivateKey,
@@ -92,7 +92,7 @@ async function loadKeysForPayment(payment: PaymentRecord): Promise<StealthKeys |
   // Fall back to active keys from wallet-scoped storage
   if (walletAddress) {
     try {
-      const storeKey = `sip_stealth_keys_v3_${walletAddress}`
+      const storeKey = getStoreKey(walletAddress)
       const storageData = await SecureStore.getItemAsync(storeKey)
       if (storageData) {
         const storage = JSON.parse(storageData) as StealthKeysStorage

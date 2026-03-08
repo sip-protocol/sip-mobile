@@ -10,6 +10,7 @@
 import { ed25519 } from "@noble/curves/ed25519"
 import { sha256 } from "@noble/hashes/sha256"
 import { sha512 } from "@noble/hashes/sha512"
+import { hkdf } from "@noble/hashes/hkdf"
 import { xchacha20poly1305 } from "@noble/ciphers/chacha.js"
 import { randomBytes } from "@noble/ciphers/utils.js"
 import * as Crypto from "expo-crypto"
@@ -425,19 +426,25 @@ export function isValidSolanaAddress(address: string): boolean {
 // ─── Backup Encryption ──────────────────────────────────────────────────────
 
 const BACKUP_SALT = "sip-stealth-backup"
+const BACKUP_INFO = "sip-stealth-backup-encryption-key"
 
 /**
  * Derive a 32-byte encryption key from a seed phrase
- * Uses SHA-256(seed_bytes || salt_bytes)
+ *
+ * Uses HKDF-SHA256 for proper key derivation:
+ * - IKM: UTF-8 encoded seed phrase
+ * - Salt: "sip-stealth-backup"
+ * - Info: "sip-stealth-backup-encryption-key"
+ * - Output: 32 bytes
+ *
+ * IMPORTANT: This MUST only be called with BIP-39 mnemonics (high-entropy input).
  */
 export function deriveBackupKey(seedPhrase: string): Uint8Array {
   const encoder = new TextEncoder()
   const seedBytes = encoder.encode(seedPhrase)
   const saltBytes = encoder.encode(BACKUP_SALT)
-  const combined = new Uint8Array(seedBytes.length + saltBytes.length)
-  combined.set(seedBytes)
-  combined.set(saltBytes, seedBytes.length)
-  return sha256(combined)
+  const infoBytes = encoder.encode(BACKUP_INFO)
+  return hkdf(sha256, seedBytes, saltBytes, infoBytes, 32)
 }
 
 /**

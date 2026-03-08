@@ -214,20 +214,20 @@ describe("Stealth Library", () => {
 })
 
 import { sha256 } from "@noble/hashes/sha256"
+import { hkdf } from "@noble/hashes/hkdf"
 import { xchacha20poly1305 } from "@noble/ciphers/chacha.js"
 import { randomBytes } from "@noble/ciphers/utils.js"
 
-// Re-implement backup functions for isolated testing
+// Re-implement backup functions for isolated testing (must match src/lib/stealth.ts)
 const BACKUP_SALT = "sip-stealth-backup"
+const BACKUP_INFO = "sip-stealth-backup-encryption-key"
 
 function deriveBackupKey(seedPhrase: string): Uint8Array {
   const encoder = new TextEncoder()
   const seedBytes = encoder.encode(seedPhrase)
   const saltBytes = encoder.encode(BACKUP_SALT)
-  const combined = new Uint8Array(seedBytes.length + saltBytes.length)
-  combined.set(seedBytes)
-  combined.set(saltBytes, seedBytes.length)
-  return sha256(combined)
+  const infoBytes = encoder.encode(BACKUP_INFO)
+  return hkdf(sha256, seedBytes, saltBytes, infoBytes, 32)
 }
 
 function encryptStealthBackup(storageJson: string, seedPhrase: string): string {

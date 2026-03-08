@@ -146,26 +146,34 @@ export default function StealthBackupScreen() {
         return
       }
 
-      // Confirm overwrite
+      // Confirm overwrite — keep isImporting true until user decides
       Alert.alert(
         "Restore Stealth Keys?",
         "This will replace your current stealth keys for this wallet. Existing keys will be lost.",
         [
-          { text: "Cancel", style: "cancel" },
+          {
+            text: "Cancel",
+            style: "cancel",
+            onPress: () => setIsImporting(false),
+          },
           {
             text: "Restore",
             style: "destructive",
             onPress: async () => {
-              const success = await importStealthStorage(address!, decrypted)
-              if (success) {
-                await clearStealthBackupFlag()
-                addToast({
-                  type: "success",
-                  title: "Keys restored",
-                  message: "Stealth keys imported successfully. Restart the app to apply.",
-                })
-              } else {
-                addToast({ type: "error", title: "Import failed", message: "Invalid backup file format" })
+              try {
+                const success = await importStealthStorage(address!, decrypted)
+                if (success) {
+                  await clearStealthBackupFlag()
+                  addToast({
+                    type: "success",
+                    title: "Keys restored",
+                    message: "Stealth keys imported successfully. Restart the app to apply.",
+                  })
+                } else {
+                  addToast({ type: "error", title: "Import failed", message: "Invalid backup file format" })
+                }
+              } finally {
+                setIsImporting(false)
               }
             },
           },
@@ -174,7 +182,6 @@ export default function StealthBackupScreen() {
     } catch (err) {
       console.error("Backup import failed:", err)
       addToast({ type: "error", title: "Import failed", message: "Failed to import backup" })
-    } finally {
       setIsImporting(false)
     }
   }

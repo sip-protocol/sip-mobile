@@ -69,8 +69,9 @@ const NEEDS_BACKUP_KEY = "sip_stealth_needs_backup"
 
 /**
  * Generate wallet-scoped storage key
+ * Exported for use by useClaim hook (avoid duplicating key format)
  */
-function getStoreKey(walletAddress: string): string {
+export function getStoreKey(walletAddress: string): string {
   return `sip_stealth_keys_v3_${walletAddress}`
 }
 
@@ -140,6 +141,9 @@ async function migrateLegacyKeys(): Promise<StealthKeysStorage | null> {
 
 /**
  * Migrate v2 shared storage to v3 wallet-scoped storage
+ *
+ * Copies v2 keys to ALL known wallet accounts (since v2 was shared).
+ * This prevents the second wallet from losing access to the shared keys.
  */
 async function migrateV2ToV3(walletAddress: string): Promise<StealthKeysStorage | null> {
   try {
@@ -150,8 +154,20 @@ async function migrateV2ToV3(walletAddress: string): Promise<StealthKeysStorage 
 
     const v2Storage = JSON.parse(v2Data) as StealthKeysStorage
 
-    // Save under wallet-scoped key
+    // Copy to the requesting wallet
     await saveStorage(walletAddress, v2Storage)
+
+    // Also copy to all other known wallets (v2 was shared across all)
+    const { accounts } = useWalletStore.getState()
+    for (const account of accounts) {
+      if (account.address !== walletAddress) {
+        const existing = await loadStorage(account.address)
+        if (!existing) {
+          await saveStorage(account.address, v2Storage)
+          debug(`v2 keys also copied to wallet ${account.address.slice(0, 8)}...`)
+        }
+      }
+    }
 
     // Set backup flag
     await AsyncStorage.setItem(NEEDS_BACKUP_KEY, "true")
@@ -185,9 +201,12 @@ export async function getKeyById(
 
 /**
  * Check if stealth backup is needed (post-migration)
+ * Returns false if user has dismissed the prompt.
  */
 export async function needsStealthBackup(): Promise<boolean> {
   try {
+    const dismissed = await AsyncStorage.getItem("sip_stealth_backup_dismissed")
+    if (dismissed === "true") return false
     const value = await AsyncStorage.getItem(NEEDS_BACKUP_KEY)
     return value === "true"
   } catch {
