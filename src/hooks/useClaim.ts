@@ -69,47 +69,43 @@ export interface UseClaimReturn {
 // CONSTANTS
 // ============================================================================
 
-const SECURE_STORE_KEY_V2 = "sip_stealth_keys_v2"
-const LEGACY_STORE_KEY = "sip_stealth_keys"
 const CLAIM_STEPS = 4
 
 /**
  * Load stealth keys for claiming a payment
  *
- * If payment has keyId, loads from archived keys.
- * Falls back to active keys for legacy payments. (#72)
+ * Uses wallet-scoped storage (v3). Falls back to active wallet
+ * for legacy payments without walletAddress. (#72, #80)
  */
 async function loadKeysForPayment(payment: PaymentRecord): Promise<StealthKeys | null> {
-  // If payment has keyId, load that specific key set (archival system)
+  const walletAddress = payment.walletAddress || useWalletStore.getState().address
+
+  // If payment has keyId, load that specific key set
   if (payment.keyId) {
-    const keyRecord = await getKeyById(payment.keyId)
+    const keyRecord = await getKeyById(payment.keyId, walletAddress || undefined)
     if (keyRecord) {
       return keyRecord.keys
     }
-    logger.warn(`Keys for keyId ${payment.keyId} not found, trying active keys`)
+    logger.warn(`Keys for keyId ${payment.keyId} not found in wallet ${walletAddress?.slice(0, 8)}...`)
   }
 
-  // Fall back to active keys (for legacy payments or if keyId not found)
-  try {
-    // Try v2 archival format first
-    const storageV2 = await SecureStore.getItemAsync(SECURE_STORE_KEY_V2)
-    if (storageV2) {
-      const storage = JSON.parse(storageV2) as StealthKeysStorage
-      if (storage.activeKeyId) {
-        const activeRecord = storage.records.find((r) => r.id === storage.activeKeyId)
-        if (activeRecord) {
-          return activeRecord.keys
+  // Fall back to active keys from wallet-scoped storage
+  if (walletAddress) {
+    try {
+      const storeKey = `sip_stealth_keys_v3_${walletAddress}`
+      const storageData = await SecureStore.getItemAsync(storeKey)
+      if (storageData) {
+        const storage = JSON.parse(storageData) as StealthKeysStorage
+        if (storage.activeKeyId) {
+          const activeRecord = storage.records.find((r) => r.id === storage.activeKeyId)
+          if (activeRecord) {
+            return activeRecord.keys
+          }
         }
       }
+    } catch (err) {
+      console.error("Failed to load wallet-scoped stealth keys:", err)
     }
-
-    // Fall back to legacy format
-    const legacy = await SecureStore.getItemAsync(LEGACY_STORE_KEY)
-    if (legacy) {
-      return JSON.parse(legacy) as StealthKeys
-    }
-  } catch (err) {
-    console.error("Failed to load stealth keys:", err)
   }
 
   return null
