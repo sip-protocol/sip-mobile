@@ -20,7 +20,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context"
 import { router } from "expo-router"
 import * as Clipboard from "expo-clipboard"
-import { useState, useCallback } from "react"
+import { useState, useCallback, useEffect } from "react"
 import QRCode from "react-native-qrcode-svg"
 import {
   ArrowsClockwiseIcon,
@@ -30,9 +30,10 @@ import {
   LockKeyIcon,
   MagnifyingGlassIcon,
   ArrowRightIcon,
+  WarningIcon,
 } from "phosphor-react-native"
 import { ICON_COLORS } from "@/constants/icons"
-import { useStealth } from "@/hooks/useStealth"
+import { useStealth, needsStealthBackup } from "@/hooks/useStealth"
 import { useWalletStore } from "@/stores/wallet"
 import { usePrivacyStore } from "@/stores/privacy"
 import { useToastStore } from "@/stores/toast"
@@ -60,6 +61,18 @@ export default function ReceiveScreen() {
 
   const unclaimedCount = getUnclaimedPaymentsCount()
   const hasUnclaimed = unclaimedCount > 0
+
+  const [showBackupBanner, setShowBackupBanner] = useState(false)
+
+  useEffect(() => {
+    needsStealthBackup().then(setShowBackupBanner)
+  }, [])
+
+  const handleDismissBackup = useCallback(async () => {
+    setShowBackupBanner(false)
+    const AsyncStorage = (await import("@react-native-async-storage/async-storage")).default
+    await AsyncStorage.setItem("sip_stealth_backup_dismissed", "true")
+  }, [])
 
   // Generate payment request URI with optional amount
   const getPaymentUri = useCallback((): string => {
@@ -228,6 +241,37 @@ export default function ReceiveScreen() {
               </Text>
             </TouchableOpacity>
           </View>
+
+          {/* Backup Banner (#80) */}
+          {showBackupBanner && (
+            <View className="mt-4 bg-amber-900/20 border border-amber-700/30 rounded-xl p-4">
+              <View className="flex-row items-start gap-3">
+                <WarningIcon size={20} color="#f59e0b" weight="fill" />
+                <View className="flex-1">
+                  <Text className="text-amber-400 font-medium text-sm">
+                    Stealth keys are device-local
+                  </Text>
+                  <Text className="text-dark-400 text-xs mt-1">
+                    Back up now to prevent fund loss on reinstall.
+                  </Text>
+                  <View className="flex-row gap-3 mt-3">
+                    <TouchableOpacity
+                      className="bg-amber-600 px-4 py-2 rounded-lg"
+                      onPress={() => router.push("/settings/stealth-backup" as any)}
+                    >
+                      <Text className="text-white text-sm font-medium">Back Up Now</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      className="px-4 py-2"
+                      onPress={handleDismissBackup}
+                    >
+                      <Text className="text-dark-400 text-sm">Dismiss</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              </View>
+            </View>
+          )}
 
           {/* Amount Input (when amount tab active) */}
           {activeTab === "amount" && (
