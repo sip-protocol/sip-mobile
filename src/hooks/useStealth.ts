@@ -12,6 +12,7 @@
 
 import { useState, useCallback, useEffect, useMemo } from "react"
 import * as SecureStore from "expo-secure-store"
+import AsyncStorage from "@react-native-async-storage/async-storage"
 import { useWalletStore } from "@/stores/wallet"
 import {
   generateStealthKeys,
@@ -61,9 +62,17 @@ export interface UseStealthReturn {
 // CONSTANTS
 // ============================================================================
 
-const SECURE_STORE_KEY = "sip_stealth_keys_v2" // New versioned key
-const LEGACY_STORE_KEY = "sip_stealth_keys" // For migration
+const SECURE_STORE_KEY_V2 = "sip_stealth_keys_v2" // Previous shared key
+const LEGACY_STORE_KEY = "sip_stealth_keys" // For v1 migration
 const SIP_CHAIN = "solana"
+const NEEDS_BACKUP_KEY = "sip_stealth_needs_backup"
+
+/**
+ * Generate wallet-scoped storage key
+ */
+function getStoreKey(walletAddress: string): string {
+  return `sip_stealth_keys_v3_${walletAddress}`
+}
 
 // ============================================================================
 // STORAGE HELPERS
@@ -72,9 +81,9 @@ const SIP_CHAIN = "solana"
 /**
  * Load stealth keys storage from SecureStore
  */
-async function loadStorage(): Promise<StealthKeysStorage | null> {
+async function loadStorage(walletAddress: string): Promise<StealthKeysStorage | null> {
   try {
-    const stored = await SecureStore.getItemAsync(SECURE_STORE_KEY)
+    const stored = await SecureStore.getItemAsync(getStoreKey(walletAddress))
     if (!stored) return null
     return JSON.parse(stored) as StealthKeysStorage
   } catch (err) {
@@ -86,8 +95,8 @@ async function loadStorage(): Promise<StealthKeysStorage | null> {
 /**
  * Save stealth keys storage to SecureStore
  */
-async function saveStorage(storage: StealthKeysStorage): Promise<void> {
-  await SecureStore.setItemAsync(SECURE_STORE_KEY, JSON.stringify(storage))
+async function saveStorage(walletAddress: string, storage: StealthKeysStorage): Promise<void> {
+  await SecureStore.setItemAsync(getStoreKey(walletAddress), JSON.stringify(storage))
 }
 
 /**
@@ -118,9 +127,6 @@ async function migrateLegacyKeys(): Promise<StealthKeysStorage | null> {
       ],
     }
 
-    // Save new format
-    await saveStorage(storage)
-
     // Clean up legacy key
     await SecureStore.deleteItemAsync(LEGACY_STORE_KEY)
 
@@ -133,22 +139,95 @@ async function migrateLegacyKeys(): Promise<StealthKeysStorage | null> {
 }
 
 /**
+ * Migrate v2 shared storage to v3 wallet-scoped storage
+ */
+async function migrateV2ToV3(walletAddress: string): Promise<StealthKeysStorage | null> {
+  try {
+    const v2Data = await SecureStore.getItemAsync(SECURE_STORE_KEY_V2)
+    if (!v2Data) return null
+
+    debug("Migrating v2 shared keys to wallet-scoped v3...")
+
+    const v2Storage = JSON.parse(v2Data) as StealthKeysStorage
+
+    // Save under wallet-scoped key
+    await saveStorage(walletAddress, v2Storage)
+
+    // Set backup flag
+    await AsyncStorage.setItem(NEEDS_BACKUP_KEY, "true")
+
+    // Delete old shared key
+    await SecureStore.deleteItemAsync(SECURE_STORE_KEY_V2)
+
+    debug(`v2 → v3 migration complete for wallet ${walletAddress.slice(0, 8)}...`)
+    return v2Storage
+  } catch (err) {
+    console.error("Failed to migrate v2 to v3:", err)
+    return null
+  }
+}
+
+/**
  * Get a specific key record by ID
  * Exported for use by useClaim hook
  */
-export async function getKeyById(keyId: string): Promise<StealthKeysRecord | null> {
-  const storage = await loadStorage()
+export async function getKeyById(
+  keyId: string,
+  walletAddress?: string
+): Promise<StealthKeysRecord | null> {
+  const targetAddress = walletAddress || useWalletStore.getState().address
+  if (!targetAddress) return null
+
+  const storage = await loadStorage(targetAddress)
   if (!storage) return null
   return storage.records.find((r) => r.id === keyId) ?? null
 }
 
 /**
- * Get the active key record
+ * Check if stealth backup is needed (post-migration)
  */
-async function getActiveKeyRecord(): Promise<StealthKeysRecord | null> {
-  const storage = await loadStorage()
-  if (!storage || !storage.activeKeyId) return null
-  return storage.records.find((r) => r.id === storage.activeKeyId) ?? null
+export async function needsStealthBackup(): Promise<boolean> {
+  try {
+    const value = await AsyncStorage.getItem(NEEDS_BACKUP_KEY)
+    return value === "true"
+  } catch {
+    return false
+  }
+}
+
+/**
+ * Clear the stealth backup needed flag
+ */
+export async function clearStealthBackupFlag(): Promise<void> {
+  await AsyncStorage.removeItem(NEEDS_BACKUP_KEY)
+}
+
+/**
+ * Export current wallet's stealth storage as JSON (for backup encryption)
+ */
+export async function exportStealthStorage(walletAddress: string): Promise<string | null> {
+  const storage = await loadStorage(walletAddress)
+  if (!storage) return null
+  return JSON.stringify(storage)
+}
+
+/**
+ * Import stealth storage from decrypted JSON (for backup restore)
+ */
+export async function importStealthStorage(
+  walletAddress: string,
+  storageJson: string
+): Promise<boolean> {
+  try {
+    const storage = JSON.parse(storageJson) as StealthKeysStorage
+    if (!storage.version || !Array.isArray(storage.records)) {
+      return false
+    }
+    await saveStorage(walletAddress, storage)
+    return true
+  } catch {
+    return false
+  }
 }
 
 // ============================================================================
@@ -200,7 +279,7 @@ export function useStealth(): UseStealthReturn {
   // Load or generate keys on mount
   useEffect(() => {
     if (isConnected && address) {
-      loadOrGenerateKeys()
+      loadOrGenerateKeys(address)
     } else {
       setStealthAddress(null)
       setKeys(null)
@@ -209,17 +288,27 @@ export function useStealth(): UseStealthReturn {
     }
   }, [isConnected, address])
 
-  const loadOrGenerateKeys = useCallback(async () => {
+  const loadOrGenerateKeys = useCallback(async (walletAddress: string) => {
     setIsLoading(true)
     setError(null)
 
     try {
-      // Try to load existing storage
-      let storage = await loadStorage()
+      // Try to load wallet-scoped v3 storage
+      let storage = await loadStorage(walletAddress)
 
-      // Migrate legacy keys if needed
+      // Migrate v2 shared keys to v3 wallet-scoped
       if (!storage) {
-        storage = await migrateLegacyKeys()
+        storage = await migrateV2ToV3(walletAddress)
+      }
+
+      // Migrate v1 legacy keys to v3 wallet-scoped
+      if (!storage) {
+        const legacyStorage = await migrateLegacyKeys()
+        if (legacyStorage) {
+          await saveStorage(walletAddress, legacyStorage)
+          await AsyncStorage.setItem(NEEDS_BACKUP_KEY, "true")
+          storage = legacyStorage
+        }
       }
 
       if (storage && storage.activeKeyId) {
@@ -243,7 +332,7 @@ export function useStealth(): UseStealthReturn {
       }
 
       // No keys found, generate new ones
-      await generateNewAddressInternal()
+      await generateNewAddressInternal(walletAddress)
     } catch (err) {
       console.error("Failed to load stealth keys:", err)
       setError("Failed to load stealth keys")
@@ -252,7 +341,13 @@ export function useStealth(): UseStealthReturn {
     }
   }, [])
 
-  const generateNewAddressInternal = useCallback(async (): Promise<StealthAddress | null> => {
+  const generateNewAddressInternal = useCallback(async (walletAddr?: string): Promise<StealthAddress | null> => {
+    const targetAddress = walletAddr || address
+    if (!targetAddress) {
+      setError("No wallet address available")
+      return null
+    }
+
     setIsGenerating(true)
     setError(null)
 
@@ -271,7 +366,7 @@ export function useStealth(): UseStealthReturn {
       }
 
       // Load or create storage
-      let storage = await loadStorage()
+      let storage = await loadStorage(targetAddress)
 
       if (storage) {
         // Archive all currently active keys
@@ -292,7 +387,7 @@ export function useStealth(): UseStealthReturn {
       }
 
       // Save to SecureStore
-      await saveStorage(storage)
+      await saveStorage(targetAddress, storage)
 
       setKeys(newKeys)
       setActiveKeyId(keyId)
@@ -313,15 +408,15 @@ export function useStealth(): UseStealthReturn {
     } finally {
       setIsGenerating(false)
     }
-  }, [])
+  }, [address])
 
   const generateNewAddress = useCallback(async (): Promise<StealthAddress | null> => {
-    if (!isConnected) {
+    if (!isConnected || !address) {
       setError("Wallet not connected")
       return null
     }
-    return generateNewAddressInternal()
-  }, [isConnected, generateNewAddressInternal])
+    return generateNewAddressInternal(address)
+  }, [isConnected, address, generateNewAddressInternal])
 
   /**
    * Regenerate stealth address by archiving current and creating new
@@ -340,9 +435,12 @@ export function useStealth(): UseStealthReturn {
   const getKeys = useCallback(async (): Promise<StealthKeys | null> => {
     if (keys) return keys
 
-    const activeRecord = await getActiveKeyRecord()
+    if (!address) return null
+    const storage = await loadStorage(address)
+    if (!storage || !storage.activeKeyId) return null
+    const activeRecord = storage.records.find((r) => r.id === storage.activeKeyId)
     return activeRecord?.keys ?? null
-  }, [keys])
+  }, [keys, address])
 
   const getActiveKeyIdCallback = useCallback((): string | null => {
     return activeKeyId
