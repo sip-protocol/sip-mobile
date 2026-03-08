@@ -58,6 +58,9 @@ export default function ReceiveScreen() {
   const [copied, setCopied] = useState(false)
   const [showConfirmModal, setShowConfirmModal] = useState(false)
 
+  const unclaimedCount = getUnclaimedPaymentsCount()
+  const hasUnclaimed = unclaimedCount > 0
+
   // Generate payment request URI with optional amount
   const getPaymentUri = useCallback((): string => {
     if (!stealthAddress) return ""
@@ -280,18 +283,25 @@ export default function ReceiveScreen() {
               <Text className="text-dark-400 text-sm">Stealth Address</Text>
               <TouchableOpacity
                 onPress={handleRegeneratePress}
-                disabled={isGenerating}
-                className="flex-row items-center gap-1"
+                disabled={isGenerating || hasUnclaimed}
+                className={`flex-row items-center gap-1 ${hasUnclaimed ? "opacity-50" : ""}`}
                 accessibilityRole="button"
                 accessibilityLabel="Generate new stealth address"
-                accessibilityHint="Creates a fresh one-time stealth address"
+                accessibilityHint={hasUnclaimed ? "Disabled: claim pending payments first" : "Creates a fresh one-time stealth address"}
+                accessibilityState={{ disabled: hasUnclaimed }}
               >
                 {isGenerating ? (
                   <ActivityIndicator size="small" color="#8b5cf6" />
                 ) : (
                   <>
-                    <ArrowsClockwiseIcon size={16} color={ICON_COLORS.brand} weight="regular" />
-                    <Text className="text-brand-400 text-sm">New Address</Text>
+                    <ArrowsClockwiseIcon
+                      size={16}
+                      color={hasUnclaimed ? "#71717a" : ICON_COLORS.brand}
+                      weight="regular"
+                    />
+                    <Text className={hasUnclaimed ? "text-dark-500 text-sm" : "text-brand-400 text-sm"}>
+                      New Address
+                    </Text>
                   </>
                 )}
               </TouchableOpacity>
@@ -311,6 +321,11 @@ export default function ReceiveScreen() {
                 </Text>
               )}
             </View>
+            {hasUnclaimed && (
+              <Text className="text-amber-400 text-sm mt-2">
+                Claim {unclaimedCount} pending payment{unclaimedCount > 1 ? "s" : ""} first
+              </Text>
+            )}
           </View>
 
           {/* Action Buttons */}
