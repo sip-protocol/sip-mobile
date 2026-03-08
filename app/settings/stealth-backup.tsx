@@ -84,6 +84,9 @@ export default function StealthBackupScreen() {
         return
       }
 
+      // Clean up temp file (defense-in-depth for key material)
+      try { backupFile.delete() } catch {}
+
       // Clear backup flag
       await clearStealthBackupFlag()
 
