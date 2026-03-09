@@ -36,6 +36,7 @@ import {
 } from "phosphor-react-native"
 import type { Icon as PhosphorIcon } from "phosphor-react-native"
 import { ICON_COLORS } from "@/constants/icons"
+import Constants from "expo-constants"
 import { useSettingsStore } from "@/stores/settings"
 import type { ExplorerType } from "@/stores/settings"
 
@@ -68,7 +69,7 @@ const EXPLORER_OPTIONS: { value: ExplorerType; label: string }[] = [
   { value: "solana-explorer", label: "Solana Explorer" },
 ]
 
-const APP_VERSION = "0.2.0"
+const APP_VERSION = Constants.expoConfig?.version ?? "0.0.0"
 
 // ============================================================================
 // COMPONENTS
