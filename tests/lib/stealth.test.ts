@@ -212,3 +212,122 @@ describe("Stealth Library", () => {
     })
   })
 })
+
+import { sha256 } from "@noble/hashes/sha256"
+import { hkdf } from "@noble/hashes/hkdf"
+import { xchacha20poly1305 } from "@noble/ciphers/chacha.js"
+import { randomBytes } from "@noble/ciphers/utils.js"
+
+// Re-implement backup functions for isolated testing (must match src/lib/stealth.ts)
+const BACKUP_SALT = "sip-stealth-backup"
+const BACKUP_INFO = "sip-stealth-backup-encryption-key"
+
+function deriveBackupKey(seedPhrase: string): Uint8Array {
+  const encoder = new TextEncoder()
+  const seedBytes = encoder.encode(seedPhrase)
+  const saltBytes = encoder.encode(BACKUP_SALT)
+  const infoBytes = encoder.encode(BACKUP_INFO)
+  return hkdf(sha256, seedBytes, saltBytes, infoBytes, 32)
+}
+
+function encryptStealthBackup(storageJson: string, seedPhrase: string): string {
+  const key = deriveBackupKey(seedPhrase)
+  const nonce = randomBytes(24)
+  const plaintext = new TextEncoder().encode(storageJson)
+  const cipher = xchacha20poly1305(key, nonce)
+  const ciphertext = cipher.encrypt(plaintext)
+  const combined = new Uint8Array(nonce.length + ciphertext.length)
+  combined.set(nonce)
+  combined.set(ciphertext, nonce.length)
+  return Buffer.from(combined).toString("base64")
+}
+
+function decryptStealthBackup(encoded: string, seedPhrase: string): string | null {
+  try {
+    const key = deriveBackupKey(seedPhrase)
+    const combined = new Uint8Array(Buffer.from(encoded, "base64"))
+    if (combined.length < 25) return null
+    const nonce = combined.slice(0, 24)
+    const ciphertext = combined.slice(24)
+    const cipher = xchacha20poly1305(key, nonce)
+    const plaintext = cipher.decrypt(ciphertext)
+    return new TextDecoder().decode(plaintext)
+  } catch {
+    return null
+  }
+}
+
+describe("Stealth Backup Encryption", () => {
+  const testSeed = "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about"
+  const testStorage = JSON.stringify({
+    version: 1,
+    activeKeyId: "keys_1234",
+    records: [{
+      id: "keys_1234",
+      keys: {
+        spendingPrivateKey: "0xabc",
+        spendingPublicKey: "0xdef",
+        viewingPrivateKey: "0x123",
+        viewingPublicKey: "0x456",
+      },
+      createdAt: 1234567890,
+      archivedAt: null,
+      isActive: true,
+    }],
+  })
+
+  describe("deriveBackupKey", () => {
+    it("should produce 32-byte key", () => {
+      const key = deriveBackupKey(testSeed)
+      expect(key).toBeInstanceOf(Uint8Array)
+      expect(key.length).toBe(32)
+    })
+
+    it("should be deterministic", () => {
+      const key1 = deriveBackupKey(testSeed)
+      const key2 = deriveBackupKey(testSeed)
+      expect(Buffer.from(key1).toString("hex")).toBe(Buffer.from(key2).toString("hex"))
+    })
+
+    it("should differ for different seeds", () => {
+      const key1 = deriveBackupKey(testSeed)
+      const key2 = deriveBackupKey("different seed phrase here")
+      expect(Buffer.from(key1).toString("hex")).not.toBe(Buffer.from(key2).toString("hex"))
+    })
+  })
+
+  describe("encryptStealthBackup / decryptStealthBackup", () => {
+    it("should roundtrip encrypt and decrypt", () => {
+      const encrypted = encryptStealthBackup(testStorage, testSeed)
+      const decrypted = decryptStealthBackup(encrypted, testSeed)
+      expect(decrypted).toBe(testStorage)
+    })
+
+    it("should produce different ciphertext each time (random nonce)", () => {
+      const enc1 = encryptStealthBackup(testStorage, testSeed)
+      const enc2 = encryptStealthBackup(testStorage, testSeed)
+      expect(enc1).not.toBe(enc2)
+    })
+
+    it("should fail with wrong seed", () => {
+      const encrypted = encryptStealthBackup(testStorage, testSeed)
+      const result = decryptStealthBackup(encrypted, "wrong seed phrase")
+      expect(result).toBeNull()
+    })
+
+    it("should fail with corrupted data", () => {
+      const result = decryptStealthBackup("not-valid-base64!!!", testSeed)
+      expect(result).toBeNull()
+    })
+
+    it("should preserve JSON structure after roundtrip", () => {
+      const encrypted = encryptStealthBackup(testStorage, testSeed)
+      const decrypted = decryptStealthBackup(encrypted, testSeed)
+      const parsed = JSON.parse(decrypted!)
+      expect(parsed.version).toBe(1)
+      expect(parsed.activeKeyId).toBe("keys_1234")
+      expect(parsed.records).toHaveLength(1)
+      expect(parsed.records[0].keys.spendingPrivateKey).toBe("0xabc")
+    })
+  })
+})

@@ -91,6 +91,8 @@ export interface PaymentRecord {
   tokenMint?: string
   /** Token decimals (for SPL token display/claim) */
   tokenDecimals?: number
+  /** Wallet address that owns this payment's stealth keys */
+  walletAddress?: string
 }
 
 // ============================================================================

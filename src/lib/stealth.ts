@@ -10,6 +10,9 @@
 import { ed25519 } from "@noble/curves/ed25519"
 import { sha256 } from "@noble/hashes/sha256"
 import { sha512 } from "@noble/hashes/sha512"
+import { hkdf } from "@noble/hashes/hkdf"
+import { xchacha20poly1305 } from "@noble/ciphers/chacha.js"
+import { randomBytes } from "@noble/ciphers/utils.js"
 import * as Crypto from "expo-crypto"
 import bs58 from "bs58"
 import { debug } from "@/utils/logger"
@@ -417,5 +420,68 @@ export function isValidSolanaAddress(address: string): boolean {
     return decoded.length === 32
   } catch {
     return false
+  }
+}
+
+// ─── Backup Encryption ──────────────────────────────────────────────────────
+
+const BACKUP_SALT = "sip-stealth-backup"
+const BACKUP_INFO = "sip-stealth-backup-encryption-key"
+
+/**
+ * Derive a 32-byte encryption key from a seed phrase
+ *
+ * Uses HKDF-SHA256 for proper key derivation:
+ * - IKM: UTF-8 encoded seed phrase
+ * - Salt: "sip-stealth-backup"
+ * - Info: "sip-stealth-backup-encryption-key"
+ * - Output: 32 bytes
+ *
+ * IMPORTANT: This MUST only be called with BIP-39 mnemonics (high-entropy input).
+ */
+export function deriveBackupKey(seedPhrase: string): Uint8Array {
+  const encoder = new TextEncoder()
+  const seedBytes = encoder.encode(seedPhrase)
+  const saltBytes = encoder.encode(BACKUP_SALT)
+  const infoBytes = encoder.encode(BACKUP_INFO)
+  return hkdf(sha256, seedBytes, saltBytes, infoBytes, 32)
+}
+
+/**
+ * Encrypt stealth keys storage JSON for backup
+ *
+ * Uses XChaCha20-Poly1305 with a seed-derived key.
+ * Returns base64-encoded string (24-byte nonce prepended to ciphertext).
+ */
+export function encryptStealthBackup(storageJson: string, seedPhrase: string): string {
+  const key = deriveBackupKey(seedPhrase)
+  const nonce = randomBytes(24)
+  const plaintext = new TextEncoder().encode(storageJson)
+  const cipher = xchacha20poly1305(key, nonce)
+  const ciphertext = cipher.encrypt(plaintext)
+  const out = new Uint8Array(nonce.length + ciphertext.length)
+  out.set(nonce)
+  out.set(ciphertext, nonce.length)
+  return Buffer.from(out).toString("base64")
+}
+
+/**
+ * Decrypt a stealth keys backup
+ *
+ * Returns the decrypted JSON string, or null if decryption fails
+ * (wrong seed, corrupted data, tampered ciphertext).
+ */
+export function decryptStealthBackup(encoded: string, seedPhrase: string): string | null {
+  try {
+    const key = deriveBackupKey(seedPhrase)
+    const combined = new Uint8Array(Buffer.from(encoded, "base64"))
+    if (combined.length < 25) return null
+    const nonce = combined.slice(0, 24)
+    const ciphertext = combined.slice(24)
+    const cipher = xchacha20poly1305(key, nonce)
+    const plaintext = cipher.decrypt(ciphertext)
+    return new TextDecoder().decode(plaintext)
+  } catch {
+    return null
   }
 }

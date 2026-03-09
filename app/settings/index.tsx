@@ -32,6 +32,7 @@ import {
   UserIcon,
   EyeIcon,
   EyeSlashIcon,
+  DownloadSimpleIcon,
 } from "phosphor-react-native"
 import type { Icon as PhosphorIcon } from "phosphor-react-native"
 import { ICON_COLORS } from "@/constants/icons"
@@ -235,6 +236,13 @@ export default function SettingsScreen() {
               title="Viewing Keys"
               subtitle="Export, import, manage disclosures"
               onPress={() => router.push("/settings/viewing-keys")}
+            />
+            <NavRow
+              Icon={DownloadSimpleIcon}
+              iconColor={ICON_COLORS.success}
+              title="Backup Stealth Keys"
+              subtitle="Export or restore your stealth key archive"
+              onPress={() => router.push("/settings/stealth-backup" as any)}
             />
           </View>
 

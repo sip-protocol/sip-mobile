@@ -18,6 +18,7 @@ export default function SettingsLayout() {
         <Stack.Screen name="viewing-keys" />
         <Stack.Screen name="compliance" />
         <Stack.Screen name="privacy-score" />
+        <Stack.Screen name="stealth-backup" />
       </Stack>
     </View>
   )
