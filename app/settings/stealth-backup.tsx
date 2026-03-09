@@ -121,6 +121,7 @@ export default function StealthBackupScreen() {
       })
 
       if (result.canceled || !result.assets?.[0]) {
+        setIsImporting(false)
         return
       }
 
@@ -129,6 +130,7 @@ export default function StealthBackupScreen() {
       // Reject files over 1MB (stealth backups are typically <10KB)
       if (asset.size && asset.size > 1_000_000) {
         addToast({ type: "error", title: "File too large", message: "Backup files should be under 1MB" })
+        setIsImporting(false)
         return
       }
 
@@ -140,6 +142,7 @@ export default function StealthBackupScreen() {
       const mnemonic = await exportMnemonic()
       if (!mnemonic) {
         addToast({ type: "error", title: "Authentication failed", message: "Biometric auth required" })
+        setIsImporting(false)
         return
       }
 
@@ -152,6 +155,7 @@ export default function StealthBackupScreen() {
           message: "Wrong seed phrase or corrupted backup file",
           duration: 5000,
         })
+        setIsImporting(false)
         return
       }
 

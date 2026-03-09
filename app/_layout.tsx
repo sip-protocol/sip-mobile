@@ -6,6 +6,7 @@ import { GestureHandlerRootView } from "react-native-gesture-handler"
 import * as SplashScreen from "expo-splash-screen"
 import { WalletProvider } from "@/providers"
 import { SidebarProvider } from "@/components"
+import { ToastOverlay } from "@/components/ToastOverlay"
 import {
   markPerformance,
   logPerformanceSummary,
@@ -89,6 +90,7 @@ export default function RootLayout() {
             <Stack.Screen name="token" options={{ headerShown: false }} />
           </Stack>
         </SidebarProvider>
+        <ToastOverlay />
       </WalletProvider>
     </GestureHandlerRootView>
   )
