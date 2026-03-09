@@ -158,7 +158,7 @@ export default function StealthBackupScreen() {
       // Confirm overwrite — keep isImporting true until user decides
       Alert.alert(
         "Restore Stealth Keys?",
-        "This will replace your current stealth keys for this wallet. Existing keys will be lost.",
+        "This will merge imported keys with your current stealth keys for this wallet.",
         [
           {
             text: "Cancel",
@@ -176,7 +176,8 @@ export default function StealthBackupScreen() {
                   addToast({
                     type: "success",
                     title: "Keys restored",
-                    message: "Stealth keys imported successfully. Restart the app to apply.",
+                    message: "Stealth keys imported successfully.",
+                    duration: 5000,
                   })
                 } else {
                   addToast({ type: "error", title: "Import failed", message: "Invalid backup file format" })
