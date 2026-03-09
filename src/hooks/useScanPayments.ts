@@ -81,17 +81,41 @@ const BATCH_SIZE = 50
 const SCAN_DELAY_MS = 100 // Delay between batches for UI responsiveness
 
 /**
- * Load keys from storage (handles both v2 archival and legacy formats)
+ * Load keys from storage (v3 wallet-scoped → v2 shared → v1 legacy)
  * Returns keys and activeKeyId (null for legacy format)
  */
-async function loadKeysFromStorage(): Promise<{
+async function loadKeysFromStorage(walletAddress: string | null): Promise<{
   viewingPrivateKey: string
   spendingPrivateKey: string
   viewingPublicKey: string
   spendingPublicKey: string
   activeKeyId: string | null
 } | null> {
-  // Try v2 archival format first
+  // Try v3 wallet-scoped format first
+  if (walletAddress) {
+    const storageV3 = await SecureStore.getItemAsync(`sip_stealth_keys_v3_${walletAddress}`)
+    if (storageV3) {
+      const storage = JSON.parse(storageV3) as StealthKeysStorage
+      if (storage.activeKeyId) {
+        const activeRecord = storage.records.find((r) => r.id === storage.activeKeyId)
+        if (activeRecord) {
+          return {
+            ...activeRecord.keys,
+            activeKeyId: activeRecord.id,
+          }
+        }
+      }
+      // No activeKeyId but has records — use the first
+      if (storage.records.length > 0) {
+        return {
+          ...storage.records[0].keys,
+          activeKeyId: storage.records[0].id,
+        }
+      }
+    }
+  }
+
+  // Fall back to v2 shared format
   const storageV2 = await SecureStore.getItemAsync(SECURE_STORE_KEY_V2)
   if (storageV2) {
     const storage = JSON.parse(storageV2) as StealthKeysStorage
@@ -106,13 +130,13 @@ async function loadKeysFromStorage(): Promise<{
     }
   }
 
-  // Fall back to legacy format
+  // Fall back to v1 legacy format
   const legacy = await SecureStore.getItemAsync(LEGACY_STORE_KEY)
   if (legacy) {
     const keys = JSON.parse(legacy)
     return {
       ...keys,
-      activeKeyId: null, // Legacy payments won't have keyId
+      activeKeyId: null,
     }
   }
 
@@ -241,7 +265,7 @@ function hexToBytes(hex: string): Uint8Array {
 // ============================================================================
 
 export function useScanPayments(): UseScanPaymentsReturn {
-  const { isConnected } = useWalletStore()
+  const { isConnected, address } = useWalletStore()
   const { network, defaultPrivacyLevel } = useSettingsStore()
   const {
     payments,
@@ -299,7 +323,7 @@ export function useScanPayments(): UseScanPaymentsReturn {
           message: "Loading stealth keys...",
         })
 
-        const keysData = await loadKeysFromStorage()
+        const keysData = await loadKeysFromStorage(address)
         if (!keysData) {
           throw new Error("No stealth keys found. Generate an address first.")
         }

@@ -44,6 +44,7 @@ import { logger } from "@/utils/logger"
 
 export const BACKGROUND_SCAN_TASK = "BACKGROUND_PAYMENT_SCAN"
 const SECURE_STORE_KEY_V2 = "sip_stealth_keys_v2"
+const WALLET_STORAGE_KEY = "sip-wallet-storage"
 const LAST_SCAN_KEY = "background_scan_last_timestamp"
 const SCAN_ENABLED_KEY = "background_scan_enabled"
 const FOUND_PAYMENTS_KEY = "background_scan_found_payments"
@@ -199,10 +200,39 @@ async function getRpcConfigFromStorage(): Promise<RpcConfig> {
 // ============================================================================
 
 /**
- * Load stealth keys from secure storage
+ * Get active wallet address from persisted wallet store (for background context)
+ */
+async function getActiveWalletAddress(): Promise<string | null> {
+  try {
+    const stored = await AsyncStorage.getItem(WALLET_STORAGE_KEY)
+    if (!stored) return null
+    const wallet = JSON.parse(stored)
+    const activeId = wallet.state?.activeAccountId
+    if (!activeId || !wallet.state?.accounts) return null
+    const account = wallet.state.accounts.find(
+      (a: { id: string }) => a.id === activeId
+    )
+    return account?.address || null
+  } catch {
+    return null
+  }
+}
+
+/**
+ * Load stealth keys from secure storage (v3 wallet-scoped → v2 → fallback)
  */
 async function loadStealthKeys(): Promise<StealthKeysStorage | null> {
   try {
+    // Try v3 wallet-scoped format first
+    const walletAddress = await getActiveWalletAddress()
+    if (walletAddress) {
+      const storedV3 = await SecureStore.getItemAsync(`sip_stealth_keys_v3_${walletAddress}`)
+      if (storedV3) {
+        return JSON.parse(storedV3) as StealthKeysStorage
+      }
+    }
+
+    // Fall back to v2 shared format
     const stored = await SecureStore.getItemAsync(SECURE_STORE_KEY_V2)
     if (!stored) return null
     return JSON.parse(stored) as StealthKeysStorage

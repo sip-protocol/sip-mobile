@@ -16,6 +16,7 @@
  */
 
 import * as SecureStore from "expo-secure-store"
+import AsyncStorage from "@react-native-async-storage/async-storage"
 import { xchacha20poly1305 } from "@noble/ciphers/chacha.js"
 import { randomBytes } from "@noble/ciphers/utils.js"
 import { sha256 } from "@noble/hashes/sha256"
@@ -86,7 +87,9 @@ export interface EncryptedComplianceRecord {
 // ============================================================================
 
 const COMPLIANCE_RECORDS_KEY = "sip_compliance_records"
-const STEALTH_KEYS_KEY = "sip_stealth_keys"
+const STEALTH_KEYS_KEY_V2 = "sip_stealth_keys_v2"
+const STEALTH_KEYS_KEY_LEGACY = "sip_stealth_keys"
+const WALLET_STORAGE_KEY = "sip-wallet-storage"
 
 // ============================================================================
 // ENCRYPTION
@@ -151,11 +154,73 @@ export function decryptRecord(
 // ============================================================================
 
 /**
- * Get viewing private key from SecureStore
+ * Get active wallet address from persisted wallet store
+ */
+async function getActiveWalletAddress(): Promise<string | null> {
+  try {
+    const stored = await AsyncStorage.getItem(WALLET_STORAGE_KEY)
+    if (!stored) return null
+    const wallet = JSON.parse(stored)
+    const activeId = wallet.state?.activeAccountId
+    if (!activeId || !wallet.state?.accounts) return null
+    const account = wallet.state.accounts.find(
+      (a: { id: string }) => a.id === activeId
+    )
+    return account?.address || null
+  } catch {
+    return null
+  }
+}
+
+/**
+ * Extract viewing private key from a StealthKeysStorage JSON string
+ */
+function extractViewingKey(json: string): string | null {
+  try {
+    const storage = JSON.parse(json)
+    if (storage.activeKeyId && storage.records) {
+      const activeRecord = storage.records.find(
+        (r: { id: string }) => r.id === storage.activeKeyId
+      )
+      if (activeRecord?.keys?.viewingPrivateKey) {
+        return activeRecord.keys.viewingPrivateKey
+      }
+    }
+    // No activeKeyId but has records — use the first
+    if (storage.records?.length > 0 && storage.records[0].keys?.viewingPrivateKey) {
+      return storage.records[0].keys.viewingPrivateKey
+    }
+    // Legacy flat format
+    return storage.viewingPrivateKey || null
+  } catch {
+    return null
+  }
+}
+
+/**
+ * Get viewing private key from SecureStore (v3 wallet-scoped → v2 → legacy)
  */
 async function getViewingPrivateKey(): Promise<string | null> {
   try {
-    const keysJson = await SecureStore.getItemAsync(STEALTH_KEYS_KEY, {
+    // Try v3 wallet-scoped format first
+    const walletAddress = await getActiveWalletAddress()
+    if (walletAddress) {
+      const storedV3 = await SecureStore.getItemAsync(`sip_stealth_keys_v3_${walletAddress}`)
+      if (storedV3) {
+        const key = extractViewingKey(storedV3)
+        if (key) return key
+      }
+    }
+
+    // Fall back to v2 shared format
+    const storedV2 = await SecureStore.getItemAsync(STEALTH_KEYS_KEY_V2)
+    if (storedV2) {
+      const key = extractViewingKey(storedV2)
+      if (key) return key
+    }
+
+    // Fall back to legacy format
+    const keysJson = await SecureStore.getItemAsync(STEALTH_KEYS_KEY_LEGACY, {
       requireAuthentication: true,
       authenticationPrompt: "Authenticate to access compliance records",
     })

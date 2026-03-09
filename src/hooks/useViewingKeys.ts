@@ -86,15 +86,39 @@ function generateId(): string {
 }
 
 /**
- * Load stealth keys from storage (v2 format or legacy)
+ * Load stealth keys from storage (v3 wallet-scoped → v2 → legacy)
  * Returns the keys object with viewing/spending keys
  */
-async function loadStealthKeys(): Promise<{
+async function loadStealthKeys(walletAddress?: string | null): Promise<{
   viewingPublicKey: string
   viewingPrivateKey: string
   spendingPublicKey: string
 } | null> {
-  // Try v2 format first (archival storage)
+  // Try v3 wallet-scoped format first
+  if (walletAddress) {
+    const storedV3 = await SecureStore.getItemAsync(`sip_stealth_keys_v3_${walletAddress}`)
+    if (storedV3) {
+      try {
+        const storage = JSON.parse(storedV3)
+        if (storage.activeKeyId && storage.records) {
+          const activeRecord = storage.records.find(
+            (r: { id: string }) => r.id === storage.activeKeyId
+          )
+          if (activeRecord?.keys) {
+            return activeRecord.keys
+          }
+        }
+        // No activeKeyId but has records — use the first
+        if (storage.records?.length > 0) {
+          return storage.records[0].keys
+        }
+      } catch {
+        // Continue to v2
+      }
+    }
+  }
+
+  // Fall back to v2 format (archival storage)
   const storedV2 = await SecureStore.getItemAsync(STEALTH_KEYS_STORE_V2)
   if (storedV2) {
     try {
@@ -152,7 +176,7 @@ function decodeExport(encoded: string): ViewingKeyExport | null {
 // ============================================================================
 
 export function useViewingKeys(): UseViewingKeysReturn {
-  const { isConnected } = useWalletStore()
+  const { isConnected, address } = useWalletStore()
 
   const [disclosures, setDisclosures] = useState<ViewingKeyDisclosure[]>([])
   const [importedKeys, setImportedKeys] = useState<ImportedViewingKey[]>([])
@@ -225,7 +249,7 @@ export function useViewingKeys(): UseViewingKeysReturn {
       }
 
       try {
-        const keys = await loadStealthKeys()
+        const keys = await loadStealthKeys(address)
         if (!keys) {
           setError("No stealth keys found. Generate a stealth address first.")
           return null
@@ -253,7 +277,7 @@ export function useViewingKeys(): UseViewingKeysReturn {
         return null
       }
     },
-    [isConnected]
+    [isConnected, address]
   )
 
   const getExportString = useCallback(
@@ -395,12 +419,12 @@ export function useViewingKeys(): UseViewingKeysReturn {
 
   const hasViewingKey = useCallback(async (): Promise<boolean> => {
     try {
-      const keys = await loadStealthKeys()
+      const keys = await loadStealthKeys(address)
       return Boolean(keys?.viewingPrivateKey)
     } catch {
       return false
     }
-  }, [])
+  }, [address])
 
   return useMemo(
     () => ({
