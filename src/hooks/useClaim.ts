@@ -451,10 +451,26 @@ export function useClaim(): UseClaimReturn {
       } catch (err) {
         const errorMessage = err instanceof Error ? err.message : "Claim failed"
         console.error("Claim error:", err)
+
+        // Auto-mark stale payments (no balance = already claimed or swept)
+        const isStale = errorMessage.includes("No token balance") ||
+          errorMessage.includes("insufficient funds") ||
+          errorMessage.includes("AccountNotFound")
+        if (isStale) {
+          updatePayment(payment.id, {
+            status: "claimed",
+            claimed: true,
+            claimedAt: Date.now(),
+            claimTxHash: "stale:auto-dismissed",
+          })
+        }
+
         setError(errorMessage)
         setProgress({
           status: "error",
-          message: errorMessage,
+          message: isStale
+            ? "Payment is stale — stealth address has no balance. Dismissed."
+            : errorMessage,
           step: 0,
           totalSteps: CLAIM_STEPS,
         })
