@@ -5,6 +5,7 @@ import type { IconProps } from "phosphor-react-native"
 import type { ComponentType } from "react"
 import { useWalletStore } from "@/stores/wallet"
 import { useSettingsStore } from "@/stores/settings"
+import { usePrivacyStore } from "@/stores/privacy"
 import { ICON_COLORS } from "@/constants/icons"
 
 type TabIconProps = {
@@ -27,9 +28,10 @@ function TabIcon({ focused, Icon }: TabIconProps) {
 export default function TabsLayout() {
   const { _hasHydrated: walletHydrated, accounts } = useWalletStore()
   const { _hasHydrated: settingsHydrated, hasCompletedOnboarding } = useSettingsStore()
+  const { _hasHydrated: privacyHydrated } = usePrivacyStore()
 
-  // Wait for BOTH stores to hydrate before checking gates
-  if (!walletHydrated || !settingsHydrated) {
+  // Wait for ALL stores to hydrate before checking gates
+  if (!walletHydrated || !settingsHydrated || !privacyHydrated) {
     return (
       <View className="flex-1 bg-dark-950 items-center justify-center">
         <ActivityIndicator size="large" color="#8b5cf6" />

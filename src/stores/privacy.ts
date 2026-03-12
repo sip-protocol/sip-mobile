@@ -5,6 +5,9 @@ import type { PrivacyLevel, PaymentRecord } from "@/types"
 import { MAX_CACHED_PAYMENTS } from "@/constants/security"
 
 interface PrivacyStore {
+  // Hydration flag for async storage
+  _hasHydrated: boolean
+
   // Current privacy level for new transactions
   privacyLevel: PrivacyLevel
   setPrivacyLevel: (level: PrivacyLevel) => void
@@ -37,6 +40,9 @@ const MAX_PAYMENTS = MAX_CACHED_PAYMENTS
 export const usePrivacyStore = create<PrivacyStore>()(
   persist(
     (set, get) => ({
+      // Hydration
+      _hasHydrated: false,
+
       // Privacy level
       privacyLevel: "shielded",
       setPrivacyLevel: (level) => set({ privacyLevel: level }),
@@ -86,6 +92,9 @@ export const usePrivacyStore = create<PrivacyStore>()(
         payments: state.payments,
         lastScanTimestamp: state.lastScanTimestamp,
       }),
+      onRehydrateStorage: () => () => {
+        usePrivacyStore.setState({ _hasHydrated: true })
+      },
     }
   )
 )

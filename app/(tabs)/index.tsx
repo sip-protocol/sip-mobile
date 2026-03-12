@@ -27,7 +27,7 @@ import { useSettingsStore } from "@/stores/settings"
 import { useClaim } from "@/hooks/useClaim"
 import { useBalance } from "@/hooks/useBalance"
 import { useToastStore } from "@/stores/toast"
-import { AccountAvatar, useSidebar, Sidebar } from "@/components"
+import { AccountAvatar, useSidebar, Sidebar, ErrorBoundary } from "@/components"
 import { FEATURED_TOKENS, getToken, formatTokenAmount } from "@/data/tokens"
 import { TokenIcon } from "@/components/TokenIcon"
 import { ICONS, ICON_COLORS } from "@/constants/icons"
@@ -184,7 +184,15 @@ function TransactionRow({ payment, onPress, hideBalances = false }: TransactionR
 // MAIN COMPONENT
 // ============================================================================
 
-export default function HomeScreen() {
+export default function HomeScreenWithBoundary() {
+  return (
+    <ErrorBoundary fallbackMessage="Could not load the home screen. Tap below to retry.">
+      <HomeScreen />
+    </ErrorBoundary>
+  )
+}
+
+function HomeScreen() {
   const { isConnected, address, accounts, activeAccountId } = useWalletStore()
   const { payments } = usePrivacyStore()
   const { hideBalances, toggleHideBalances, network } = useSettingsStore()
@@ -211,7 +219,11 @@ export default function HomeScreen() {
   const claimable = useMemo(() => getClaimableAmount(), [payments])
   const { count: unclaimedCount, amount: unclaimedAmount } = claimable
   const unclaimedPayments = getUnclaimedPayments()
-  const unclaimedTokenSymbols = [...new Set(unclaimedPayments.map((p) => resolveTokenSymbol(p)))]
+  const unclaimedTokenSymbols = [...new Set(
+    unclaimedPayments
+      .filter((p) => p.token || p.tokenMint)
+      .map((p) => resolveTokenSymbol(p))
+  )]
   const unclaimedToken = unclaimedTokenSymbols.length === 1 ? unclaimedTokenSymbols[0] : "tokens"
 
   // Memoize privacy stats (now using network-filtered payments)
