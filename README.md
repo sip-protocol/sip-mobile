@@ -447,7 +447,7 @@ pnpm test:run         # Run tests
 ```bash
 # .env.local
 EXPO_PUBLIC_SOLANA_RPC_URL=https://api.mainnet-beta.solana.com
-EXPO_PUBLIC_HELIUS_API_KEY=your-key
+EXPO_PUBLIC_SIP_MOBILE_HELIUS_API_KEY=your-helius-api-key
 ```
 
 ---

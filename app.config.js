@@ -2,7 +2,7 @@
  * Expo App Config
  *
  * Dynamic configuration that supports environment variables.
- * For EAS builds, set secrets via: eas secret:create --name HELIUS_API_KEY --value xxx
+ * For EAS builds, set secrets via: eas secret:create --name EXPO_PUBLIC_SIP_MOBILE_HELIUS_API_KEY --value xxx
  */
 
 const IS_DEV = process.env.APP_VARIANT === "development"
@@ -106,11 +106,12 @@ export default {
       eas: {
         projectId: "0e9edac4-13d5-4067-9b56-4da0f08d1f2a",
       },
-      // RPC Configuration - Free tier API keys for default experience
-      // These are embedded in the APK for best out-of-box experience
+      // RPC Configuration - API keys from environment variables
+      // For local dev: set in .env.local
+      // For EAS builds: eas secret:create --name EXPO_PUBLIC_SIP_MOBILE_HELIUS_API_KEY --value xxx
       // Users can override in Settings if they have their own keys
       rpcKeys: {
-        helius: process.env.HELIUS_API_KEY || "142fb48a-aa24-4083-99c8-249df5400b30",
+        helius: process.env.EXPO_PUBLIC_SIP_MOBILE_HELIUS_API_KEY || null,
         quicknode: process.env.QUICKNODE_API_KEY || null,
         triton: process.env.TRITON_ENDPOINT || null,
       },

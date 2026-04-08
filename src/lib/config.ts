@@ -2,7 +2,7 @@
  * App Configuration
  *
  * Reads configuration from Expo constants (set at build time).
- * For EAS builds, set via: eas secret:create --name HELIUS_API_KEY --value xxx
+ * For EAS builds, set via: eas secret:create --name EXPO_PUBLIC_SIP_MOBILE_HELIUS_API_KEY --value xxx
  */
 
 import Constants from "expo-constants"

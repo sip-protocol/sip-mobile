@@ -372,7 +372,7 @@
 | Feature | Status | Notes |
 |---------|--------|-------|
 | Provider selector modal | ✅ | 4 options |
-| Helius (default) | ✅ | Free tier embedded |
+| Helius (default) | ✅ | Requires EXPO_PUBLIC_SIP_MOBILE_HELIUS_API_KEY |
 | QuickNode (BYOK) | ✅ | API key input |
 | Triton (BYOK) | ✅ | Endpoint input |
 | PublicNode (fallback) | ✅ | Free public RPC |
