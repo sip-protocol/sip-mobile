@@ -21,8 +21,8 @@ import {
 } from "react-native"
 import { SafeAreaView } from "react-native-safe-area-context"
 import { router } from "expo-router"
-import { useState, useEffect, useCallback, useMemo } from "react"
-import type { Connection } from "@solana/web3.js"
+import { useState, useEffect, useCallback, useMemo, useRef } from "react"
+import type { Connection, Transaction } from "@solana/web3.js"
 import { getAllDomains, reverseLookup } from "@bonfida/spl-name-service"
 import {
   ArrowLeftIcon,
@@ -82,6 +82,14 @@ export default function SipStealthScreen() {
 
   // ── Cluster-aware Connection (per the brief: callers provide it; do NOT
   //    instantiate inside the screen with hardcoded RPC env).
+  //
+  // TODO(rpc-singleton): `getRpcClient(config)` despite its "Get or create"
+  // docstring (src/lib/rpc.ts:229-239) mutates a global singleton on every
+  // call that passes a config. Six call-sites in this app now share that
+  // singleton, so a config change in one screen silently re-points every
+  // other screen's Connection. The right shape is `createRpcClient(config)`
+  // returning a fresh instance per caller. Deferred to a dedicated cleanup
+  // pass — refactoring rpc.ts is out of scope for this screen.
   const connection: Connection = useMemo(() => {
     let apiKey: string | undefined
     let customEndpoint: string | undefined
@@ -115,6 +123,30 @@ export default function SipStealthScreen() {
 
   const [loadState, setLoadState] = useState<LoadState>({ kind: "idle" })
   const [cards, setCards] = useState<Record<string, CardData>>({})
+  // Bumping this triggers a re-run of the load effect — used by the
+  // "Try again" CTA on load failure (I3) and by post-publish settling
+  // when settings changed mid-publish (C2).
+  const [reloadToken, setReloadToken] = useState(0)
+
+  // ── Publish-in-flight invariant (C2).
+  //
+  // The load effect's dep list includes `connection`, which is derived from
+  // network/RPC settings. If the user changes settings mid-publish, the
+  // effect would otherwise tear down state (`setCards({})`) and re-fire for
+  // the new cluster while the original publish is still resolving against
+  // the OLD `connection`. When that publish finally settles, its
+  // `setCards(prev => ...)` would write into state that's already been
+  // re-initialised for the new cluster — surfacing a phantom card.
+  //
+  // Invariant: while at least one publish is in flight, the load effect
+  // becomes a no-op (no state wipe, no reload). After the last publish
+  // settles, if a settings change was observed mid-flight, we bump
+  // `reloadToken` to force a clean reload. Settings are effectively
+  // read-only from the screen's perspective during publish — the on-chain
+  // TX itself runs on the cluster the user clicked from, which is the
+  // expected behavior.
+  const publishingCountRef = useRef(0)
+  const pendingReloadRef = useRef(false)
 
   const walletReady = isWalletReady({
     wallet: native.wallet,
@@ -125,6 +157,16 @@ export default function SipStealthScreen() {
   // ── Load .sol domains owned by the wallet + classify each.
   useEffect(() => {
     let cancelled = false
+
+    // C2: while a publish is in flight, settings changes must not wipe
+    // state or reload. Defer the reload — handlePublish will bump
+    // reloadToken when the last publish settles.
+    if (publishingCountRef.current > 0) {
+      pendingReloadRef.current = true
+      return () => {
+        cancelled = true
+      }
+    }
 
     if (!walletReady || !native.wallet) {
       setLoadState({ kind: "idle" })
@@ -219,7 +261,7 @@ export default function SipStealthScreen() {
     return () => {
       cancelled = true
     }
-  }, [walletReady, native.wallet, connection])
+  }, [walletReady, native.wallet, connection, reloadToken])
 
   const handlePublish = useCallback(
     async (entry: DomainEntry) => {
@@ -239,11 +281,30 @@ export default function SipStealthScreen() {
         },
       }))
 
+      // C2: mark publish as in-flight so the load effect won't wipe state
+      // if settings change mid-publish.
+      publishingCountRef.current += 1
+
       try {
         const publishWallet: PublishWallet = {
           publicKey: native.wallet.publicKey,
           signMessage: native.signMessage,
-          signTransaction: native.signTransaction as PublishWallet["signTransaction"],
+          // I2: wrap rather than cast away the entire field. The
+          // implementation in useNativeWallet (src/hooks/useNativeWallet.ts:402)
+          // is generic — `<T extends Transaction | VersionedTransaction>(tx: T) => Promise<T>` —
+          // and returns the exact instance it was passed (it mutates via
+          // `tx.partialSign(keypair)` and returns `tx`). But `useCallback`
+          // erases the generic at the hook's interface boundary
+          // (UseNativeWalletReturn.signTransaction:
+          //   `(tx: Transaction | VersionedTransaction) => Promise<Transaction | VersionedTransaction>`).
+          // `buildPublishTx` only ever emits a legacy `Transaction` (never
+          // `VersionedTransaction`), so the narrow cast on the return is
+          // sound. The wrapper localizes the cast to a single typed lambda
+          // — far safer than the previous full-callback cast through
+          // `PublishWallet["signTransaction"]`, which would have hidden a
+          // signature mismatch anywhere in the field shape.
+          signTransaction: (tx: Transaction) =>
+            native.signTransaction(tx) as Promise<Transaction>,
         }
         const { signature } = await publish(
           connection,
@@ -270,10 +331,26 @@ export default function SipStealthScreen() {
             errorMessage: errorMessageFor(err),
           },
         }))
+      } finally {
+        // C2: decrement and flush deferred reload when the last publish
+        // settles. If settings changed while at least one publish was in
+        // flight, pendingReloadRef will be true and we bump reloadToken
+        // to force the effect to re-run cleanly.
+        publishingCountRef.current -= 1
+        if (publishingCountRef.current === 0 && pendingReloadRef.current) {
+          pendingReloadRef.current = false
+          setReloadToken((t) => t + 1)
+        }
       }
     },
     [connection, native.wallet, native.signMessage, native.signTransaction]
   )
+
+  // I3: "Try again" trigger for the load-error state. Reuses the same
+  // reloadToken plumbing as C2's deferred reload.
+  const handleRetryLoad = useCallback(() => {
+    setReloadToken((t) => t + 1)
+  }, [])
 
   // ────────────────────────────────────────────────────────────────────────
   // RENDER
@@ -374,9 +451,19 @@ export default function SipStealthScreen() {
                   Failed to load domains
                 </Text>
               </View>
-              <Text className="text-dark-400 text-sm">
+              <Text className="text-dark-400 text-sm mb-3">
                 {loadState.message}
               </Text>
+              <TouchableOpacity
+                onPress={handleRetryLoad}
+                className="bg-brand-600 rounded-xl px-4 py-2 self-start"
+                accessibilityRole="button"
+                accessibilityLabel="Try loading domains again"
+              >
+                <Text className="text-white font-semibold text-sm">
+                  Try again
+                </Text>
+              </TouchableOpacity>
             </View>
           )}
 
