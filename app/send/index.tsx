@@ -222,10 +222,20 @@ export default function SendScreen() {
   // Deferred "View public address" preview for the not-found-record warn UX.
   // We do NOT actually submit a transparent send to the .sol's pointer here —
   // that's deferred work, mirroring Phase B's scope decision in sip-app.
-  const [publicAddressPreview, setPublicAddressPreview] = useState<
-    string | null
-  >(null)
-  const [publicAddressLoading, setPublicAddressLoading] = useState(false)
+  //
+  // Discriminated union (m2 carry-forward from Phase B): the previous shape
+  // was `publicAddressPreview: string | null` with `"error"` as a magic-string
+  // sentinel plus a separate `publicAddressLoading: boolean`. The handoff
+  // doc explicitly called this out as cleanup-in-Phase-C work, so we
+  // consolidate the two slots into a single tagged-union slot with
+  // exhaustive kind-checks at the render sites.
+  type PublicAddressState =
+    | { kind: "idle" }
+    | { kind: "loading" }
+    | { kind: "ready"; address: string }
+    | { kind: "error" }
+  const [publicAddressState, setPublicAddressState] =
+    useState<PublicAddressState>({ kind: "idle" })
 
   // ── Async resolution coordination refs ────────────────────────────────────
   //
@@ -317,13 +327,13 @@ export default function SendScreen() {
     if (initial.kind !== "sns-resolving") {
       resolveGenRef.current += 1
       setResolution(initial)
-      setPublicAddressPreview(null)
+      setPublicAddressState({ kind: "idle" })
       return
     }
 
     // SNS path: show resolving immediately, debounce the network call.
     setResolution(initial)
-    setPublicAddressPreview(null)
+    setPublicAddressState({ kind: "idle" })
 
     const generation = ++resolveGenRef.current
     const domain = initial.domain
@@ -382,19 +392,28 @@ export default function SendScreen() {
   // Surfaces the .sol's SOL pointer (Bonfida resolve) so the user can copy
   // it manually. We do NOT auto-submit a transparent transfer here — that's
   // deferred work, same scope decision as Phase B in sip-app.
+  //
+  // Race-safety (I1): we capture the current resolveGenRef generation at
+  // entry and re-check it (plus `unmountedRef`) before every setState. If
+  // the user types a different domain (or clears the input, or navigates
+  // away) while Bonfida is in flight, the late resolution is discarded
+  // instead of overwriting state that now belongs to a different domain.
+  // The SNS resolution effect bumps resolveGenRef on every input change
+  // (see lines 318 / 328), so a fresh keystroke naturally invalidates any
+  // pending Bonfida lookup spawned by this handler.
   const handleViewPublicAddress = useCallback(async () => {
     if (resolution.kind !== "sns-not-found-record") return
+    const gen = resolveGenRef.current
     const domain = resolution.domain
-    setPublicAddressLoading(true)
-    setPublicAddressPreview(null)
+    setPublicAddressState({ kind: "loading" })
     try {
       const pubkey = await bonfidaResolve(connection, domain)
-      setPublicAddressPreview(pubkey.toBase58())
+      if (resolveGenRef.current !== gen || unmountedRef.current) return
+      setPublicAddressState({ kind: "ready", address: pubkey.toBase58() })
     } catch (err) {
+      if (resolveGenRef.current !== gen || unmountedRef.current) return
       logger.error("[Send] Bonfida resolve (View public) failed:", err)
-      setPublicAddressPreview("error")
-    } finally {
-      setPublicAddressLoading(false)
+      setPublicAddressState({ kind: "error" })
     }
   }, [resolution, connection])
 
@@ -442,7 +461,15 @@ export default function SendScreen() {
 
     hapticMedium()
     setShowConfirmModal(true)
-  }, [resolution, amount, selectedBalance, providerReady, providerError, addToast])
+  }, [
+    resolution,
+    amount,
+    selectedBalance,
+    isSOL,
+    providerReady,
+    providerError,
+    addToast,
+  ])
 
   const handleConfirmSend = useCallback(async () => {
     logger.debug("[Send] Starting transaction...")
@@ -728,7 +755,7 @@ export default function SendScreen() {
                   </View>
                 </View>
 
-                {publicAddressLoading && (
+                {publicAddressState.kind === "loading" && (
                   <View className="flex-row items-center mt-3">
                     <SpinnerGapIcon
                       size={12}
@@ -741,23 +768,22 @@ export default function SendScreen() {
                   </View>
                 )}
 
-                {publicAddressPreview &&
-                  publicAddressPreview !== "error" && (
-                    <View className="mt-3">
-                      <Text className="text-dark-400 text-xs">
-                        Public address:
-                      </Text>
-                      <Text className="text-white font-mono text-xs mt-1">
-                        {publicAddressPreview}
-                      </Text>
-                      <Text className="text-dark-500 text-xs mt-2">
-                        Public sends via .sol are coming in a follow-up — not
-                        yet available.
-                      </Text>
-                    </View>
-                  )}
+                {publicAddressState.kind === "ready" && (
+                  <View className="mt-3">
+                    <Text className="text-dark-400 text-xs">
+                      Public address:
+                    </Text>
+                    <Text className="text-white font-mono text-xs mt-1">
+                      {publicAddressState.address}
+                    </Text>
+                    <Text className="text-dark-500 text-xs mt-2">
+                      Public sends via .sol are coming in a follow-up — not
+                      yet available.
+                    </Text>
+                  </View>
+                )}
 
-                {publicAddressPreview === "error" && (
+                {publicAddressState.kind === "error" && (
                   <Text className="text-red-400 text-xs mt-3">
                     Could not look up public address for {resolution.domain}.
                   </Text>
@@ -766,9 +792,9 @@ export default function SendScreen() {
                 <View className="flex-row gap-2 mt-3">
                   <TouchableOpacity
                     onPress={handleViewPublicAddress}
-                    disabled={publicAddressLoading}
+                    disabled={publicAddressState.kind === "loading"}
                     className={`rounded-lg px-3 py-2 ${
-                      publicAddressLoading
+                      publicAddressState.kind === "loading"
                         ? "bg-yellow-800/30"
                         : "bg-yellow-700/40"
                     }`}

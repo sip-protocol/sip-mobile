@@ -137,6 +137,18 @@ describe("classifyInput", () => {
       const r = classifyInput("SIP:solana:" + SOLANA_ADDR + ":" + SOLANA_ADDR)
       expect(r.kind).toBe("invalid")
     })
+
+    it("strips trailing dot from sip-uri", () => {
+      // classifyInput strips a single trailing dot before matching, so a
+      // sip-uri with a stray trailing "." (e.g. pasted from a sentence) still
+      // classifies as sip-uri. Locks the contract that the strip is applied
+      // before the SIP_ADDRESS_REGEX test, not just before SNS_DOMAIN_REGEX.
+      const r = classifyInput(SIP_URI + ".")
+      expect(r.kind).toBe("sip-uri")
+      if (r.kind === "sip-uri") {
+        expect(r.uri).toBe(SIP_URI)
+      }
+    })
   })
 
   describe(".sol domain", () => {
