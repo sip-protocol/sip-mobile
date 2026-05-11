@@ -22,9 +22,12 @@ import {
   Keyboard,
 } from "react-native"
 import { SafeAreaView } from "react-native-safe-area-context"
-import { useState, useCallback, useEffect } from "react"
+import { useState, useCallback, useEffect, useMemo, useRef } from "react"
 import { router, useLocalSearchParams } from "expo-router"
 import * as Clipboard from "expo-clipboard"
+import type { Connection } from "@solana/web3.js"
+import { resolve as bonfidaResolve } from "@bonfida/spl-name-service"
+import bs58 from "bs58"
 import {
   ShieldCheckIcon,
   LockIcon,
@@ -33,6 +36,8 @@ import {
   AddressBookIcon,
   WarningIcon,
   CheckCircleIcon,
+  XCircleIcon,
+  SpinnerGapIcon,
   type Icon as PhosphorIcon,
 } from "phosphor-react-native"
 import { ICON_COLORS } from "@/constants/icons"
@@ -48,34 +53,27 @@ import { NumpadInput } from "@/components"
 import { Button, Modal, EmptyState } from "@/components/ui"
 import type { PrivacyLevel } from "@/types"
 import type { PrivacySendStatus } from "@/privacy-providers"
-import { SOLANA_ADDRESS_REGEX, STEALTH_ADDRESS_REGEX } from "@/utils/validation"
+import { getRpcClient } from "@/lib/rpc"
+import { getRpcApiKey } from "@/lib/config"
+import {
+  resolve as snsResolve,
+  MetaAddress,
+  NotFound,
+  Malformed,
+} from "@/lib/sns-stealth-mobile"
+import {
+  classifyInput,
+  isReadyToSend,
+  targetUri,
+  type RecipientResolution,
+} from "@/lib/recipient-resolution"
+
+// SNS resolution debounce delay (ms) — avoids firing on every keystroke
+const RESOLVE_DEBOUNCE_MS = 350
 
 // ============================================================================
 // VALIDATION HELPERS
 // ============================================================================
-
-function validateAddress(address: string): { isValid: boolean; error?: string } {
-  if (!address || address.trim() === "") {
-    return { isValid: false, error: "Address is required" }
-  }
-
-  const trimmed = address.trim()
-
-  // Check stealth address format
-  if (trimmed.startsWith("sip:")) {
-    if (STEALTH_ADDRESS_REGEX.test(trimmed)) {
-      return { isValid: true }
-    }
-    return { isValid: false, error: "Invalid stealth address format" }
-  }
-
-  // Check regular Solana address
-  if (SOLANA_ADDRESS_REGEX.test(trimmed)) {
-    return { isValid: true }
-  }
-
-  return { isValid: false, error: "Invalid Solana address" }
-}
 
 // Estimated overhead for stealth SOL transfers (tx fee + PDA rent + rent-exempt minimum)
 const STEALTH_SOL_OVERHEAD = 0.004
@@ -117,10 +115,6 @@ function validateAmount(
   return { isValid: true }
 }
 
-function isStealthAddress(address: string): boolean {
-  return address?.startsWith("sip:") && STEALTH_ADDRESS_REGEX.test(address.trim())
-}
-
 function formatUsdValue(amount: string, solPrice: number): string {
   const num = parseFloat(amount)
   if (isNaN(num) || num === 0 || solPrice === 0) return "$0.00"
@@ -149,9 +143,47 @@ export default function SendScreen() {
   } = usePrivacyProvider()
 
   const { isConnected } = useWalletStore()
-  const { defaultPrivacyLevel } = useSettingsStore()
+  const {
+    defaultPrivacyLevel,
+    network,
+    rpcProvider,
+    heliusApiKey,
+    quicknodeApiKey,
+    tritonEndpoint,
+  } = useSettingsStore()
   const { addToast } = useToastStore()
   const { balance, solPrice, tokenBalances } = useBalance()
+
+  // ── Cluster-aware Connection (Task 16 pattern).
+  //
+  // Used by the resolution effect below. Same TODO(rpc-singleton) caveat as
+  // sip-stealth.tsx: getRpcClient mutates a global singleton. Deferred to
+  // a dedicated cleanup pass — out of scope for the recipient resolution
+  // feature.
+  const connection: Connection = useMemo(() => {
+    let apiKey: string | undefined
+    let customEndpoint: string | undefined
+    switch (rpcProvider) {
+      case "helius":
+        apiKey = heliusApiKey || getRpcApiKey("helius") || undefined
+        break
+      case "quicknode":
+        apiKey = quicknodeApiKey || undefined
+        break
+      case "triton":
+        customEndpoint = tritonEndpoint || undefined
+        break
+      case "publicnode":
+      default:
+        break
+    }
+    return getRpcClient({
+      provider: rpcProvider,
+      cluster: network,
+      apiKey,
+      customEndpoint,
+    }).getConnection()
+  }, [network, rpcProvider, heliusApiKey, quicknodeApiKey, tritonEndpoint])
 
   // Token selection state
   const SOL_TOKEN: { symbol: string; name: string; mint: string; decimals: number } = {
@@ -179,8 +211,43 @@ export default function SendScreen() {
   const [txHash, setTxHash] = useState<string | null>(null)
   const [txError, setTxError] = useState<string | null>(null)
 
-  // Validation state
-  const [addressError, setAddressError] = useState<string | null>(null)
+  // Recipient resolution state machine.
+  // Drives all submit-gating + UX feedback below the input. The async ".sol"
+  // resolve runs inside the effect below; everything else is classified
+  // synchronously from `recipient` via classifyInput().
+  const [resolution, setResolution] = useState<RecipientResolution>({
+    kind: "empty",
+  })
+
+  // Deferred "View public address" preview for the not-found-record warn UX.
+  // We do NOT actually submit a transparent send to the .sol's pointer here —
+  // that's deferred work, mirroring Phase B's scope decision in sip-app.
+  const [publicAddressPreview, setPublicAddressPreview] = useState<
+    string | null
+  >(null)
+  const [publicAddressLoading, setPublicAddressLoading] = useState(false)
+
+  // ── Async resolution coordination refs ────────────────────────────────────
+  //
+  // We keep these refs INLINE (rather than extracting a RecipientInput
+  // component as sip-app's Phase B does) because:
+  //   • Phase B's reviewer flagged the unmount race as Critical C1 — we
+  //     preserve the same generation counter + unmounted guard regardless
+  //     of where the state machine lives.
+  //   • sip-mobile's send screen is monolithic by design (one tab, one
+  //     flow). Extracting RecipientInput would force a callback API
+  //     boundary, complicating RTL-less logic tests without commensurate
+  //     code-reuse benefit (no other screen needs a free-form recipient).
+  //
+  // Generation counter: every input change bumps it; awaited resolves
+  // compare against the captured generation and discard if stale.
+  const resolveGenRef = useRef(0)
+  // Debounce timer ref (350ms — matches sip-app).
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  // Unmount guard — flipped true in effect cleanup; checked across awaits
+  // to prevent setState on an unmounted component when a resolve settles
+  // late (Phase B Critical C1 fix).
+  const unmountedRef = useRef(false)
 
   // Reset on success + record payment for contacts
   useEffect(() => {
@@ -204,39 +271,152 @@ export default function SendScreen() {
     []
   )
 
+  // Recipient changes only update state — the resolution effect below
+  // classifies + (for .sol) async-resolves it.
   const handleRecipientChange = useCallback((value: string) => {
     setRecipient(value)
-    if (value && value.length > 10) {
-      const validation = validateAddress(value)
-      setAddressError(validation.isValid ? null : validation.error || null)
-    } else {
-      setAddressError(null)
-    }
   }, [])
 
   // Handle scanned address from QR scanner
   useEffect(() => {
     if (scannedAddress) {
       setRecipient(scannedAddress)
-      handleRecipientChange(scannedAddress)
     }
-  }, [scannedAddress, handleRecipientChange])
+  }, [scannedAddress])
 
   // Handle recipient param from contacts
   useEffect(() => {
     if (recipientParam) {
       setRecipient(recipientParam)
-      handleRecipientChange(recipientParam)
     }
-  }, [recipientParam, handleRecipientChange])
+  }, [recipientParam])
+
+  // ── Recipient resolution effect ─────────────────────────────────────────────
+  //
+  // Effect deps are `[recipient, connection]` (NOT setRecipient or its
+  // derived state) — the goal is to re-run only when the user's input
+  // string changes or the cluster-aware Connection changes (e.g. via
+  // settings). The setter functions are stable across renders by React's
+  // own contract and don't need to be in the dep list.
+  useEffect(() => {
+    // Reset the unmount flag on fresh effect runs. Cleanup (below) flips
+    // it true, but the next dep-driven run sees a new closure with this
+    // re-armed flag, which is the correct lifecycle for the in-flight
+    // awaits to detect "we've been replaced or unmounted."
+    unmountedRef.current = false
+
+    // Cancel any pending debounce from a previous keystroke.
+    if (debounceRef.current !== null) {
+      clearTimeout(debounceRef.current)
+      debounceRef.current = null
+    }
+
+    const initial = classifyInput(recipient)
+
+    // Non-SNS states resolve synchronously — no debounce needed.
+    if (initial.kind !== "sns-resolving") {
+      resolveGenRef.current += 1
+      setResolution(initial)
+      setPublicAddressPreview(null)
+      return
+    }
+
+    // SNS path: show resolving immediately, debounce the network call.
+    setResolution(initial)
+    setPublicAddressPreview(null)
+
+    const generation = ++resolveGenRef.current
+    const domain = initial.domain
+
+    debounceRef.current = setTimeout(async () => {
+      if (unmountedRef.current) return
+      if (!connection) return
+
+      try {
+        const result = await snsResolve(connection, domain)
+
+        if (unmountedRef.current) return
+        if (resolveGenRef.current !== generation) return // stale — discard
+
+        let next: RecipientResolution
+
+        if (result instanceof MetaAddress) {
+          // Build sip:solana:<spend>:<view> URI at the resolution boundary.
+          // The send() call's contract is the URI string, not MetaAddress.
+          const uri = `sip:solana:${bs58.encode(result.spending)}:${bs58.encode(result.viewing)}`
+          next = { kind: "sns-resolved", domain, uri }
+        } else if (result instanceof NotFound) {
+          next =
+            result.subject === "domain"
+              ? { kind: "sns-not-found-domain", domain }
+              : { kind: "sns-not-found-record", domain }
+        } else if (result instanceof Malformed) {
+          next = { kind: "sns-malformed", domain, reason: result.reason }
+        } else {
+          // Defensive: unknown variant. Map to malformed with placeholder.
+          next = { kind: "sns-malformed", domain, reason: "unknown" }
+        }
+
+        setResolution(next)
+      } catch (err) {
+        if (unmountedRef.current) return
+        if (resolveGenRef.current !== generation) return
+
+        logger.error("[Send] SNS resolution error:", err)
+        // Network/chain errors: surface as not-found-domain (safe, red error).
+        setResolution({ kind: "sns-not-found-domain", domain })
+      }
+    }, RESOLVE_DEBOUNCE_MS)
+
+    return () => {
+      unmountedRef.current = true
+      if (debounceRef.current !== null) {
+        clearTimeout(debounceRef.current)
+        debounceRef.current = null
+      }
+    }
+  }, [recipient, connection])
+
+  // ── "View public address" handler for the not-found-record warn UX ─────────
+  //
+  // Surfaces the .sol's SOL pointer (Bonfida resolve) so the user can copy
+  // it manually. We do NOT auto-submit a transparent transfer here — that's
+  // deferred work, same scope decision as Phase B in sip-app.
+  const handleViewPublicAddress = useCallback(async () => {
+    if (resolution.kind !== "sns-not-found-record") return
+    const domain = resolution.domain
+    setPublicAddressLoading(true)
+    setPublicAddressPreview(null)
+    try {
+      const pubkey = await bonfidaResolve(connection, domain)
+      setPublicAddressPreview(pubkey.toBase58())
+    } catch (err) {
+      logger.error("[Send] Bonfida resolve (View public) failed:", err)
+      setPublicAddressPreview("error")
+    } finally {
+      setPublicAddressLoading(false)
+    }
+  }, [resolution, connection])
+
+  const handleCancelDomain = useCallback(() => {
+    setRecipient("")
+  }, [])
 
   const handleReview = useCallback(() => {
     Keyboard.dismiss()
 
-    // Final validation
-    const addrValidation = validateAddress(recipient)
-    if (!addrValidation.isValid) {
-      setAddressError(addrValidation.error || "Invalid address")
+    // Final validation — submit-gate uses the same isReadyToSend predicate
+    // that the disabled-state below uses, so this branch is only reached
+    // when the state machine says we're ready. Defensive guard remains.
+    if (!isReadyToSend(resolution)) {
+      addToast({
+        type: "error",
+        title: "Recipient not ready",
+        message:
+          resolution.kind === "sns-resolving"
+            ? "Still resolving the .sol domain — try again in a moment"
+            : "Enter a valid recipient",
+      })
       return
     }
 
@@ -262,7 +442,7 @@ export default function SendScreen() {
 
     hapticMedium()
     setShowConfirmModal(true)
-  }, [recipient, amount, selectedBalance, providerReady, providerError, addToast])
+  }, [resolution, amount, selectedBalance, providerReady, providerError, addToast])
 
   const handleConfirmSend = useCallback(async () => {
     logger.debug("[Send] Starting transaction...")
@@ -271,12 +451,18 @@ export default function SendScreen() {
     setTxError(null)
     setTxHash(null)
 
+    // Use the resolved sip: URI for sns-resolved kinds so the underlying
+    // send() call receives a canonical sip:solana:<spend>:<view> string
+    // (it already understands that shape). For sip-uri / solana-address
+    // kinds, targetUri() returns the raw input verbatim.
+    const sendTarget = targetUri(resolution) ?? recipient
+
     try {
       // Execute send via Privacy Provider
       const result = await send(
         {
           amount,
-          recipient,
+          recipient: sendTarget,
           privacyLevel: defaultPrivacyLevel,
           tokenMint: isSOL ? undefined : selectedToken.mint,
         },
@@ -311,7 +497,16 @@ export default function SendScreen() {
         message: errorMessage,
       })
     }
-  }, [send, amount, recipient, defaultPrivacyLevel, isSOL, selectedToken.mint, addToast])
+  }, [
+    send,
+    amount,
+    recipient,
+    resolution,
+    defaultPrivacyLevel,
+    isSOL,
+    selectedToken.mint,
+    addToast,
+  ])
 
   const handleCloseSuccess = useCallback(() => {
     setShowSuccessModal(false)
@@ -363,7 +558,10 @@ export default function SendScreen() {
     }
   }
 
-  const isStealth = recipient && isStealthAddress(recipient)
+  // Stealth iff the resolved recipient is a sip: URI (raw or .sol-derived).
+  // `solana-address` kind is explicitly NOT stealth.
+  const isStealth =
+    resolution.kind === "sip-uri" || resolution.kind === "sns-resolved"
 
   if (!isConnected) {
     return (
@@ -381,7 +579,9 @@ export default function SendScreen() {
     )
   }
 
-  const isValidRecipient = !!recipient && !addressError
+  // Submit gate: ready iff the resolution is in a sendable state. .sol
+  // resolutions in flight return false so the CTA stays disabled.
+  const isValidRecipient = isReadyToSend(resolution)
   const ctaLabel = providerInitializing
     ? "Initializing..."
     : defaultPrivacyLevel !== "transparent"
@@ -435,13 +635,19 @@ export default function SendScreen() {
             </View>
             <View
               className={`bg-dark-900 rounded-xl border p-4 ${
-                addressError ? "border-red-500" : "border-dark-800"
+                resolution.kind === "sns-resolved" || resolution.kind === "sip-uri"
+                  ? "border-green-500/60"
+                  : resolution.kind === "sns-not-found-domain" ||
+                    resolution.kind === "sns-malformed" ||
+                    resolution.kind === "invalid"
+                  ? "border-red-500"
+                  : "border-dark-800"
               }`}
             >
               <TextInput
                 testID="recipient-input"
                 className="text-white"
-                placeholder="Wallet address or sip: stealth address"
+                placeholder="alice.sol, sip:solana:…, or a Solana address"
                 placeholderTextColor="#71717a"
                 value={recipient}
                 onChangeText={handleRecipientChange}
@@ -451,8 +657,189 @@ export default function SendScreen() {
                 numberOfLines={2}
               />
             </View>
-            {addressError && (
-              <Text className="text-red-400 text-sm mt-2">{addressError}</Text>
+
+            {/* Resolution feedback (replaces the old single-line addressError) */}
+            {resolution.kind === "sns-resolving" && (
+              <View
+                testID="recipient-resolving"
+                className="flex-row items-center mt-2"
+              >
+                <SpinnerGapIcon
+                  size={14}
+                  color={ICON_COLORS.muted}
+                  weight="regular"
+                />
+                <Text className="text-dark-400 text-sm ml-2">
+                  Resolving {resolution.domain}…
+                </Text>
+              </View>
+            )}
+
+            {resolution.kind === "sns-resolved" && (
+              <View
+                testID="recipient-resolved"
+                className="flex-row items-center mt-2"
+              >
+                <CheckCircleIcon
+                  size={14}
+                  color={ICON_COLORS.success}
+                  weight="fill"
+                />
+                <Text className="text-green-400 text-sm ml-2">
+                  {resolution.domain} · private payment available
+                </Text>
+              </View>
+            )}
+
+            {resolution.kind === "sip-uri" && (
+              <View
+                testID="recipient-sip-uri"
+                className="flex-row items-center mt-2"
+              >
+                <CheckCircleIcon
+                  size={14}
+                  color={ICON_COLORS.success}
+                  weight="fill"
+                />
+                <Text className="text-green-400 text-sm ml-2">
+                  SIP stealth address ready
+                </Text>
+              </View>
+            )}
+
+            {resolution.kind === "sns-not-found-record" && (
+              <View
+                testID="recipient-not-found-record"
+                className="mt-3 bg-yellow-900/20 border border-yellow-700/50 rounded-xl p-3"
+              >
+                <View className="flex-row items-start gap-2">
+                  <WarningIcon
+                    size={18}
+                    color={ICON_COLORS.warning}
+                    weight="fill"
+                  />
+                  <View className="flex-1">
+                    <Text className="text-yellow-300 font-semibold text-sm">
+                      Private payment not available
+                    </Text>
+                    <Text className="text-yellow-400/80 text-xs mt-0.5">
+                      {resolution.domain} hasn&apos;t enabled SIP-STEALTH.
+                    </Text>
+                  </View>
+                </View>
+
+                {publicAddressLoading && (
+                  <View className="flex-row items-center mt-3">
+                    <SpinnerGapIcon
+                      size={12}
+                      color={ICON_COLORS.muted}
+                      weight="regular"
+                    />
+                    <Text className="text-dark-400 text-xs ml-2">
+                      Looking up public address…
+                    </Text>
+                  </View>
+                )}
+
+                {publicAddressPreview &&
+                  publicAddressPreview !== "error" && (
+                    <View className="mt-3">
+                      <Text className="text-dark-400 text-xs">
+                        Public address:
+                      </Text>
+                      <Text className="text-white font-mono text-xs mt-1">
+                        {publicAddressPreview}
+                      </Text>
+                      <Text className="text-dark-500 text-xs mt-2">
+                        Public sends via .sol are coming in a follow-up — not
+                        yet available.
+                      </Text>
+                    </View>
+                  )}
+
+                {publicAddressPreview === "error" && (
+                  <Text className="text-red-400 text-xs mt-3">
+                    Could not look up public address for {resolution.domain}.
+                  </Text>
+                )}
+
+                <View className="flex-row gap-2 mt-3">
+                  <TouchableOpacity
+                    onPress={handleViewPublicAddress}
+                    disabled={publicAddressLoading}
+                    className={`rounded-lg px-3 py-2 ${
+                      publicAddressLoading
+                        ? "bg-yellow-800/30"
+                        : "bg-yellow-700/40"
+                    }`}
+                    accessibilityRole="button"
+                    accessibilityLabel="View public address"
+                  >
+                    <Text className="text-yellow-200 text-xs font-semibold">
+                      View public address
+                    </Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    onPress={handleCancelDomain}
+                    className="rounded-lg px-3 py-2 border border-dark-700"
+                    accessibilityRole="button"
+                    accessibilityLabel="Cancel domain resolution"
+                  >
+                    <Text className="text-dark-300 text-xs font-semibold">
+                      Cancel
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            )}
+
+            {resolution.kind === "sns-not-found-domain" && (
+              <View
+                testID="recipient-not-found-domain"
+                className="flex-row items-center mt-2"
+              >
+                <XCircleIcon
+                  size={14}
+                  color={ICON_COLORS.error}
+                  weight="fill"
+                />
+                <Text className="text-red-400 text-sm ml-2">
+                  {resolution.domain} not found
+                </Text>
+              </View>
+            )}
+
+            {resolution.kind === "sns-malformed" && (
+              <View
+                testID="recipient-malformed"
+                className="flex-row items-center mt-2"
+              >
+                <XCircleIcon
+                  size={14}
+                  color={ICON_COLORS.error}
+                  weight="fill"
+                />
+                <Text className="text-red-400 text-sm ml-2">
+                  {resolution.domain}&apos;s privacy record is invalid (
+                  {resolution.reason})
+                </Text>
+              </View>
+            )}
+
+            {resolution.kind === "invalid" && (
+              <View
+                testID="recipient-invalid"
+                className="flex-row items-center mt-2"
+              >
+                <XCircleIcon
+                  size={14}
+                  color={ICON_COLORS.error}
+                  weight="fill"
+                />
+                <Text className="text-red-400 text-sm ml-2">
+                  Invalid format. Use a .sol domain, sip:solana:&lt;spend&gt;:&lt;view&gt;, or a Solana address
+                </Text>
+              </View>
             )}
 
             {/* Quick Actions */}
@@ -588,18 +975,16 @@ export default function SendScreen() {
             </View>
           )}
 
-          {/* Warning for non-stealth address with private transfer */}
-          {recipient &&
-            !isStealth &&
-            defaultPrivacyLevel !== "transparent" &&
-            !addressError && (
+          {/* Warning for transparent (base58) recipient with private-default */}
+          {resolution.kind === "solana-address" &&
+            defaultPrivacyLevel !== "transparent" && (
               <View className="mt-3 bg-yellow-900/20 border border-yellow-700/50 rounded-xl p-3">
                 <View className="flex-row items-start gap-2">
                   <WarningIcon size={20} color={ICON_COLORS.warning} weight="fill" />
                   <Text className="text-yellow-400 text-sm flex-1">
                     For full privacy, ask the recipient for their stealth address
-                    (sip:...). Regular addresses can still receive private transfers
-                    but with reduced privacy.
+                    (sip:...) or use their .sol domain. Regular addresses can
+                    still receive private transfers but with reduced privacy.
                   </Text>
                 </View>
               </View>
