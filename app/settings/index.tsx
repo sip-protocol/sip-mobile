@@ -245,6 +245,13 @@ export default function SettingsScreen() {
               subtitle="Export or restore your stealth key archive"
               onPress={() => router.push("/settings/stealth-backup" as any)}
             />
+            <NavRow
+              Icon={GlobeIcon}
+              iconColor={ICON_COLORS.brand}
+              title="Private Payments by Name"
+              subtitle="Publish SIP-STEALTH on your .sol domains"
+              onPress={() => router.push("/settings/sip-stealth" as any)}
+            />
           </View>
 
           {/* Display */}
