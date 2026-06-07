@@ -17,6 +17,11 @@ import type {
   ViewingKeyExport,
   ChainType,
 } from "@/types"
+import { useSettingsStore } from "@/stores/settings"
+import { Connection } from "@solana/web3.js"
+import { fetchAllTransferRecords } from "@/lib/anchor/client"
+import { scanRecordsForOwner } from "@/services/recordOwnership"
+import { hexToBytes } from "@/lib/stealth"
 
 // ============================================================================
 // TYPES
@@ -42,6 +47,7 @@ export interface UseViewingKeysReturn {
   importViewingKey: (input: ImportKeyInput) => Promise<ImportedViewingKey | null>
   removeImportedKey: (id: string) => Promise<void>
   updateImportedKey: (id: string, updates: Partial<ImportedViewingKey>) => Promise<void>
+  scanImportedKey: (id: string) => Promise<{ found: number; scanned: number } | null>
 
   // Queries
   getActiveDisclosures: () => ViewingKeyDisclosure[]
@@ -168,6 +174,32 @@ function decodeExport(encoded: string): ViewingKeyExport | null {
     } catch {
       return null
     }
+  }
+}
+
+/**
+ * Build an ImportedViewingKey from a decoded export.
+ *
+ * Pure mapping (exported for testing). Carries `spendingPublicKey` from the export so the
+ * imported key can be scanned view-only — detection needs the viewing private key + the
+ * owner's spending public key (#86).
+ */
+export function buildImportedViewingKey(
+  exportData: ViewingKeyExport,
+  input: { label: string; ownerAddress?: string },
+  id: string,
+  importedAt: number
+): ImportedViewingKey {
+  return {
+    id,
+    label: input.label,
+    viewingPublicKey: exportData.viewingPublicKey,
+    viewingPrivateKey: exportData.viewingPrivateKey,
+    spendingPublicKey: exportData.spendingPublicKey,
+    ownerAddress: input.ownerAddress,
+    chain: exportData.chain,
+    importedAt,
+    paymentsFound: 0,
   }
 }
 
@@ -364,16 +396,12 @@ export function useViewingKeys(): UseViewingKeysReturn {
           return null
         }
 
-        const importedKey: ImportedViewingKey = {
-          id: generateId(),
-          label: input.label,
-          viewingPublicKey: exportData.viewingPublicKey,
-          viewingPrivateKey: exportData.viewingPrivateKey,
-          ownerAddress: input.ownerAddress,
-          chain: exportData.chain,
-          importedAt: Date.now(),
-          paymentsFound: 0,
-        }
+        const importedKey = buildImportedViewingKey(
+          exportData,
+          { label: input.label, ownerAddress: input.ownerAddress },
+          generateId(),
+          Date.now()
+        )
 
         const newKeys = [importedKey, ...importedKeys]
         await saveImportedKeys(newKeys)
@@ -404,6 +432,59 @@ export function useViewingKeys(): UseViewingKeysReturn {
       await saveImportedKeys(newKeys)
     },
     [importedKeys, saveImportedKeys]
+  )
+
+  /**
+   * Scan the chain for payments to an imported viewing key — VIEW-ONLY.
+   *
+   * Fetches transfer records and filters them with the canonical view-only check using the
+   * imported key's viewing private key + the owner's spending public key (never a spending
+   * private key). Updates the key's `lastScannedAt` / `paymentsFound`. Keys imported before
+   * `spendingPublicKey` was persisted cannot be scanned until re-imported.
+   */
+  const scanImportedKey = useCallback(
+    async (id: string): Promise<{ found: number; scanned: number } | null> => {
+      const key = importedKeys.find((k) => k.id === id)
+      if (!key) {
+        setError("Imported key not found")
+        return null
+      }
+      if (!key.spendingPublicKey) {
+        setError(
+          "This key was imported before view-only scanning was supported. Re-import it to scan."
+        )
+        return null
+      }
+
+      try {
+        const network = useSettingsStore.getState().network
+        const connection = new Connection(
+          network === "mainnet-beta"
+            ? "https://api.mainnet-beta.solana.com"
+            : "https://api.devnet.solana.com",
+          { commitment: "confirmed" }
+        )
+
+        const records = await fetchAllTransferRecords(connection)
+        const owned = scanRecordsForOwner(
+          records,
+          hexToBytes(key.viewingPrivateKey),
+          hexToBytes(key.spendingPublicKey)
+        )
+
+        await updateImportedKey(id, {
+          lastScannedAt: Date.now(),
+          paymentsFound: owned.length,
+        })
+
+        return { found: owned.length, scanned: records.length }
+      } catch (err) {
+        console.error("Failed to scan imported viewing key:", err)
+        setError("Failed to scan. Check your network connection and try again.")
+        return null
+      }
+    },
+    [importedKeys, updateImportedKey]
   )
 
   // ============================================================================
@@ -440,6 +521,7 @@ export function useViewingKeys(): UseViewingKeysReturn {
       importViewingKey,
       removeImportedKey,
       updateImportedKey,
+      scanImportedKey,
       getActiveDisclosures,
       hasViewingKey,
     }),
@@ -456,6 +538,7 @@ export function useViewingKeys(): UseViewingKeysReturn {
       importViewingKey,
       removeImportedKey,
       updateImportedKey,
+      scanImportedKey,
       getActiveDisclosures,
       hasViewingKey,
     ]
