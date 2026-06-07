@@ -47,3 +47,27 @@ export function checkRecordOwnership(
     return false
   }
 }
+
+/**
+ * Filter a batch of transfer records to ALL those owned by the recipient — VIEW-ONLY.
+ *
+ * Ownership is independent of claimed status, so this returns claimed payments too — the
+ * full history a compliance auditor monitoring an imported viewing key expects. Callers
+ * that only want pending payments should additionally filter on `record.claimed`.
+ * Uses the canonical view-only {@link checkRecordOwnership}, so it needs the viewing
+ * PRIVATE key + spending PUBLIC key only.
+ *
+ * @param records - parsed on-chain transfer records
+ * @param viewingPrivateKey - recipient viewing private key (raw 32-byte scalar seed)
+ * @param spendingPublicKey - recipient spending public key (raw 32-byte ed25519 point)
+ * @returns every record owned by this recipient (claimed or not)
+ */
+export function scanRecordsForOwner(
+  records: TransferRecordData[],
+  viewingPrivateKey: Uint8Array,
+  spendingPublicKey: Uint8Array
+): TransferRecordData[] {
+  return records.filter((record) =>
+    checkRecordOwnership(record, viewingPrivateKey, spendingPublicKey)
+  )
+}

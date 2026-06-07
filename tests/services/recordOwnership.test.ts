@@ -17,7 +17,7 @@
 import { describe, it, expect } from "vitest"
 import { PublicKey } from "@solana/web3.js"
 import { ed25519 } from "@noble/curves/ed25519"
-import { checkRecordOwnership } from "@/services/recordOwnership"
+import { checkRecordOwnership, scanRecordsForOwner } from "@/services/recordOwnership"
 import {
   generateStealthAddress,
   bytesToHex,
@@ -103,5 +103,48 @@ describe("checkRecordOwnership (canonical view-only)", () => {
     expect(
       checkRecordOwnership(record, VIEWING_SEED, ed25519.getPublicKey(SPENDING_SEED))
     ).toBe(false)
+  })
+})
+
+describe("scanRecordsForOwner (view-only filter)", () => {
+  it("returns all records owned by the key, including claimed (auditor history)", async () => {
+    const mine = await generateStealthAddress(meta())
+    const mineRecord = recordFor(mine.stealthAddress)
+
+    // A record for a different recipient (different spending/viewing keys).
+    const otherMeta = {
+      chain: "solana",
+      spendingKey: `0x${bytesToHex(ed25519.getPublicKey(new Uint8Array(32).fill(0x55)))}`,
+      viewingKey: `0x${bytesToHex(ed25519.getPublicKey(new Uint8Array(32).fill(0x66)))}`,
+    }
+    const theirsRecord = recordFor((await generateStealthAddress(otherMeta)).stealthAddress)
+
+    // A claimed record that is still ours — ownership is independent of claimed status.
+    const claimedMine = recordFor((await generateStealthAddress(meta())).stealthAddress)
+    claimedMine.claimed = true
+
+    const owned = scanRecordsForOwner(
+      [mineRecord, theirsRecord, claimedMine],
+      VIEWING_SEED,
+      ed25519.getPublicKey(SPENDING_SEED)
+    )
+
+    expect(owned).toHaveLength(2)
+    expect(owned).toContain(mineRecord)
+    expect(owned).toContain(claimedMine)
+    expect(owned).not.toContain(theirsRecord)
+  })
+
+  it("returns an empty array when nothing matches", async () => {
+    const { stealthAddress } = await generateStealthAddress(meta())
+    const record = recordFor(stealthAddress)
+
+    const owned = scanRecordsForOwner(
+      [record],
+      WRONG_VIEWING_SEED,
+      ed25519.getPublicKey(SPENDING_SEED)
+    )
+
+    expect(owned).toEqual([])
   })
 })

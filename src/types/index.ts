@@ -276,6 +276,13 @@ export interface ImportedViewingKey {
   label: string
   viewingPublicKey: string
   viewingPrivateKey: string
+  /**
+   * Owner's spending public key, carried from the ViewingKeyExport. Required for canonical
+   * view-only scanning (detection needs viewing-private + spending-public). Optional only
+   * for back-compat with keys imported before this field existed — those cannot be scanned
+   * until re-imported.
+   */
+  spendingPublicKey?: string
   ownerAddress?: string
   chain: ChainType
   importedAt: number

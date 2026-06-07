@@ -184,9 +184,10 @@ interface ImportedKeyRowProps {
   importedKey: ImportedViewingKey
   onRemove: () => void
   onScan: () => void
+  scanning?: boolean
 }
 
-function ImportedKeyRow({ importedKey, onRemove, onScan }: ImportedKeyRowProps) {
+function ImportedKeyRow({ importedKey, onRemove, onScan, scanning }: ImportedKeyRowProps) {
   return (
     <View className="py-4 border-b border-dark-800">
       <View className="flex-row items-start">
@@ -217,9 +218,11 @@ function ImportedKeyRow({ importedKey, onRemove, onScan }: ImportedKeyRowProps) 
         <TouchableOpacity
           className="bg-brand-900/20 px-3 py-1.5 rounded-lg flex-row items-center gap-1"
           onPress={onScan}
+          disabled={scanning}
+          style={scanning ? { opacity: 0.5 } : undefined}
         >
           <MagnifyingGlassIcon size={14} color={ICON_COLORS.brand} weight="regular" />
-          <Text className="text-brand-400 text-sm">Scan</Text>
+          <Text className="text-brand-400 text-sm">{scanning ? "Scanning…" : "Scan"}</Text>
         </TouchableOpacity>
         <TouchableOpacity
           className="bg-dark-800 px-3 py-1.5 rounded-lg"
@@ -248,6 +251,7 @@ export default function ViewingKeysScreen() {
     deleteDisclosure,
     importViewingKey,
     removeImportedKey,
+    scanImportedKey,
     getActiveDisclosures,
   } = useViewingKeys()
   const { isConnected } = useWalletStore()
@@ -255,6 +259,7 @@ export default function ViewingKeysScreen() {
 
   const [activeTab, setActiveTab] = useState<Tab>("export")
   const [isExporting, setIsExporting] = useState(false)
+  const [scanningId, setScanningId] = useState<string | null>(null)
   const [showDisclosureModal, setShowDisclosureModal] = useState(false)
   const [showImportModal, setShowImportModal] = useState(false)
 
@@ -443,13 +448,35 @@ export default function ViewingKeysScreen() {
     [removeImportedKey, addToast]
   )
 
-  const handleScanImported = (_key: ImportedViewingKey) => {
-    addToast({
-      type: "info",
-      title: "Not yet available",
-      message: "Viewing key scanning requires background indexer integration — planned for a future release",
-    })
-  }
+  const handleScanImported = useCallback(
+    async (key: ImportedViewingKey) => {
+      if (scanningId) return
+      setScanningId(key.id)
+      try {
+        const result = await scanImportedKey(key.id)
+        if (!result) {
+          addToast({
+            type: "error",
+            title: "Couldn't scan",
+            message:
+              "If this key was imported earlier, remove and re-import it; otherwise check your network and try again.",
+          })
+          return
+        }
+        addToast({
+          type: result.found > 0 ? "success" : "info",
+          title: result.found > 0 ? "Payments found" : "No payments found",
+          message:
+            result.found > 0
+              ? `Found ${result.found} payment${result.found === 1 ? "" : "s"} in ${result.scanned} announcement${result.scanned === 1 ? "" : "s"}.`
+              : `Scanned ${result.scanned} announcement${result.scanned === 1 ? "" : "s"} — none match this key.`,
+        })
+      } finally {
+        setScanningId(null)
+      }
+    },
+    [scanImportedKey, scanningId, addToast]
+  )
 
   if (!isConnected) {
     return (
@@ -730,6 +757,7 @@ export default function ViewingKeysScreen() {
                       importedKey={key}
                       onRemove={() => handleRemoveImported(key.id, key.label)}
                       onScan={() => handleScanImported(key)}
+                      scanning={scanningId === key.id}
                     />
                   ))}
                 </View>

@@ -5,6 +5,41 @@
  */
 
 import { describe, it, expect } from "vitest"
+import { buildImportedViewingKey } from "@/hooks/useViewingKeys"
+import type { ViewingKeyExport } from "@/types"
+
+describe("buildImportedViewingKey (#86: persists spendingPublicKey)", () => {
+  const exportData: ViewingKeyExport = {
+    version: 1,
+    chain: "solana",
+    viewingPublicKey: "0xvpub",
+    viewingPrivateKey: "0xvpriv",
+    spendingPublicKey: "0xspub",
+    exportedAt: 0,
+  }
+
+  it("carries spendingPublicKey from the export into the imported key", () => {
+    const imported = buildImportedViewingKey(exportData, { label: "Auditor" }, "vk_test", 123)
+    expect(imported.spendingPublicKey).toBe("0xspub")
+    expect(imported.viewingPrivateKey).toBe("0xvpriv")
+    expect(imported.viewingPublicKey).toBe("0xvpub")
+    expect(imported.label).toBe("Auditor")
+    expect(imported.chain).toBe("solana")
+    expect(imported.id).toBe("vk_test")
+    expect(imported.importedAt).toBe(123)
+    expect(imported.paymentsFound).toBe(0)
+  })
+
+  it("carries ownerAddress when provided", () => {
+    const imported = buildImportedViewingKey(
+      exportData,
+      { label: "X", ownerAddress: "alice.sol" },
+      "id",
+      0
+    )
+    expect(imported.ownerAddress).toBe("alice.sol")
+  })
+})
 
 // ============================================================================
 // Type Definitions (mirror from useViewingKeys.ts)
