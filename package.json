@@ -34,7 +34,7 @@
     "@react-native-async-storage/async-storage": "^2.2.0",
     "@scure/bip32": "^2.0.1",
     "@scure/bip39": "^2.0.1",
-    "@sip-protocol/sdk": "^0.7.3",
+    "@sip-protocol/sdk": "^0.10.0",
     "@sip-protocol/sns-stealth": "^0.1.1",
     "@solana-mobile/mobile-wallet-adapter-protocol-web3js": "^2.2.5",
     "@solana-mobile/seed-vault-lib": "0.4.0",
