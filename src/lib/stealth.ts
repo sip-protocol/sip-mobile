@@ -15,7 +15,6 @@ import { xchacha20poly1305 } from "@noble/ciphers/chacha.js"
 import { randomBytes } from "@noble/ciphers/utils.js"
 import * as Crypto from "expo-crypto"
 import bs58 from "bs58"
-import { debug } from "@/utils/logger"
 
 // ─── Types ─────────────────────────────────────────────────────────────────
 
@@ -174,11 +173,11 @@ export async function generateStealthKeys(): Promise<StealthKeys> {
 /**
  * Generate a one-time stealth address for a recipient
  *
- * Algorithm (DKSAP for ed25519):
+ * Algorithm (DKSAP for ed25519, canonical EIP-5564):
  * 1. Generate ephemeral keypair (r, R = r*G)
- * 2. Compute shared secret: S = r * P_spend (ephemeral scalar * spending public)
+ * 2. Compute shared secret: S = r * P_view (ephemeral scalar * viewing public)
  * 3. Hash shared secret: h = SHA256(S)
- * 4. Derive stealth public key: P_stealth = P_view + h*G
+ * 4. Derive stealth public key: P_stealth = P_spend + h*G
  */
 export async function generateStealthAddress(
   recipientMetaAddress: StealthMetaAddress
@@ -199,22 +198,22 @@ export async function generateStealthAddress(
   const rawEphemeralScalar = getEd25519Scalar(ephemeralPrivateKey)
   const ephemeralScalar = rawEphemeralScalar % ED25519_ORDER
 
-  // S = ephemeral_scalar * P_spend
-  const spendingPoint = ed25519.ExtendedPoint.fromHex(spendingKeyBytes)
-  const sharedSecretPoint = spendingPoint.multiply(ephemeralScalar)
+  // S = ephemeral_scalar * P_view  (canonical EIP-5564: ECDH on the viewing key)
+  const viewingPoint = ed25519.ExtendedPoint.fromHex(viewingKeyBytes)
+  const sharedSecretPoint = viewingPoint.multiply(ephemeralScalar)
 
   // Hash the shared secret point
   const sharedSecretHash = sha256(sharedSecretPoint.toRawBytes())
 
-  // Derive stealth public key: P_stealth = P_view + hash(S)*G
+  // Derive stealth public key: P_stealth = P_spend + hash(S)*G
   const hashScalar = bytesToBigInt(sharedSecretHash) % ED25519_ORDER
 
   // Compute hash(S) * G
   const hashTimesG = ed25519.ExtendedPoint.BASE.multiply(hashScalar)
 
-  // Add to viewing key: P_stealth = P_view + hash(S)*G
-  const viewingPoint = ed25519.ExtendedPoint.fromHex(viewingKeyBytes)
-  const stealthPoint = viewingPoint.add(hashTimesG)
+  // Add to spending key: P_stealth = P_spend + hash(S)*G
+  const spendingPoint = ed25519.ExtendedPoint.fromHex(spendingKeyBytes)
+  const stealthPoint = spendingPoint.add(hashTimesG)
   const stealthAddressBytes = stealthPoint.toRawBytes()
 
   // Compute view tag (first byte of shared secret hash)
@@ -234,60 +233,39 @@ export async function generateStealthAddress(
 // ─── Stealth Address Checking ──────────────────────────────────────────────
 
 /**
- * Check if a stealth address was intended for this recipient (using view tag)
+ * Check if a stealth address was intended for this recipient (canonical EIP-5564, VIEW-ONLY)
+ *
+ * Requires only the viewing PRIVATE key and the spending PUBLIC key — the spending
+ * private key is never needed to detect a payment (it is only needed to spend it).
  */
 export function checkStealthAddress(
   stealthAddress: StealthAddress,
-  spendingPrivateKey: string,
-  viewingPrivateKey: string
+  viewingPrivateKey: string,
+  spendingPublicKey: string
 ): boolean {
-  const spendingPrivBytes = hexToBytes(spendingPrivateKey)
   const viewingPrivBytes = hexToBytes(viewingPrivateKey)
+  const spendingPubBytes = hexToBytes(spendingPublicKey)
   const ephemeralPubBytes = hexToBytes(stealthAddress.ephemeralPublicKey)
 
-  debug("[checkStealth] Ephemeral pubkey bytes:", ephemeralPubBytes.length)
-  debug("[checkStealth] Expected viewTag:", stealthAddress.viewTag)
-
-  // Get spending scalar and reduce mod L
-  const rawSpendingScalar = getEd25519Scalar(spendingPrivBytes)
-  const spendingScalar = rawSpendingScalar % ED25519_ORDER
-
-  // Compute shared secret: S = spending_scalar * R
+  // Shared secret: S = viewing_scalar * R  (canonical ECDH on the viewing key)
+  const rawViewingScalar = getEd25519Scalar(viewingPrivBytes)
+  const viewingScalar = rawViewingScalar % ED25519_ORDER
   const ephemeralPoint = ed25519.ExtendedPoint.fromHex(ephemeralPubBytes)
-  const sharedSecretPoint = ephemeralPoint.multiply(spendingScalar)
-
-  // Hash the shared secret
+  const sharedSecretPoint = ephemeralPoint.multiply(viewingScalar)
   const sharedSecretHash = sha256(sharedSecretPoint.toRawBytes())
 
-  debug("[checkStealth] Computed viewTag:", sharedSecretHash[0])
-
-  // View tag check
+  // View tag fast-reject
   if (sharedSecretHash[0] !== stealthAddress.viewTag) {
-    debug("[checkStealth] View tag MISMATCH!")
     return false
   }
 
-  // Full check
-  const rawViewingScalar = getEd25519Scalar(viewingPrivBytes)
-  const viewingScalar = rawViewingScalar % ED25519_ORDER
-
+  // Recompute the stealth address from the spending PUBLIC key — no spending private key needed
   const hashScalar = bytesToBigInt(sharedSecretHash) % ED25519_ORDER
-  const stealthPrivateScalar = (viewingScalar + hashScalar) % ED25519_ORDER
+  const hashTimesG = ed25519.ExtendedPoint.BASE.multiply(hashScalar)
+  const spendingPoint = ed25519.ExtendedPoint.fromHex(spendingPubBytes)
+  const expectedPoint = spendingPoint.add(hashTimesG)
 
-  // Compute expected public key from derived scalar
-  const expectedPubKey = ed25519.ExtendedPoint.BASE.multiply(stealthPrivateScalar)
-  const expectedPubKeyBytes = expectedPubKey.toRawBytes()
-
-  // Compare with provided stealth address
-  const providedAddress = hexToBytes(stealthAddress.address)
-
-  const expected = bytesToHex(expectedPubKeyBytes)
-  const provided = bytesToHex(providedAddress)
-  debug("[checkStealth] Expected:", expected.slice(0, 16) + "...")
-  debug("[checkStealth] Provided:", provided.slice(0, 16) + "...")
-  debug("[checkStealth] Match:", expected === provided)
-
-  return expected === provided
+  return bytesToHex(expectedPoint.toRawBytes()) === bytesToHex(hexToBytes(stealthAddress.address))
 }
 
 // ─── Private Key Derivation ────────────────────────────────────────────────
@@ -306,24 +284,24 @@ export function deriveStealthPrivateKey(
   const viewingPrivBytes = hexToBytes(viewingPrivateKey)
   const ephemeralPubBytes = hexToBytes(stealthAddress.ephemeralPublicKey)
 
-  // Get spending scalar and reduce mod L
+  // Get spending scalar and reduce mod L (base scalar for the stealth key)
   const rawSpendingScalar = getEd25519Scalar(spendingPrivBytes)
   const spendingScalar = rawSpendingScalar % ED25519_ORDER
 
-  // Compute shared secret: S = spending_scalar * R
+  // Get viewing scalar and reduce mod L (used for the ECDH shared secret)
+  const rawViewingScalar = getEd25519Scalar(viewingPrivBytes)
+  const viewingScalar = rawViewingScalar % ED25519_ORDER
+
+  // Compute shared secret: S = viewing_scalar * R  (canonical ECDH on the viewing key)
   const ephemeralPoint = ed25519.ExtendedPoint.fromHex(ephemeralPubBytes)
-  const sharedSecretPoint = ephemeralPoint.multiply(spendingScalar)
+  const sharedSecretPoint = ephemeralPoint.multiply(viewingScalar)
 
   // Hash the shared secret
   const sharedSecretHash = sha256(sharedSecretPoint.toRawBytes())
 
-  // Get viewing scalar and reduce mod L
-  const rawViewingScalar = getEd25519Scalar(viewingPrivBytes)
-  const viewingScalar = rawViewingScalar % ED25519_ORDER
-
-  // Derive stealth private key: s_stealth = s_view + hash(S) mod L
+  // Derive stealth private key: s_stealth = s_spend + hash(S) mod L  (canonical)
   const hashScalar = bytesToBigInt(sharedSecretHash) % ED25519_ORDER
-  const stealthPrivateScalar = (viewingScalar + hashScalar) % ED25519_ORDER
+  const stealthPrivateScalar = (spendingScalar + hashScalar) % ED25519_ORDER
 
   // Convert to bytes (little-endian for ed25519)
   const stealthPrivateKey = bigIntToBytes(stealthPrivateScalar, 32)

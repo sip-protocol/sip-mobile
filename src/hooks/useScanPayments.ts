@@ -4,11 +4,12 @@
  * Scans the blockchain for incoming stealth payments using viewing keys.
  * Implements EIP-5564 style scanning with Ed25519/secp256k1 support.
  *
- * Scanning process:
+ * Scanning process (canonical EIP-5564, view-only detection):
  * 1. Fetch transfer records from the SIP program
- * 2. For each record, compute shared secret with spending private key
- * 3. Derive expected stealth address
- * 4. Check if derived address matches the record's stealth recipient
+ * 2. For each record, compute the shared secret via ECDH on the viewing key
+ *    (viewing private + spending public — the spending private key is not needed)
+ * 3. Derive the expected stealth address: P = K_spend + H(S)*G
+ * 4. Check if the derived address matches the record's stealth recipient
  * 5. If match, user owns this payment - decrypt amount and add to store
  */
 
@@ -150,11 +151,12 @@ async function loadKeysFromStorage(walletAddress: string | null): Promise<{
 /**
  * Check if a transfer record belongs to the user using cryptographic verification
  *
- * Uses the stealth library's checkStealthAddress which performs:
- * 1. ECDH with spending private key and ephemeral public key
- * 2. Hash the shared secret
- * 3. Quick view tag check
- * 4. Full derivation and comparison if view tag matches
+ * Canonical EIP-5564, VIEW-ONLY: detection needs the viewing PRIVATE key plus the
+ * spending PUBLIC key only — never the spending private key. Uses the stealth
+ * library's checkStealthAddress which:
+ * 1. Derives the shared secret via ECDH on the viewing key (viewing_scalar * R)
+ * 2. Fast-rejects on the view tag (first byte of SHA256(S))
+ * 3. Recomputes P_spend + H(S)*G and compares to the record's stealth recipient
  */
 function checkRecordOwnership(
   record: TransferRecordData,
@@ -174,32 +176,28 @@ function checkRecordOwnership(
     debug("Stealth recipient:", record.stealthRecipient.toBase58())
     debug("Ephemeral pubkey:", ephemeralHex.slice(0, 24) + "...")
 
-    // Derive spending scalar from private key
-    // IMPORTANT: ed25519 uses SHA512, not SHA256! (RFC 8032)
-    const spendingPrivBytes = hexToBytes(spendingPrivateKey)
-    const spendHash = sha512(spendingPrivBytes)
-    const scalar = new Uint8Array(32)
-    scalar.set(spendHash.slice(0, 32))
-    // Clamp as per ed25519 spec
-    scalar[0] &= 248
-    scalar[31] &= 127
-    scalar[31] |= 64
+    // Derive the spending PUBLIC key — the spending private key is never used to detect
+    const spendingPublicKey = `0x${bytesToHex(ed25519.getPublicKey(hexToBytes(spendingPrivateKey)))}`
 
-    // Convert to BigInt (little-endian)
-    let scalarBigInt = 0n
-    for (let i = 31; i >= 0; i--) {
-      scalarBigInt = (scalarBigInt << 8n) | BigInt(scalar[i])
+    // Compute the canonical view tag from the viewing scalar so checkStealthAddress's
+    // fast-reject sees the right value: S = viewing_scalar * R, viewTag = SHA256(S)[0]
+    const viewingPrivBytes = hexToBytes(viewingPrivateKey)
+    const viewHash = sha512(viewingPrivBytes)
+    const viewScalar = new Uint8Array(32)
+    viewScalar.set(viewHash.slice(0, 32))
+    viewScalar[0] &= 248
+    viewScalar[31] &= 127
+    viewScalar[31] |= 64
+    let viewScalarBigInt = 0n
+    for (let i = viewScalar.length - 1; i >= 0; i--) {
+      viewScalarBigInt = (viewScalarBigInt << 8n) | BigInt(viewScalar[i])
     }
     const ED25519_ORDER = BigInt("0x1000000000000000000000000000000014def9dea2f79cd65812631a5cf5d3ed")
-    scalarBigInt = scalarBigInt % ED25519_ORDER
+    viewScalarBigInt = viewScalarBigInt % ED25519_ORDER
 
-    // Compute shared secret: S = spending_scalar * ephemeral_pubkey
     const ephemeralPoint = ed25519.ExtendedPoint.fromHex(ephemeralBytes)
-    const sharedSecretPoint = ephemeralPoint.multiply(scalarBigInt)
-    const sharedSecretHash = sha256(sharedSecretPoint.toRawBytes())
-
-    // View tag is first byte of shared secret hash
-    const viewTag = sharedSecretHash[0]
+    const sharedSecretPoint = ephemeralPoint.multiply(viewScalarBigInt)
+    const viewTag = sha256(sharedSecretPoint.toRawBytes())[0]
     debug("Computed view tag:", viewTag)
 
     const stealthAddr: StealthAddress = {
@@ -208,7 +206,7 @@ function checkRecordOwnership(
       viewTag,
     }
 
-    const isOwner = checkStealthAddress(stealthAddr, spendingPrivateKey, viewingPrivateKey)
+    const isOwner = checkStealthAddress(stealthAddr, viewingPrivateKey, spendingPublicKey)
     debug("Ownership result:", isOwner)
     debug("=== End ownership check ===")
 

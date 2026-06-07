@@ -143,10 +143,10 @@ function parsePaymentStealthAddress(addressStr: string | undefined): StealthAddr
 /**
  * Derive the stealth private key using real cryptographic operations
  *
- * Uses DKSAP (Dual-Key Stealth Address Protocol):
- * 1. Compute shared secret: S = spending_scalar * ephemeral_pubkey
+ * Uses DKSAP (Dual-Key Stealth Address Protocol, canonical EIP-5564):
+ * 1. Compute shared secret: S = viewing_scalar * ephemeral_pubkey
  * 2. Hash the shared secret
- * 3. Derive: stealth_private = viewing_scalar + hash(S) mod L
+ * 3. Derive: stealth_private = spending_scalar + hash(S) mod L
  */
 async function deriveSpendingKeyFromPayment(
   payment: PaymentRecord,
