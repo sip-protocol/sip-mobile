@@ -28,7 +28,12 @@ export interface StealthMetaAddress {
 export interface StealthAddress {
   address: string // hex string with 0x prefix
   ephemeralPublicKey: string // hex string with 0x prefix
-  viewTag: number
+  /**
+   * EIP-5564 view tag (first byte of SHA256(S)) for fast-reject during scanning.
+   * Optional: it is NOT persisted on-chain, so scanners that reconstruct a
+   * StealthAddress from a transfer record leave it undefined (see checkStealthOwnership).
+   */
+  viewTag?: number
 }
 
 export interface StealthKeys {
@@ -254,8 +259,8 @@ export function checkStealthAddress(
   const sharedSecretPoint = ephemeralPoint.multiply(viewingScalar)
   const sharedSecretHash = sha256(sharedSecretPoint.toRawBytes())
 
-  // View tag fast-reject
-  if (sharedSecretHash[0] !== stealthAddress.viewTag) {
+  // View tag fast-reject (only when a tag is supplied — on-chain records don't store one)
+  if (stealthAddress.viewTag !== undefined && sharedSecretHash[0] !== stealthAddress.viewTag) {
     return false
   }
 
@@ -266,6 +271,37 @@ export function checkStealthAddress(
   const expectedPoint = spendingPoint.add(hashTimesG)
 
   return bytesToHex(expectedPoint.toRawBytes()) === bytesToHex(hexToBytes(stealthAddress.address))
+}
+
+/**
+ * View-only ownership check from raw on-chain parts (stealth recipient + ephemeral key).
+ *
+ * Convenience wrapper over {@link checkStealthAddress} for scanners that hold the raw
+ * stealth recipient and ephemeral public key parsed from a transfer record — rather than
+ * a full StealthAddress object — and for which no view tag is stored on-chain. Delegates
+ * to checkStealthAddress (the single source of the P = K_spend + H(S)*G recomputation)
+ * with the view tag omitted, so there is no second copy of the stealth derivation.
+ *
+ * VIEW-ONLY: needs the viewing PRIVATE key and the spending PUBLIC key only — never the
+ * spending private key (which is required to spend, not to detect).
+ *
+ * @param stealthAddress - stealth recipient public key (hex, 0x optional, 32-byte ed25519)
+ * @param ephemeralPublicKey - ephemeral public key R (hex, 0x optional, 32-byte ed25519)
+ * @param viewingPrivateKey - recipient viewing private key (hex, 0x optional)
+ * @param spendingPublicKey - recipient spending public key (hex, 0x optional)
+ * @returns true if the payment was intended for this recipient
+ */
+export function checkStealthOwnership(
+  stealthAddress: string,
+  ephemeralPublicKey: string,
+  viewingPrivateKey: string,
+  spendingPublicKey: string
+): boolean {
+  return checkStealthAddress(
+    { address: stealthAddress, ephemeralPublicKey },
+    viewingPrivateKey,
+    spendingPublicKey
+  )
 }
 
 // ─── Private Key Derivation ────────────────────────────────────────────────

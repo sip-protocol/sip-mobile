@@ -24,13 +24,12 @@ import * as Notifications from "expo-notifications"
 import * as SecureStore from "expo-secure-store"
 import AsyncStorage from "@react-native-async-storage/async-storage"
 // Connection type used indirectly via getRpcClient
-import { fetchAllTransferRecords, type TransferRecordData } from "@/lib/anchor/client"
+import { fetchAllTransferRecords } from "@/lib/anchor/client"
 import { bytesToHex } from "@/lib/stealth"
+import { checkRecordOwnership } from "./recordOwnership"
 import { decryptAmount, deriveSharedSecret } from "@/lib/anchor/crypto"
 import { getRpcClient, type RpcConfig } from "@/lib/rpc"
 import { getRpcApiKey } from "@/lib/config"
-import { ed25519 } from "@noble/curves/ed25519"
-import { sha512 } from "@noble/hashes/sha512"
 import type { StealthKeysStorage } from "@/types"
 import {
   MIN_BACKGROUND_SCAN_INTERVAL_SEC,
@@ -280,55 +279,6 @@ async function getExistingPaymentHashes(): Promise<Set<string>> {
 async function saveFoundPaymentHashes(hashes: Set<string>): Promise<void> {
   const arr = Array.from(hashes).slice(-MAX_HASH_HISTORY)
   await AsyncStorage.setItem(FOUND_PAYMENTS_KEY, JSON.stringify(arr))
-}
-
-/**
- * Check if a transfer record belongs to the user
- */
-function checkRecordOwnership(
-  record: TransferRecordData,
-  viewingPrivateKey: Uint8Array,
-  spendingPublicKey: Uint8Array
-): boolean {
-  try {
-    // Get ephemeral public key from record (stored as 33-byte compressed key)
-    const ephemeralPubKey = record.ephemeralPubkey
-
-    // Derive shared secret using viewing private key
-    const sharedSecret = deriveSharedSecret(viewingPrivateKey, ephemeralPubKey)
-
-    // Derive stealth private key scalar using SHA-512
-    const hashInput = new Uint8Array([...sharedSecret])
-    const hash = sha512(hashInput)
-    const scalarBytes = hash.slice(0, 32)
-
-    // Clamp scalar for ed25519
-    scalarBytes[0] &= 248
-    scalarBytes[31] &= 127
-    scalarBytes[31] |= 64
-
-    // Get scalar as bigint
-    let scalar = BigInt(0)
-    for (let i = 0; i < 32; i++) {
-      scalar += BigInt(scalarBytes[i]) << BigInt(8 * i)
-    }
-
-    // Reduce modulo L
-    const L = BigInt("7237005577332262213973186563042994240857116359379907606001950938285454250989")
-    scalar = scalar % L
-
-    // Convert spending public key to point and add scalar * G
-    const spendingPoint = ed25519.ExtendedPoint.fromHex(spendingPublicKey)
-    const scalarPoint = ed25519.ExtendedPoint.BASE.multiply(scalar)
-    const stealthPoint = spendingPoint.add(scalarPoint)
-    const derivedStealthPubKey = stealthPoint.toRawBytes()
-
-    // Compare with record's stealth address (PublicKey.toBytes())
-    const recordStealthBytes = record.stealthRecipient.toBytes()
-    return bytesToHex(derivedStealthPubKey) === bytesToHex(recordStealthBytes)
-  } catch {
-    return false
-  }
 }
 
 /**
