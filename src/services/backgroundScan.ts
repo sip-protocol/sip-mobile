@@ -27,7 +27,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage"
 import { fetchAllTransferRecords } from "@/lib/anchor/client"
 import { bytesToHex } from "@/lib/stealth"
 import { checkRecordOwnership } from "./recordOwnership"
-import { decryptAmount, deriveSharedSecret } from "@/lib/anchor/crypto"
+import { resolveRecordAmountSol } from "./recordAmount"
 import { getRpcClient, type RpcConfig } from "@/lib/rpc"
 import { getRpcApiKey } from "@/lib/config"
 import type { StealthKeysStorage } from "@/types"
@@ -351,18 +351,14 @@ async function performBackgroundScan(): Promise<BackgroundFetch.BackgroundFetchR
         const isOwned = checkRecordOwnership(record, viewingPrivateKey, spendingPublicKey)
 
         if (isOwned) {
-          // Decrypt amount
-          let amount = 0
-          try {
-            // Derive shared secret for decryption
-            const sharedSecret = deriveSharedSecret(viewingPrivateKey, record.ephemeralPubkey)
-            const decrypted = decryptAmount(record.encryptedAmount, sharedSecret)
-            amount = Number(decrypted) / 1e9 // Convert lamports to SOL
-          } catch {
-            // Decryption failed, use a placeholder
-            logger.warn("[BackgroundScan] Failed to decrypt amount")
-            amount = 0
-          }
+          // View-only: the amount is spending-keyed and can't be decrypted with the viewing
+          // key, so read it from the stealth recipient's on-chain SOL balance — mirroring the
+          // foreground useScanPayments fallback. A view-only auditor detects the payment but
+          // reads its value from chain, not by decryption. See #87.
+          const amount = await resolveRecordAmountSol(
+            record.stealthRecipient,
+            (recipient) => connection.getBalance(recipient)
+          )
 
           foundCount++
           totalAmount += amount
