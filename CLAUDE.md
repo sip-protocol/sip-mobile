@@ -89,7 +89,7 @@ pnpm typecheck            # Type check
 eas build --platform android --profile production --local  # Local APK
 ```
 
-**Tabs:** Home | Send | Receive | Swap | Settings
+**Tabs:** Home | Privacy | Swap
 
 ---
 
@@ -348,7 +348,7 @@ This is the unique value-add: **"Privacy institutions can actually use"**
 ## Structure
 
 ```
-app/(tabs)/           # Tab screens (index, send, receive, swap, settings)
+app/(tabs)/           # Tab screens (index, privacy, swap)
 app/(auth)/           # Auth screens (onboarding, wallet-setup, create/import wallet)
 src/components/       # UI components (Button, Card, Input, Modal, Toggle)
 src/components/onboarding/  # Onboarding slides (Welcome, Privacy, Stealth, ViewingKeys, Security)
@@ -387,9 +387,9 @@ publishing/           # APK builds, dApp Store config
 > **Bump version BEFORE every build** — Same version = store won't recognize update.
 
 ```bash
-# app.json — increment BOTH before building:
-"version": "0.1.6"              # versionName (human-readable)
-"android": { "versionCode": 7 } # MUST increment for store updates
+# app.config.js — increment BOTH before building:
+"version": "0.2.3"              # versionName (human-readable)
+"android": { "versionCode": 14 } # MUST increment for store updates
 ```
 
 ---
@@ -526,12 +526,13 @@ scrcpy --record session.mp4                    # Record
 
 | Category | Tests | Status |
 |----------|-------|--------|
-| Total | 1,205 | 100% pass (55 suites) |
-| E2E Flows | 49 | ✅ Good |
-| Hooks | 190 | ✅ Good |
-| Stores | 80 | ✅ Good |
-| Utils | 138 | ✅ Good |
-| Anchor/Lib | 90 | ✅ Good |
+| Total | 1,492 | 100% pass (65 suites) |
+| E2E Flows | 184 | ✅ Good |
+| Hooks | 282 | ✅ Good |
+| Stores | 176 | ✅ Good |
+| Utils | 305 | ✅ Good |
+| Components | 128 | ✅ Good |
+| Anchor/Lib | 203 | ✅ Good |
 
 ### E2E Verified (All 7 Privacy Providers)
 
@@ -542,7 +543,7 @@ All providers tested on Seeker with real on-chain transactions:
 
 ---
 
-**Last Updated:** 2026-03-03
-**Status:** v0.1.6 | 1,205 tests | 55 suites | Mainnet default | dApp Store published | All 7 Privacy Providers E2E Verified | Interactive Onboarding
+**Last Updated:** 2026-06-12
+**Status:** v0.2.3 | 1,492 tests | 65 suites | Mainnet default | dApp Store published | All 7 Privacy Providers E2E Verified | Interactive Onboarding
 **Positioning:** Privacy in Your Pocket — consumers, daily use, native security
 **Companion:** sip-app ("Privacy Command Center" — enterprise, compliance, power users)
