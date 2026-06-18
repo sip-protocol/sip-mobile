@@ -1,0 +1,23 @@
+version: 2
+updates:
+  # npm — app root + publishing tooling (each has its own lockfile)
+  - package-ecosystem: "npm"
+    directories:
+      - "/"
+      - "/publishing"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    open-pull-requests-limit: 10
+    groups:
+      minor-and-patch:
+        update-types:
+          - "minor"
+          - "patch"
+
+  # GitHub Actions
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
