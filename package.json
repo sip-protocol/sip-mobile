@@ -62,7 +62,7 @@
     "expo-sharing": "^14.0.8",
     "expo-splash-screen": "^31.0.13",
     "expo-status-bar": "~3.0.9",
-    "expo-task-manager": "^14.0.9",
+    "expo-task-manager": "^56.0.19",
     "expo-updates": "~29.0.16",
     "expo-web-browser": "~15.0.10",
     "fast-text-encoding": "^1.0.6",
