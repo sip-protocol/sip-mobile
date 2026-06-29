@@ -28,7 +28,7 @@
     "@expo/vector-icons": "^15.0.3",
     "@magicblock-labs/ephemeral-rollups-sdk": "^0.8.4",
     "@noble/ciphers": "^2.1.1",
-    "@noble/curves": "^1.7.0",
+    "@noble/curves": "^2.2.0",
     "@noble/hashes": "^1.6.0",
     "@radr/shadowwire": "^1.1.15",
     "@react-native-async-storage/async-storage": "^2.2.0",
