@@ -38,8 +38,8 @@ importers:
         specifier: ^2.1.1
         version: 2.1.1
       '@noble/curves':
-        specifier: ^1.7.0
-        version: 1.9.7
+        specifier: ^2.2.0
+        version: 2.2.0
       '@noble/hashes':
         specifier: ^1.6.0
         version: 1.8.0
