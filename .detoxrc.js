@@ -35,9 +35,11 @@ module.exports = {
   devices: {
     simulator: {
       type: 'ios.simulator',
-      device: {
-        type: 'iPhone 15 Pro',
-      },
+      // CI resolves an existing iPhone simulator (names rotate with Xcode
+      // updates) and exports it as SIM_DEVICE; local runs keep the type fallback
+      device: process.env.SIM_DEVICE
+        ? { name: process.env.SIM_DEVICE }
+        : { type: 'iPhone 15 Pro' },
     },
     attached: {
       type: 'android.attached',
