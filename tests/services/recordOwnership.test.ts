@@ -16,7 +16,7 @@
 
 import { describe, it, expect } from "vitest"
 import { PublicKey } from "@solana/web3.js"
-import { ed25519 } from "@noble/curves/ed25519"
+import { ed25519 } from "@noble/curves/ed25519.js"
 import { checkRecordOwnership, scanRecordsForOwner } from "@/services/recordOwnership"
 import {
   generateStealthAddress,

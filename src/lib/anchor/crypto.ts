@@ -5,7 +5,7 @@
  * for the SIP Privacy program.
  */
 
-import { ed25519 } from "@noble/curves/ed25519"
+import { ed25519 } from "@noble/curves/ed25519.js"
 import { sha256 as nobleSha256 } from "@noble/hashes/sha256"
 import { sha512 as nobleSha512 } from "@noble/hashes/sha512"
 import nacl from "tweetnacl"
@@ -88,13 +88,13 @@ async function randomBytes(length: number): Promise<Uint8Array> {
  * Generate the H generator point for Pedersen commitments
  * This is a nothing-up-my-sleeve point derived from a hash
  */
-function getHGenerator(): InstanceType<typeof ed25519.ExtendedPoint> {
+function getHGenerator(): InstanceType<typeof ed25519.Point> {
   // Hash the seed multiple times to get a valid point
   let hash = sha256(H_GENERATOR_SEED)
   for (let i = 0; i < 100; i++) {
     try {
       // Try to create a valid point from the hash
-      const point = ed25519.ExtendedPoint.fromHex(hash)
+      const point = ed25519.Point.fromBytes(hash)
       return point
     } catch {
       // Not a valid point, hash again
@@ -103,7 +103,7 @@ function getHGenerator(): InstanceType<typeof ed25519.ExtendedPoint> {
   }
   // Fallback: use a scalar multiplication of base point
   const scalar = bytesToBigInt(sha256(H_GENERATOR_SEED)) % ED25519_ORDER
-  return ed25519.ExtendedPoint.BASE.multiply(scalar)
+  return ed25519.Point.BASE.multiply(scalar)
 }
 
 export interface PedersenCommitment {
@@ -123,7 +123,7 @@ export async function createCommitment(value: bigint): Promise<PedersenCommitmen
   const blinding = bytesToBigInt(blindingBytes) % ED25519_ORDER
 
   // C = value * G + blinding * H
-  const G = ed25519.ExtendedPoint.BASE
+  const G = ed25519.Point.BASE
   const H = getHGenerator()
 
   const valuePoint = G.multiply(value % ED25519_ORDER)
@@ -131,7 +131,7 @@ export async function createCommitment(value: bigint): Promise<PedersenCommitmen
   const commitmentPoint = valuePoint.add(blindingPoint)
 
   // Serialize as compressed point (33 bytes: 1 byte prefix + 32 bytes)
-  const rawBytes = commitmentPoint.toRawBytes()
+  const rawBytes = commitmentPoint.toBytes()
   const commitment = new Uint8Array(33)
   // Use 0x02 or 0x03 prefix based on y-coordinate parity (simulated for ed25519)
   commitment[0] = 0x02
@@ -246,11 +246,11 @@ export function deriveSharedSecret(
   const scalarBigInt = bytesToBigInt(scalar) % ED25519_ORDER
 
   // Compute shared secret point
-  const recipientPoint = ed25519.ExtendedPoint.fromHex(recipientSpendingPubKey)
+  const recipientPoint = ed25519.Point.fromBytes(recipientSpendingPubKey)
   const sharedPoint = recipientPoint.multiply(scalarBigInt)
 
   // Hash the shared point to get the shared secret
-  return sha256(sharedPoint.toRawBytes())
+  return sha256(sharedPoint.toBytes())
 }
 
 // ─── Mock ZK Proof ─────────────────────────────────────────────────────────
