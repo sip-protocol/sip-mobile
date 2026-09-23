@@ -62,7 +62,16 @@ jobs:
 
       - name: Boot iOS Simulator
         run: |
-          xcrun simctl boot "iPhone 15"
+          # Runner images rotate simulator names (iPhone 15 disappeared with
+          # an Xcode update), so pick whatever iPhone the image actually has
+          DEVICE=$(xcrun simctl list devices available | grep -E "iPhone" | head -1 | sed -E 's/ *\([^)]*\)//g' | xargs)
+          if [ -z "$DEVICE" ]; then
+            echo "No available iPhone simulator found"
+            exit 1
+          fi
+          echo "Booting simulator: $DEVICE"
+          echo "SIM_DEVICE=$DEVICE" >> "$GITHUB_ENV"
+          xcrun simctl boot "$DEVICE"
 
       - name: Detox test iOS
         run: pnpm e2e:test:ios
