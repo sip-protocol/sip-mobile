@@ -116,7 +116,7 @@ describe("Portfolio Store", () => {
     })
 
     it("should return token score for single token", () => {
-      const { updateTokens, getAggregateScore } = usePortfolioStore.getState()
+      const { updateTokens } = usePortfolioStore.getState()
 
       updateTokens([SOL_TOKEN]) // score 80
 
@@ -223,7 +223,7 @@ describe("Portfolio Store", () => {
 
   describe("clear", () => {
     it("should reset tokens to empty array", () => {
-      const { updateTokens, clear } = usePortfolioStore.getState()
+      const { updateTokens } = usePortfolioStore.getState()
 
       updateTokens([SOL_TOKEN, USDC_TOKEN])
       usePortfolioStore.getState().clear()

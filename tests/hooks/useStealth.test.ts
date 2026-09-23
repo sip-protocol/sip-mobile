@@ -119,7 +119,6 @@ interface StealthKeys {
 // Re-implemented utility functions for isolated testing
 // ============================================================================
 
-const SIP_CHAIN = "solana"
 const STEALTH_PREFIX = "sip:"
 
 function formatStealthAddress(

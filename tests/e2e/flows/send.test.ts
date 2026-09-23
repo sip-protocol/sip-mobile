@@ -16,8 +16,6 @@ import {
   setupMockWallet,
   resetMocks,
   MOCK_WALLET,
-  LAMPORTS_PER_SOL,
-  createMockSignature,
 } from "../helpers/mockRpc"
 
 // ============================================================================
@@ -46,7 +44,7 @@ interface SendResult {
 
 async function executeSendFlow(
   params: SendParams,
-  walletAddress: string,
+  _walletAddress: string,
   balance: number,
   signTransaction: (tx: Uint8Array) => Promise<Uint8Array | null>
 ): Promise<{ status: SendStatus; result: SendResult }> {
@@ -93,11 +91,6 @@ async function executeSendFlow(
   }
 
   // Step 3: Prepare transaction
-  let recipientAddress = params.recipient
-  if (isStealthAddress) {
-    // Simulate stealth address derivation
-    recipientAddress = "StealthDerived" + params.recipient.slice(0, 20)
-  }
 
   // Step 4: Build transaction (mock)
   const txBytes = new Uint8Array(512)

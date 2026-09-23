@@ -18,7 +18,6 @@ import { Button } from "@/components/ui"
 import {
   ArrowLeftIcon,
   MagnifyingGlassIcon,
-  BankIcon,
   CheckCircleIcon,
   KeyIcon,
   ChartBarIcon,

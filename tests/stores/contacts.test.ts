@@ -7,7 +7,6 @@
 
 import { describe, it, expect, beforeEach, vi } from "vitest"
 import { useContactsStore } from "@/stores/contacts"
-import type { Contact } from "@/types/contacts"
 
 describe("Contacts Store", () => {
   const mockInput = {

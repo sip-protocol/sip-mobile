@@ -26,7 +26,6 @@ type RpcProvider = "helius" | "quicknode" | "triton" | "public"
 // ============================================================================
 
 const LAMPORTS_PER_SOL = 1_000_000_000
-const DEFAULT_SOL_PRICE_USD = 185.0
 
 function lamportsToSol(lamports: number): number {
   return lamports / LAMPORTS_PER_SOL

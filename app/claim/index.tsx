@@ -32,7 +32,6 @@ import {
   WarningIcon,
   LockKeyIcon,
   SparkleIcon,
-  MagnifyingGlassIcon,
 } from "phosphor-react-native"
 import { ICON_COLORS } from "@/constants/icons"
 

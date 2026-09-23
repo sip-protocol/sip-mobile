@@ -7,7 +7,6 @@
 
 import { describe, it, expect } from "vitest"
 import { getScoreTier, getScoreColor, getScoreLabel } from "@/components/PrivacyScoreBadge"
-import type { ScoreTier } from "@/components/PrivacyScoreBadge"
 
 // ============================================================================
 // TIER CLASSIFICATION

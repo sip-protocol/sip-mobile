@@ -40,7 +40,7 @@ export default function BackupWalletScreen() {
           "This wallet was imported with a private key and doesn't have a recovery phrase."
         )
       }
-    } catch (err) {
+    } catch (_err) {
       Alert.alert("Authentication Failed", "Please try again.")
     } finally {
       setRevealing(false)

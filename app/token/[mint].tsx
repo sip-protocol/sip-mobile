@@ -17,7 +17,7 @@ import { PositionCard } from "@/components/PositionCard"
 import { useBalance } from "@/hooks/useBalance"
 import { useSettingsStore } from "@/stores/settings"
 import { toast } from "@/stores/toast"
-import { getTokenByMint, TOKENS } from "@/data/tokens"
+import { getTokenByMint } from "@/data/tokens"
 import { formatAddress } from "@/stores/wallet"
 import { hapticLight } from "@/utils/haptics"
 

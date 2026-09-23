@@ -17,25 +17,17 @@ import {
   // Privacy & Security
   ShieldCheck,
   Shield,
-  ShieldWarning,
   Eye,
   EyeSlash,
   Lock,
-  LockOpen,
   LockKey,
   Key,
   Fingerprint,
-  Scan,
   FaceMask,
 
   // Wallet & Finance
   Wallet,
-  CurrencyDollar,
-  Coins,
-  Bank,
   Receipt,
-  CreditCard,
-  PiggyBank,
 
   // Navigation
   House,
@@ -49,7 +41,6 @@ import {
   Camera,
   Copy,
   Share,
-  ShareNetwork,
   Plus,
   Minus,
   Check,
@@ -67,71 +58,38 @@ import {
   XCircle,
   Clock,
   Warning,
-  WarningCircle,
   Info,
-  Question,
-  Spinner,
   CircleNotch,
 
   // Transaction
   ArrowUp,
   ArrowDown,
   ArrowRight,
-  ArrowLeft,
-  ArrowsDownUp,
 
   // Communication
   Bell,
-  BellRinging,
-  Envelope,
-  ChatDots,
 
   // Network & Settings
   Globe,
   GlobeHemisphereWest,
-  WifiHigh,
   Lightning,
-  Gear,
-  Sliders,
-  Faders,
 
   // Documents & Data
   ClipboardText,
-  File,
   FileText,
-  Files,
-  Folder,
   FolderOpen,
-  Book,
   BookOpen,
   ChartBar,
-  ChartLine,
 
   // User
   User,
-  Users,
-  UserCircle,
-  AddressBook,
-  IdentificationCard,
 
   // Misc
   Bug,
-  Code,
-  Link,
-  LinkBreak,
   Timer,
-  Hourglass,
-  CalendarBlank,
   Numpad,
-  NumberSquareOne,
   Flask,
-  Lightning as Zap,
   Fire,
-  Sparkle,
-  Star,
-  Heart,
-  ThumbsUp,
-  Trophy,
 } from "phosphor-react-native"
 
 // ============================================================================

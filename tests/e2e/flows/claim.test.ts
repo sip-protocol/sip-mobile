@@ -67,7 +67,7 @@ const MOCK_STEALTH_KEYS: StealthKeys = {
 async function executeClaimFlow(
   payment: PaymentRecord,
   keys: StealthKeys | null,
-  destinationAddress: string
+  _destinationAddress: string
 ): Promise<{ status: ClaimStatus; result: ClaimResult }> {
   // Step 1: Validate payment
   if (!payment) {
@@ -114,8 +114,6 @@ async function executeClaimFlow(
     }
   }
 
-  // Simulate key derivation
-  const derivedKey = "0x" + "derived" + keys.viewingPrivateKey.slice(10, 30)
 
   // Step 4: Build claim transaction (mock)
   const txBytes = new Uint8Array(512)

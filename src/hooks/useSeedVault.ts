@@ -34,6 +34,9 @@ let useSeedVaultNative: ((
 ) => void) | undefined
 
 try {
+  // Guarded load: the native seed-vault module is absent on unsupported
+  // platforms/devices; failure is handled by the catch below.
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
   const seedVaultLib = require("@solana-mobile/seed-vault-lib")
   SeedVault = seedVaultLib.SeedVault
   SeedVaultPermissionAndroid = seedVaultLib.SeedVaultPermissionAndroid
@@ -178,7 +181,9 @@ export function useSeedVault(
       setIsInitialized(true)
       setIsLoading(false)
     })
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // Deliberately runs once on mount (checkAvailability is stable).
+    // react-hooks/exhaustive-deps is not linted yet — revisit when the
+    // react-hooks plugin is added as a dev dependency.
   }, [])
 
   /**

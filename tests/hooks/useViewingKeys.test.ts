@@ -47,12 +47,6 @@ describe("buildImportedViewingKey (#86: persists spendingPublicKey)", () => {
 
 type ExportFormat = "hex" | "base64" | "json"
 
-interface ExportOptions {
-  format: ExportFormat
-  includeMetadata: boolean
-  expiresAt?: number
-}
-
 interface DisclosureInput {
   viewingKey: string
   recipientName: string
@@ -152,9 +146,6 @@ function getRevokedDisclosures(disclosures: DisclosedKey[]): DisclosedKey[] {
   return disclosures.filter((d) => d.revoked)
 }
 
-function getExpiredDisclosures(disclosures: DisclosedKey[]): DisclosedKey[] {
-  return disclosures.filter((d) => !d.revoked && isDisclosureExpired(d))
-}
 
 function validateDisclosureInput(input: DisclosureInput): { valid: boolean; error?: string } {
   if (!input.viewingKey) {
