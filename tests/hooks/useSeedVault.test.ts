@@ -22,21 +22,22 @@ describe("Seed Vault Module Resolution", () => {
 
   it("should resolve seed-vault-lib package.json", () => {
     const pkg = require("@solana-mobile/seed-vault-lib/package.json")
+    const declared =
+      require("../../package.json").dependencies["@solana-mobile/seed-vault-lib"]
     expect(pkg.name).toBe("@solana-mobile/seed-vault-lib")
-    expect(pkg.version).toBe("0.4.0")
+    // resolves exactly the version declared in the root package.json
+    expect(pkg.version).toBe(declared)
   })
 
-  it("should have exports map with import condition", () => {
+  it("should have entry points for Metro resolution (0.4.1 ships no exports map)", () => {
     const pkg = require("@solana-mobile/seed-vault-lib/package.json")
-    expect(pkg.exports).toBeDefined()
-    expect(pkg.exports["."]).toBeDefined()
-    expect(pkg.exports["."].import).toBeDefined()
-    expect(pkg.exports["."].import).toContain("index.native.js")
+    expect(pkg.main).toBe("lib/index.js")
+    expect(pkg["react-native"]).toBe("lib/index.js")
   })
 
   it("should NOT have require condition in exports (this is the root cause of #70)", () => {
     const pkg = require("@solana-mobile/seed-vault-lib/package.json")
-    expect(pkg.exports["."].require).toBeUndefined()
+    expect(pkg.exports?.["."]?.require).toBeUndefined()
   })
 })
 

@@ -199,7 +199,7 @@ export class SipPrivacyClient {
     let ephemeralKeyPair: { privateKey: Uint8Array; publicKey: Uint8Array }
     if (params.ephemeralPrivateKey) {
       // Use provided ephemeral key from generateStealthAddress
-      const { ed25519 } = await import("@noble/curves/ed25519")
+      const { ed25519 } = await import("@noble/curves/ed25519.js")
       const publicKeyRaw = ed25519.getPublicKey(params.ephemeralPrivateKey)
       // Convert to 33-byte compressed format (0x02 prefix + 32 bytes)
       const publicKey = new Uint8Array(33)
@@ -316,7 +316,7 @@ export class SipPrivacyClient {
     const rawAmount = BigInt(Math.floor(params.amount * Math.pow(10, params.decimals)))
 
     // Build ephemeral key from provided private key
-    const { ed25519 } = await import("@noble/curves/ed25519")
+    const { ed25519 } = await import("@noble/curves/ed25519.js")
     const publicKeyRaw = ed25519.getPublicKey(params.ephemeralPrivateKey)
     const ephemeralPubkey = new Uint8Array(33)
     ephemeralPubkey[0] = 0x02
@@ -451,7 +451,7 @@ export class SipPrivacyClient {
 
     const rawAmount = BigInt(Math.floor(params.amount * Math.pow(10, params.decimals)))
 
-    const { ed25519 } = await import("@noble/curves/ed25519")
+    const { ed25519 } = await import("@noble/curves/ed25519.js")
     const publicKeyRaw = ed25519.getPublicKey(params.ephemeralPrivateKey)
     const ephemeralPubkey = new Uint8Array(33)
     ephemeralPubkey[0] = 0x02
@@ -1117,7 +1117,7 @@ async function signWithScalar(
   scalarBytes: Uint8Array,
   publicKeyBytes: Uint8Array
 ): Promise<Uint8Array> {
-  const { ed25519 } = await import("@noble/curves/ed25519")
+  const { ed25519 } = await import("@noble/curves/ed25519.js")
   const { sha512 } = await import("@noble/hashes/sha512")
 
   const ED25519_ORDER = BigInt(
@@ -1146,8 +1146,8 @@ async function signWithScalar(
   r = r % ED25519_ORDER
 
   // R = r * G
-  const R = ed25519.ExtendedPoint.BASE.multiply(r)
-  const RBytes = R.toRawBytes()
+  const R = ed25519.Point.BASE.multiply(r)
+  const RBytes = R.toBytes()
 
   // k = SHA512(R || A || message) mod L
   const kInput = new Uint8Array([...RBytes, ...publicKeyBytes, ...message])
@@ -1181,7 +1181,7 @@ async function signWithScalar(
  * Get public key bytes from scalar
  */
 function getPublicKeyFromScalar(scalarBytes: Uint8Array): Uint8Array {
-  const { ed25519 } = require("@noble/curves/ed25519")
+  const { ed25519 } = require("@noble/curves/ed25519.js")
 
   const ED25519_ORDER = BigInt(
     "0x1000000000000000000000000000000014def9dea2f79cd65812631a5cf5d3ed"
@@ -1195,8 +1195,8 @@ function getPublicKeyFromScalar(scalarBytes: Uint8Array): Uint8Array {
   scalar = scalar % ED25519_ORDER
 
   // Compute public key: P = scalar * G
-  const publicKeyPoint = ed25519.ExtendedPoint.BASE.multiply(scalar)
-  return publicKeyPoint.toRawBytes()
+  const publicKeyPoint = ed25519.Point.BASE.multiply(scalar)
+  return publicKeyPoint.toBytes()
 }
 
 

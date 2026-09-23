@@ -244,7 +244,7 @@ describe("Anchor Crypto Utilities", () => {
   describe("deriveSharedSecret", () => {
     it("should derive 32-byte shared secret", () => {
       // Use actual ed25519 keys for this test
-      const { ed25519 } = require("@noble/curves/ed25519")
+      const { ed25519 } = require("@noble/curves/ed25519.js")
       const privateKey = new Uint8Array(32).fill(0x42)
       const publicKeyRaw = ed25519.getPublicKey(privateKey)
 
@@ -255,7 +255,7 @@ describe("Anchor Crypto Utilities", () => {
     })
 
     it("should be deterministic for same inputs", () => {
-      const { ed25519 } = require("@noble/curves/ed25519")
+      const { ed25519 } = require("@noble/curves/ed25519.js")
       const privateKey = new Uint8Array(32).fill(0x55)
       const publicKeyRaw = ed25519.getPublicKey(new Uint8Array(32).fill(0x66))
 
@@ -266,7 +266,7 @@ describe("Anchor Crypto Utilities", () => {
     })
 
     it("should produce different secrets for different keys", () => {
-      const { ed25519 } = require("@noble/curves/ed25519")
+      const { ed25519 } = require("@noble/curves/ed25519.js")
       const privateKey1 = new Uint8Array(32).fill(0x11)
       const privateKey2 = new Uint8Array(32).fill(0x22)
       const publicKeyRaw = ed25519.getPublicKey(new Uint8Array(32).fill(0x33))
@@ -336,7 +336,7 @@ describe("Anchor Crypto Utilities", () => {
     })
 
     it("should generate valid ed25519 keypair", async () => {
-      const { ed25519 } = require("@noble/curves/ed25519")
+      const { ed25519 } = require("@noble/curves/ed25519.js")
       const keyPair = await generateEphemeralKeyPair()
 
       // Verify the public key can be derived from the private key
@@ -350,7 +350,7 @@ describe("Anchor Crypto Utilities", () => {
 
 describe("Crypto Integration", () => {
   it("should perform full encrypt/decrypt cycle with derived shared secret", async () => {
-    const { ed25519 } = require("@noble/curves/ed25519")
+    const { ed25519 } = require("@noble/curves/ed25519.js")
 
     // Generate ephemeral keypair
     const ephemeralKeyPair = await generateEphemeralKeyPair()

@@ -20,7 +20,7 @@
  */
 
 import { describe, it, expect } from "vitest"
-import { ed25519 } from "@noble/curves/ed25519"
+import { ed25519 } from "@noble/curves/ed25519.js"
 import { sha256 } from "@noble/hashes/sha256"
 import { sha512 } from "@noble/hashes/sha512"
 import {
@@ -123,7 +123,7 @@ describe("Canonical EIP-5564 stealth scheme (ed25519)", () => {
 
     // The derived value is a raw scalar (little-endian). Re-derive the public point.
     const scalar = beBytesToBigInt(hexToBytes(derivedPriv)) % ED25519_ORDER
-    const derivedPub = ed25519.ExtendedPoint.BASE.multiply(scalar).toRawBytes()
+    const derivedPub = ed25519.Point.BASE.multiply(scalar).toBytes()
 
     expect(`0x${bytesToHex(derivedPub)}`).toBe(stealthAddress.address)
   })
@@ -138,7 +138,7 @@ describe("Canonical EIP-5564 stealth scheme (ed25519)", () => {
       wrongViewingPrivateKey
     )
     const scalar = beBytesToBigInt(hexToBytes(derivedPriv)) % ED25519_ORDER
-    const derivedPub = ed25519.ExtendedPoint.BASE.multiply(scalar).toRawBytes()
+    const derivedPub = ed25519.Point.BASE.multiply(scalar).toBytes()
 
     expect(`0x${bytesToHex(derivedPub)}`).not.toBe(stealthAddress.address)
   })
@@ -147,12 +147,12 @@ describe("Canonical EIP-5564 stealth scheme (ed25519)", () => {
     const { stealthAddress } = await generateStealthAddress(meta)
 
     const ephemeralBytes = hexToBytes(stealthAddress.ephemeralPublicKey)
-    const ephemeralPoint = ed25519.ExtendedPoint.fromHex(ephemeralBytes)
+    const ephemeralPoint = ed25519.Point.fromBytes(ephemeralBytes)
 
     // Recipient-side ECDH on the VIEWING key (the role every scanner uses):
     //   S = view_scalar * R
     const viewScalar = ed25519Scalar(VIEWING_SEED)
-    const S = sha256(ephemeralPoint.multiply(viewScalar).toRawBytes())
+    const S = sha256(ephemeralPoint.multiply(viewScalar).toBytes())
 
     // The view tag (first byte of S) gates detection.
     expect(S[0]).toBe(stealthAddress.viewTag)
@@ -162,9 +162,9 @@ describe("Canonical EIP-5564 stealth scheme (ed25519)", () => {
     // (recordOwnership.checkRecordOwnership -> checkStealthOwnership -> checkStealthAddress).
     // It must equal the on-chain stealth recipient produced by generateStealthAddress.
     const hashScalar = beBytesToBigInt(S) % ED25519_ORDER
-    const addr = ed25519.ExtendedPoint.fromHex(hexToBytes(meta.spendingKey))
-      .add(ed25519.ExtendedPoint.BASE.multiply(hashScalar))
-      .toRawBytes()
+    const addr = ed25519.Point.fromBytes(hexToBytes(meta.spendingKey))
+      .add(ed25519.Point.BASE.multiply(hashScalar))
+      .toBytes()
     expect(`0x${bytesToHex(addr)}`).toBe(stealthAddress.address)
   })
 
