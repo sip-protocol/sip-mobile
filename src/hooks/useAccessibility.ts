@@ -46,7 +46,9 @@ export interface UseAccessibilityReturn extends AccessibilitySettings {
 // ============================================================================
 
 export function useAccessibility(): UseAccessibilityReturn {
-  const colorScheme = useColorScheme() ?? "dark"
+  // RN 0.86 ColorSchemeName includes "unspecified" and null; the app's
+  // default theme is dark, so both resolve to "dark" (previous fallback).
+  const colorScheme: "light" | "dark" = useColorScheme() === "light" ? "light" : "dark"
 
   const [screenReaderEnabled, setScreenReaderEnabled] = useState(false)
   const [reduceMotionEnabled, setReduceMotionEnabled] = useState(false)
