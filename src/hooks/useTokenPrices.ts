@@ -63,7 +63,10 @@ export function useTokenPrices(): UseTokenPricesResult {
   const [lastUpdated, setLastUpdated] = useState<number | null>(null)
 
   const refreshIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
-  const appStateRef = useRef<AppStateStatus>(AppState.currentState)
+  // RN 0.87 types AppState.currentState as string | null | undefined
+  const appStateRef = useRef<AppStateStatus>(
+    (AppState.currentState ?? "unknown") as AppStateStatus
+  )
 
   // Get all token mints to fetch
   const tokenMints = useMemo(() => TOKEN_LIST.map((t) => t.mint), [])

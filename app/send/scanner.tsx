@@ -152,7 +152,7 @@ export default function ScannerScreen() {
     <View testID="qr-scanner-screen" className="flex-1 bg-black">
       {/* Camera View */}
       <CameraView
-        style={StyleSheet.absoluteFillObject}
+        style={StyleSheet.absoluteFill}
         facing="back"
         enableTorch={flashOn}
         barcodeScannerSettings={{
