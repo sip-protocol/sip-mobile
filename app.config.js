@@ -54,6 +54,7 @@ export default {
     plugins: [
       "./plugins/withKotlinJvmTarget",
       "./plugins/withBlockedPermissions",
+      "./plugins/withJniLibsPickFirst",
       "expo-router",
       "expo-splash-screen",
       "expo-secure-store",
@@ -90,8 +91,6 @@ export default {
             useLegacyPackaging: true,
             buildArchs: ["armeabi-v7a", "arm64-v8a"],
             enableMinifyInReleaseBuilds: true,
-            // Solana Mobile SDK Maven repository for Seed Vault
-            extraMavenRepos: ["https://maven.solanamobile.com/releases"],
           },
         },
       ],
