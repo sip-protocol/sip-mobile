@@ -7,7 +7,7 @@
  * Based on @sip-protocol/sdk but adapted for React Native.
  */
 
-import { ed25519 } from "@noble/curves/ed25519"
+import { ed25519 } from "@noble/curves/ed25519.js"
 import { sha256 } from "@noble/hashes/sha256"
 import { sha512 } from "@noble/hashes/sha512"
 import { hkdf } from "@noble/hashes/hkdf"
@@ -204,22 +204,22 @@ export async function generateStealthAddress(
   const ephemeralScalar = rawEphemeralScalar % ED25519_ORDER
 
   // S = ephemeral_scalar * P_view  (canonical EIP-5564: ECDH on the viewing key)
-  const viewingPoint = ed25519.ExtendedPoint.fromHex(viewingKeyBytes)
+  const viewingPoint = ed25519.Point.fromBytes(viewingKeyBytes)
   const sharedSecretPoint = viewingPoint.multiply(ephemeralScalar)
 
   // Hash the shared secret point
-  const sharedSecretHash = sha256(sharedSecretPoint.toRawBytes())
+  const sharedSecretHash = sha256(sharedSecretPoint.toBytes())
 
   // Derive stealth public key: P_stealth = P_spend + hash(S)*G
   const hashScalar = bytesToBigInt(sharedSecretHash) % ED25519_ORDER
 
   // Compute hash(S) * G
-  const hashTimesG = ed25519.ExtendedPoint.BASE.multiply(hashScalar)
+  const hashTimesG = ed25519.Point.BASE.multiply(hashScalar)
 
   // Add to spending key: P_stealth = P_spend + hash(S)*G
-  const spendingPoint = ed25519.ExtendedPoint.fromHex(spendingKeyBytes)
+  const spendingPoint = ed25519.Point.fromBytes(spendingKeyBytes)
   const stealthPoint = spendingPoint.add(hashTimesG)
-  const stealthAddressBytes = stealthPoint.toRawBytes()
+  const stealthAddressBytes = stealthPoint.toBytes()
 
   // Compute view tag (first byte of shared secret hash)
   const viewTag = sharedSecretHash[0]
@@ -255,9 +255,9 @@ export function checkStealthAddress(
   // Shared secret: S = viewing_scalar * R  (canonical ECDH on the viewing key)
   const rawViewingScalar = getEd25519Scalar(viewingPrivBytes)
   const viewingScalar = rawViewingScalar % ED25519_ORDER
-  const ephemeralPoint = ed25519.ExtendedPoint.fromHex(ephemeralPubBytes)
+  const ephemeralPoint = ed25519.Point.fromBytes(ephemeralPubBytes)
   const sharedSecretPoint = ephemeralPoint.multiply(viewingScalar)
-  const sharedSecretHash = sha256(sharedSecretPoint.toRawBytes())
+  const sharedSecretHash = sha256(sharedSecretPoint.toBytes())
 
   // View tag fast-reject (only when a tag is supplied — on-chain records don't store one)
   if (stealthAddress.viewTag !== undefined && sharedSecretHash[0] !== stealthAddress.viewTag) {
@@ -266,11 +266,11 @@ export function checkStealthAddress(
 
   // Recompute the stealth address from the spending PUBLIC key — no spending private key needed
   const hashScalar = bytesToBigInt(sharedSecretHash) % ED25519_ORDER
-  const hashTimesG = ed25519.ExtendedPoint.BASE.multiply(hashScalar)
-  const spendingPoint = ed25519.ExtendedPoint.fromHex(spendingPubBytes)
+  const hashTimesG = ed25519.Point.BASE.multiply(hashScalar)
+  const spendingPoint = ed25519.Point.fromBytes(spendingPubBytes)
   const expectedPoint = spendingPoint.add(hashTimesG)
 
-  return bytesToHex(expectedPoint.toRawBytes()) === bytesToHex(hexToBytes(stealthAddress.address))
+  return bytesToHex(expectedPoint.toBytes()) === bytesToHex(hexToBytes(stealthAddress.address))
 }
 
 /**
@@ -329,11 +329,11 @@ export function deriveStealthPrivateKey(
   const viewingScalar = rawViewingScalar % ED25519_ORDER
 
   // Compute shared secret: S = viewing_scalar * R  (canonical ECDH on the viewing key)
-  const ephemeralPoint = ed25519.ExtendedPoint.fromHex(ephemeralPubBytes)
+  const ephemeralPoint = ed25519.Point.fromBytes(ephemeralPubBytes)
   const sharedSecretPoint = ephemeralPoint.multiply(viewingScalar)
 
   // Hash the shared secret
-  const sharedSecretHash = sha256(sharedSecretPoint.toRawBytes())
+  const sharedSecretHash = sha256(sharedSecretPoint.toBytes())
 
   // Derive stealth private key: s_stealth = s_spend + hash(S) mod L  (canonical)
   const hashScalar = bytesToBigInt(sharedSecretHash) % ED25519_ORDER

@@ -10,13 +10,13 @@ import * as SecureStore from "expo-secure-store"
 import AsyncStorage from "@react-native-async-storage/async-storage"
 
 // Mock @noble/curves/ed25519 (imported transitively by @/lib/stealth)
-vi.mock("@noble/curves/ed25519", () => ({
+vi.mock("@noble/curves/ed25519.js", () => ({
   ed25519: {
     getPublicKey: vi.fn().mockReturnValue(new Uint8Array(32).fill(0xab)),
-    ExtendedPoint: {
+    Point: {
       BASE: {
         multiply: vi.fn().mockReturnValue({
-          toRawBytes: () => new Uint8Array(32).fill(0xcd),
+          toBytes: () => new Uint8Array(32).fill(0xcd),
         }),
       },
     },

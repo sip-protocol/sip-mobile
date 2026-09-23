@@ -31,7 +31,7 @@ import {
 } from "@/lib/anchor/client"
 import { decryptAmount } from "@/lib/anchor/crypto"
 import { debug } from "@/utils/logger"
-import { ed25519 } from "@noble/curves/ed25519"
+import { ed25519 } from "@noble/curves/ed25519.js"
 import { sha256 } from "@noble/hashes/sha256"
 import { sha512 } from "@noble/hashes/sha512"
 
@@ -195,9 +195,9 @@ function checkRecordOwnership(
     const ED25519_ORDER = BigInt("0x1000000000000000000000000000000014def9dea2f79cd65812631a5cf5d3ed")
     viewScalarBigInt = viewScalarBigInt % ED25519_ORDER
 
-    const ephemeralPoint = ed25519.ExtendedPoint.fromHex(ephemeralBytes)
+    const ephemeralPoint = ed25519.Point.fromBytes(ephemeralBytes)
     const sharedSecretPoint = ephemeralPoint.multiply(viewScalarBigInt)
-    const viewTag = sha256(sharedSecretPoint.toRawBytes())[0]
+    const viewTag = sha256(sharedSecretPoint.toBytes())[0]
     debug("Computed view tag:", viewTag)
 
     const stealthAddr: StealthAddress = {

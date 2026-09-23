@@ -23,13 +23,13 @@ vi.mock("@coral-xyz/anchor", () => ({
 }))
 
 // Mock noble curves
-vi.mock("@noble/curves/ed25519", () => ({
+vi.mock("@noble/curves/ed25519.js", () => ({
   ed25519: {
     getPublicKey: vi.fn().mockReturnValue(new Uint8Array(32).fill(0xab)),
-    ExtendedPoint: {
+    Point: {
       BASE: {
         multiply: vi.fn().mockReturnValue({
-          toRawBytes: () => new Uint8Array(32).fill(0xcd),
+          toBytes: () => new Uint8Array(32).fill(0xcd),
         }),
       },
     },
