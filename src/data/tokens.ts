@@ -145,7 +145,7 @@ export function resolveTokenSymbol(payment: { tokenMint?: string; token: string 
 
 export function formatTokenAmount(
   amount: string | number,
-  decimals: number,
+  _decimals: number,
   displayDecimals: number = 4
 ): string {
   const num = typeof amount === "string" ? parseFloat(amount) : amount

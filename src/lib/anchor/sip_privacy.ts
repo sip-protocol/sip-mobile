@@ -2,7 +2,6 @@
  * SIP Privacy Program IDL Type Definition
  * This provides TypeScript types for the Anchor program
  */
-import { Idl } from "@coral-xyz/anchor"
 
 export type SipPrivacy = {
   version: "0.1.0"
@@ -135,4 +134,7 @@ export type SipPrivacy = {
 }
 
 // Type assertion to ensure compatibility with Anchor's Idl type
+// JSON require (not resolveJsonModule import) so the literal JSON type is not
+// widened/checked against SipPrivacy at compile time
+// eslint-disable-next-line @typescript-eslint/no-require-imports
 export const SipPrivacyIDL: SipPrivacy = require("./sip_privacy.json")

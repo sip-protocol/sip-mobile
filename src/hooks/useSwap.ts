@@ -279,7 +279,7 @@ async function waitForConfirmation(
           return
         }
       }
-    } catch (err) {
+    } catch (_err) {
       // Continue polling
     }
 

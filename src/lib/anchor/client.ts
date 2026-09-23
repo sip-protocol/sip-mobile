@@ -1181,6 +1181,8 @@ async function signWithScalar(
  * Get public key bytes from scalar
  */
 function getPublicKeyFromScalar(scalarBytes: Uint8Array): Uint8Array {
+  // Function-local lazy import: keeps noble-curves off the startup module graph
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
   const { ed25519 } = require("@noble/curves/ed25519")
 
   const ED25519_ORDER = BigInt(

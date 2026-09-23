@@ -80,7 +80,7 @@ export function Input({
  */
 export function AmountInput({
   label,
-  token,
+  token: _token,
   balance,
   onMaxPress,
   ...props

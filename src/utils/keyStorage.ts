@@ -105,7 +105,7 @@ export async function storePrivateKey(
       privateKeyBase58,
       SECURE_OPTIONS
     )
-  } catch (error) {
+  } catch (_error) {
     throw {
       code: "STORAGE_ERROR",
       message: "Failed to store private key",
@@ -145,7 +145,7 @@ export async function storeMnemonic(mnemonic: string): Promise<void> {
       mnemonic,
       SECURE_OPTIONS
     )
-  } catch (error) {
+  } catch (_error) {
     throw {
       code: "STORAGE_ERROR",
       message: "Failed to store mnemonic",
@@ -184,7 +184,7 @@ export async function storePublicKey(publicKeyBase58: string): Promise<void> {
       publicKeyBase58,
       STANDARD_OPTIONS
     )
-  } catch (error) {
+  } catch (_error) {
     throw {
       code: "STORAGE_ERROR",
       message: "Failed to store public key",
@@ -223,7 +223,7 @@ export async function setWalletExists(exists: boolean): Promise<void> {
         STANDARD_OPTIONS
       )
     }
-  } catch (error) {
+  } catch (_error) {
     throw {
       code: "STORAGE_ERROR",
       message: "Failed to update wallet status",
@@ -259,7 +259,7 @@ export async function deleteWallet(): Promise<void> {
       SecureStore.deleteItemAsync(STORAGE_KEYS.WALLET_EXISTS),
       SecureStore.deleteItemAsync(STORAGE_KEYS.WALLET_CREATED_AT),
     ])
-  } catch (error) {
+  } catch (_error) {
     throw {
       code: "STORAGE_ERROR",
       message: "Failed to delete wallet",

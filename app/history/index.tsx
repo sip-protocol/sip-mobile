@@ -204,7 +204,7 @@ export default function HistoryScreen() {
   const { payments, isScanning } = usePrivacyStore()
   const { isConnected } = useWalletStore()
   const { network } = useSettingsStore()
-  const { scan, isScanning: isScanningPayments } = useScanPayments()
+  const { scan } = useScanPayments()
 
   const [filterType, setFilterType] = useState<FilterType>("all")
   const [filterStatus, setFilterStatus] = useState<FilterStatus>("all")

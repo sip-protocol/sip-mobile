@@ -20,6 +20,8 @@ export function WelcomeSlide() {
       {/* Logo */}
       <View className="mb-6">
         <Image
+          // Metro asset load — static import would need a png module declaration
+          // eslint-disable-next-line @typescript-eslint/no-require-imports
           source={require("../../../assets/logo-mark.png")}
           className="w-24 h-24"
           resizeMode="contain"

@@ -10,7 +10,6 @@
 
 import { describe, it, expect } from "vitest"
 import {
-  TOKENS,
   FEATURED_TOKENS,
   getToken,
   formatTokenAmount,

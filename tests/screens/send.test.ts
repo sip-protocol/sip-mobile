@@ -8,7 +8,7 @@
  * - Payment recording after successful send
  */
 
-import { describe, it, expect, beforeEach, vi } from "vitest"
+import { describe, it, expect, beforeEach } from "vitest"
 import { useContactsStore } from "@/stores/contacts"
 
 // ============================================================================

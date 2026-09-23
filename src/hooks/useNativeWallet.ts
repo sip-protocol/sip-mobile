@@ -36,7 +36,6 @@ import {
   isBiometricAvailable,
   clearSensitiveData,
   type KeyStorageError,
-  type WalletRegistryEntry,
 } from "@/utils/keyStorage"
 import { useWalletStore } from "@/stores/wallet"
 

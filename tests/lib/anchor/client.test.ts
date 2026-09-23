@@ -6,7 +6,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest"
-import { PublicKey, Connection, Transaction, LAMPORTS_PER_SOL } from "@solana/web3.js"
+import { PublicKey, Connection, Transaction } from "@solana/web3.js"
 
 // Mock @coral-xyz/anchor
 vi.mock("@coral-xyz/anchor", () => ({

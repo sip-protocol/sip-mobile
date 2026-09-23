@@ -249,7 +249,7 @@ export function resetMocks(): void {
 // ============================================================================
 
 export function mockFetch(): void {
-  vi.stubGlobal("fetch", vi.fn().mockImplementation(async (url: string, options?: RequestInit) => {
+  vi.stubGlobal("fetch", vi.fn().mockImplementation(async (_url: string, options?: RequestInit) => {
     const body = options?.body ? JSON.parse(options.body as string) : null
     const method = body?.method
 

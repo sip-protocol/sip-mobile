@@ -37,7 +37,7 @@ import { useStealth, needsStealthBackup } from "@/hooks/useStealth"
 import { useWalletStore } from "@/stores/wallet"
 import { usePrivacyStore } from "@/stores/privacy"
 import { useToastStore } from "@/stores/toast"
-import { Button, ConfirmModal, LoadingState, ErrorState, EmptyState } from "@/components/ui"
+import { ConfirmModal, LoadingState, ErrorState, EmptyState } from "@/components/ui"
 
 type Tab = "address" | "amount"
 
@@ -309,6 +309,8 @@ export default function ReceiveScreen() {
                   size={200}
                   backgroundColor="white"
                   color="#0a0a0a"
+                  // Metro asset load — static import would need a png module declaration
+                  // eslint-disable-next-line @typescript-eslint/no-require-imports
                   logo={require("../../assets/logo-mark.png")}
                   logoSize={40}
                   logoBackgroundColor="white"

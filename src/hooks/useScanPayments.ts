@@ -29,7 +29,7 @@ import {
   fetchAllTransferRecords,
   type TransferRecordData,
 } from "@/lib/anchor/client"
-import { decryptAmount, deriveSharedSecret } from "@/lib/anchor/crypto"
+import { decryptAmount } from "@/lib/anchor/crypto"
 import { debug } from "@/utils/logger"
 import { ed25519 } from "@noble/curves/ed25519"
 import { sha256 } from "@noble/hashes/sha256"
@@ -227,6 +227,8 @@ function decryptRecordAmount(
 ): bigint | null {
   try {
     // Import crypto utilities
+    // Function-local lazy import kept out of the module graph for this code path
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
     const { deriveSharedSecret } = require("@/lib/anchor/crypto")
 
     // Get spending private key bytes

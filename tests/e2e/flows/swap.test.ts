@@ -15,7 +15,6 @@ import {
   mockRpc,
   setupMockWallet,
   resetMocks,
-  MOCK_WALLET,
 } from "../helpers/mockRpc"
 
 // ============================================================================

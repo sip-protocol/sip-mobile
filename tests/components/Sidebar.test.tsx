@@ -7,7 +7,6 @@
  */
 
 import { describe, it, expect, vi } from "vitest"
-import React from "react"
 
 // Mock React hooks for non-component (direct function call) context
 vi.mock("react", async () => {
