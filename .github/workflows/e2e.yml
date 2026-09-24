@@ -57,6 +57,12 @@ jobs:
       - name: Install CocoaPods
         run: cd ios && pod install
 
+      # expo-modules-jsi 57.1.0's vendored SwiftPM manifest requires Swift
+      # tools 6.2 (Xcode 26+); the macos-15 default Xcode 16.4 (Swift 6.1.0)
+      # rejects it at package resolution.
+      - name: Select Xcode 26.3
+        run: sudo xcode-select -s /Applications/Xcode_26.3.app
+
       - name: Detox build iOS
         run: pnpm e2e:build:ios
 
