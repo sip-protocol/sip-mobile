@@ -140,13 +140,20 @@ jobs:
           path: |
             ~/.gradle/caches
             ~/.gradle/wrapper
-          key: gradle-${{ hashFiles('android/gradle/wrapper/gradle-wrapper.properties') }}
+          key: gradle-v2-${{ hashFiles('android/gradle/wrapper/gradle-wrapper.properties') }}
 
       - name: Enable KVM
         run: |
           echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
           sudo udevadm control --reload-rules
           sudo udevadm trigger --name-match=kvm
+
+      # Template gradle.properties pins the daemon to -Xmx2048m; the
+      # :expo:packageDebugAndroidTest splitter dies cause-less on CI with a
+      # null-message OOM signature. Locally the identical command passes with
+      # a larger heap (androidTest merge/dex tasks are the pressure point).
+      - name: Raise Gradle daemon heap
+        run: echo "org.gradle.jvmargs=-Xmx8g -XX:MaxMetaspaceSize=2g" >> android/gradle.properties
 
       - name: Detox build Android
         run: pnpm e2e:build:android
