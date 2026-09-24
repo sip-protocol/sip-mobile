@@ -165,18 +165,21 @@ jobs:
       # the new binary and let the emulator-runner action boot it.
       - name: Create AVD
         run: |
-          BIN="$ANDROID_HOME/cmdline-tools/latest-2/bin"
-          SDKM="$BIN/sdkmanager"
-          AVDM="$BIN/avdmanager"
-          yes | "$SDKM" --licenses > /dev/null || true
-          "$SDKM" --install "system-images;android-34;google_apis;x86_64" > /dev/null
+          # Old cmdline-tools can't read SDK XML v4; install the current
+          # ones (they land in latest-2 when latest preexists), then use
+          # the NEWEST sdkmanager/avdmanager for everything below.
+          SDKM_OLD=$(find "$ANDROID_HOME/cmdline-tools" -name sdkmanager -path '*/bin/*' | sort -V | tail -1)
+          yes | "$SDKM_OLD" --licenses > /dev/null || true
+          "$SDKM_OLD" --install "cmdline-tools;latest" > /dev/null
+          BIN=$(ls -d "$ANDROID_HOME"/cmdline-tools/latest* | sort -V | tail -1)/bin
+          "$BIN/sdkmanager" --install "system-images;android-34;google_apis;x86_64" > /dev/null
           DEVARGS=()
-          if "$AVDM" list device | grep -q 'pixel_7'; then
+          if "$BIN/avdmanager" list device | grep -q 'pixel_7'; then
             DEVARGS=(--device pixel_7)
           fi
-          echo no | "$AVDM" create avd --force -n Pixel_7_API_34 \
+          echo no | "$BIN/avdmanager" create avd --force -n Pixel_7_API_34 \
             --package "system-images;android-34;google_apis;x86_64" "${DEVARGS[@]}"
-          "$AVDM" list avd
+          "$BIN/avdmanager" list avd
 
       - name: Detox test Android
         uses: reactivecircus/android-emulator-runner@v2
