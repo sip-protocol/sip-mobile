@@ -63,6 +63,12 @@ jobs:
       - name: Detox build iOS
         run: pnpm e2e:build:ios
 
+      # Rebuild the prebuilt Detox.framework against the active Xcode;
+      # otherwise every test suite dies at validation with
+      # "Detox.framework could not be found … you changed a version of Xcode".
+      - name: Build Detox framework cache
+        run: pnpm exec detox clean-framework-cache && pnpm exec detox build-framework-cache
+
       - name: Boot iOS Simulator
         run: |
           # Runner images rotate simulator names (iPhone 15 disappeared with
