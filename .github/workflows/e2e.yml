@@ -20,6 +20,19 @@ jobs:
       github.event_name == 'schedule' ||
       contains(github.event.pull_request.labels.*.name, 'e2e')
     steps:
+      - name: Free runner disk space
+        run: |
+          # Full iOS builds + DerivedData can exhaust the runner disk
+          # (clang dies with "IO failure on output stream"); drop every
+          # Xcode except the selected one.
+          df -h /
+          SELECTED=$(xcode-select -p)
+          for x in /Applications/Xcode*.app; do
+            d="$x/Contents/Developer"
+            [ "$d" = "$SELECTED" ] || sudo rm -rf "$x"
+          done
+          df -h /
+
       - name: Checkout
         uses: actions/checkout@v7
 
