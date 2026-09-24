@@ -158,6 +158,12 @@ jobs:
       - name: Detox build Android
         run: pnpm e2e:build:android
 
+      # Runner's preinstalled cmdline-tools predate SDK repository XML v4
+      # ("understands SDK XML versions up to 3") and its avdmanager rejects
+      # the 'Pixel 7' device profile — install the current cmdline-tools.
+      - name: Refresh Android cmdline-tools
+        run: sdkmanager --install "cmdline-tools;latest"
+
       - name: Detox test Android
         uses: reactivecircus/android-emulator-runner@v2
         with:
@@ -165,6 +171,7 @@ jobs:
           target: google_apis
           arch: x86_64
           profile: Pixel 7
+          avd-name: Pixel_7_API_34
           script: pnpm e2e:test:android
 
       - name: Upload artifacts on failure
