@@ -162,7 +162,10 @@ jobs:
       # ("understands SDK XML versions up to 3") and its avdmanager rejects
       # the 'Pixel 7' device profile — install the current cmdline-tools.
       - name: Refresh Android cmdline-tools
-        run: sdkmanager --install "cmdline-tools;latest"
+        run: |
+          SDKM=$(find "$ANDROID_HOME/cmdline-tools" -name sdkmanager -path '*/bin/*' | sort -V | tail -1)
+          yes | "$SDKM" --licenses > /dev/null || true
+          "$SDKM" --install "cmdline-tools;latest"
 
       - name: Detox test Android
         uses: reactivecircus/android-emulator-runner@v2
