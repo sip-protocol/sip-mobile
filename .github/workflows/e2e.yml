@@ -158,14 +158,25 @@ jobs:
       - name: Detox build Android
         run: pnpm e2e:build:android
 
-      # Runner's preinstalled cmdline-tools predate SDK repository XML v4
-      # ("understands SDK XML versions up to 3") and its avdmanager rejects
-      # the 'Pixel 7' device profile — install the current cmdline-tools.
-      - name: Refresh Android cmdline-tools
+      # The runner's preinstalled cmdline-tools predate SDK repository XML v4
+      # and their avdmanager cannot create the 'Pixel 7' profile ("No device
+      # found matching"). Installing cmdline-tools;latest lands in latest-2
+      # (PATH still resolves the old one), so create the AVD explicitly with
+      # the new binary and let the emulator-runner action boot it.
+      - name: Create AVD
         run: |
-          SDKM=$(find "$ANDROID_HOME/cmdline-tools" -name sdkmanager -path '*/bin/*' | sort -V | tail -1)
+          BIN="$ANDROID_HOME/cmdline-tools/latest-2/bin"
+          SDKM="$BIN/sdkmanager"
+          AVDM="$BIN/avdmanager"
           yes | "$SDKM" --licenses > /dev/null || true
-          "$SDKM" --install "cmdline-tools;latest"
+          "$SDKM" --install "system-images;android-34;google_apis;x86_64" > /dev/null
+          DEVARGS=()
+          if "$AVDM" list device | grep -q 'pixel_7'; then
+            DEVARGS=(--device pixel_7)
+          fi
+          echo no | "$AVDM" create avd --force -n Pixel_7_API_34 \
+            --package "system-images;android-34;google_apis;x86_64" "${DEVARGS[@]}"
+          "$AVDM" list avd
 
       - name: Detox test Android
         uses: reactivecircus/android-emulator-runner@v2
@@ -173,7 +184,7 @@ jobs:
           api-level: 34
           target: google_apis
           arch: x86_64
-          profile: Pixel 7
+          force-avd-creation: false
           avd-name: Pixel_7_API_34
           script: pnpm e2e:test:android
 
