@@ -82,6 +82,11 @@ jobs:
       - name: Build Detox framework cache
         run: pnpm exec detox clean-framework-cache && pnpm exec detox build-framework-cache
 
+      # Detox biometric/permission helpers need applesimutils; the macos-26
+      # image does not preinstall it (macos-15 did).
+      - name: Install applesimutils
+        run: brew tap wix/brew && brew install applesimutils
+
       - name: Boot iOS Simulator
         run: |
           # Runner images rotate simulator names (iPhone 15 disappeared with
