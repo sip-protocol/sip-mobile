@@ -153,7 +153,7 @@ jobs:
       # null-message OOM signature. Locally the identical command passes with
       # a larger heap (androidTest merge/dex tasks are the pressure point).
       - name: Raise Gradle daemon heap
-        run: echo "org.gradle.jvmargs=-Xmx8g -XX:MaxMetaspaceSize=2g" >> android/gradle.properties
+        run: printf '\norg.gradle.jvmargs=-Xmx8g -XX:MaxMetaspaceSize=2g\n' >> android/gradle.properties
 
       - name: Detox build Android
         run: pnpm e2e:build:android
