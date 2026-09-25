@@ -216,9 +216,15 @@ jobs:
 
       # The gradle daemon holds several GB after the build; free it before the
       # emulator boots (run 35947871761 lost its runner to a shutdown signal
-      # ~2 min into emulator startup, with 3 java daemons + qemu + netsimd alive).
-      - name: Stop Gradle daemons
-        run: android/gradlew --stop
+      # ~2 min into emulator startup, with 3 java daemons + qemu + netsimd
+      # alive; reproduced identically on main in run 36077820381 with 2 java
+      # daemons — 62s of total runner log freeze, then forced shutdown).
+      - name: Stop build daemons
+        run: |
+          cd android && ./gradlew --stop
+          # Kotlin compile daemon is a separate JVM that outlives gradlew --stop
+          pkill -f KotlinCompileDaemon || true
+          free -m
 
       # Debug builds embed no JS bundle (no bundleDebugJsAndAssets task) and
       # detox does not start Metro itself; without it the expo-dev-client
@@ -240,6 +246,15 @@ jobs:
             exit 1
           fi
 
+      # The two prior Android runs froze the whole runner (~62s of total log
+      # silence ~30s into emulator boot) and were then force-stopped by GitHub
+      # ("runner has received a shutdown signal"). Sample memory + kernel log
+      # every 5s so the artifact shows host state right up to the freeze.
+      - name: Resource watcher (diagnostic)
+        run: |
+          nohup bash -c 'for _ in $(seq 1 720); do { date -u +%H:%M:%S; free -m | sed -n 2p; ps -eo rss,comm --sort=-rss | head -6; sudo dmesg | tail -2; } >> "$GITHUB_WORKSPACE/resource-watch.log"; sleep 5; done' > /dev/null 2>&1 &
+          echo "resource watcher started"
+
       - name: Detox test Android
         uses: reactivecircus/android-emulator-runner@v2
         with:
@@ -258,4 +273,6 @@ jobs:
           path: |
             artifacts/
             android/app/build/outputs/
+            resource-watch.log
+            metro.log
           retention-days: 7
