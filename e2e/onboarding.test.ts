@@ -22,13 +22,12 @@ import {
   TEST_SEED_PHRASE,
   waitForVisible,
   waitForNotExist,
-  completeOnboardingIfPresent,
-} from './utils';
+  completeOnboardingIfPresent, launchAppNoSync } from './utils';
 
 describe('Onboarding Flow', () => {
   describe('Fresh Install', () => {
     it('should show welcome screen on first launch', async () => {
-      await device.launchApp({ newInstance: true, delete: true });
+      await launchAppNoSync({ newInstance: true, delete: true });
 
       // Fresh installs land on the onboarding carousel
       await waitForVisible(by.text('Welcome to SIP Privacy'));
@@ -36,7 +35,7 @@ describe('Onboarding Flow', () => {
     });
 
     it('should show create and import wallet options', async () => {
-      await device.launchApp({ newInstance: true, delete: true });
+      await launchAppNoSync({ newInstance: true, delete: true });
       await completeOnboardingIfPresent();
 
       // Wallet setup screen shows both options
@@ -48,7 +47,7 @@ describe('Onboarding Flow', () => {
 
   describe('Create Wallet', () => {
     it('should create a new wallet successfully', async () => {
-      await device.launchApp({ newInstance: true, delete: true });
+      await launchAppNoSync({ newInstance: true, delete: true });
       await completeOnboardingIfPresent();
 
       // Tap create wallet
@@ -70,7 +69,7 @@ describe('Onboarding Flow', () => {
 
     it('should persist wallet after app restart', async () => {
       // Provision a wallet via the deterministic import flow
-      await device.launchApp({ newInstance: true, delete: true });
+      await launchAppNoSync({ newInstance: true, delete: true });
       await completeOnboardingIfPresent();
       await element(by.id('import-button')).tap();
       await waitForVisible(by.id('seed-phrase-input'));
@@ -79,7 +78,7 @@ describe('Onboarding Flow', () => {
       await waitForVisible(by.id('wallet-balance'), TIMEOUTS.long);
 
       // Relaunch app (no uninstall — persisted state must survive)
-      await device.launchApp({ newInstance: false });
+      await launchAppNoSync({ newInstance: false });
 
       // Should go directly to home, not onboarding/wallet setup
       await waitForVisible(by.id('wallet-balance'), TIMEOUTS.medium);
@@ -89,7 +88,7 @@ describe('Onboarding Flow', () => {
 
   describe('Import Wallet', () => {
     it('should import wallet from seed phrase', async () => {
-      await device.launchApp({ newInstance: true, delete: true });
+      await launchAppNoSync({ newInstance: true, delete: true });
       await completeOnboardingIfPresent();
 
       // Tap import wallet
@@ -107,7 +106,7 @@ describe('Onboarding Flow', () => {
     });
 
     it('should reject invalid seed phrase', async () => {
-      await device.launchApp({ newInstance: true, delete: true });
+      await launchAppNoSync({ newInstance: true, delete: true });
       await completeOnboardingIfPresent();
 
       await element(by.id('import-button')).tap();

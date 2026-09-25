@@ -20,8 +20,7 @@ import {
   waitForNotExist,
   typeInField,
   setupTestWallet,
-  navigateToSend,
-} from './utils';
+  navigateToSend, launchAppNoSync } from './utils';
 
 // Solana system program — a guaranteed-valid on-curve pubkey
 const VALID_ADDRESS = '11111111111111111111111111111111';
@@ -31,14 +30,14 @@ const STEALTH_ADDRESS =
 describe('Send Flow', () => {
   beforeAll(async () => {
     // Pre-grant camera permission so the scanner screen renders its camera view
-    await device.launchApp({ newInstance: true, permissions: { camera: 'YES' } });
+    await launchAppNoSync({ newInstance: true, permissions: { camera: 'YES' } });
     await setupTestWallet();
   });
 
   beforeEach(async () => {
     // newInstance relaunch (reloadReactNative hung on the SDK 57 runtime and
     // is unsupported in release builds); persisted state survives the relaunch.
-    await device.launchApp({ newInstance: true });
+    await launchAppNoSync({ newInstance: true });
     await navigateToSend();
   });
 
@@ -161,7 +160,7 @@ describe('Send Flow', () => {
 
     it('should request camera permission', async () => {
       // Relaunch with camera denied — scanner must show its denied state
-      await device.launchApp({
+      await launchAppNoSync({
         newInstance: true,
         permissions: { camera: 'NO' },
       });

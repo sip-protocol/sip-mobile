@@ -159,3 +159,18 @@ export async function navigateToSend() {
   await element(by.text('Send')).tap();
   await waitForVisible(by.id('recipient-input'));
 }
+
+/**
+ * Launch the app, then disable Detox synchronization.
+ *
+ * RN 0.86 new-arch keeps the main queue permanently non-idle, so Detox
+ * 20.51's synchronizer times out every interaction ("app is busy") even
+ * when the UI renders fine. With sync off, the specs' explicit
+ * waitFor(...).toBeVisible() calls (timeout-bounded) are the readiness
+ * mechanism. Must be called AFTER launch — setSyncSettings needs the
+ * in-app detox agent, so a running app instance is required.
+ */
+export async function launchAppNoSync(args: Parameters<typeof device.launchApp>[0]) {
+  await device.launchApp(args);
+  await device.disableSynchronization();
+}

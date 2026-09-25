@@ -18,19 +18,18 @@ import {
   waitForVisible,
   scrollDown,
   setupTestWallet,
-  navigateToSettings,
-} from './utils';
+  navigateToSettings, launchAppNoSync } from './utils';
 
 describe('Settings Flow', () => {
   beforeAll(async () => {
-    await device.launchApp({ newInstance: true });
+    await launchAppNoSync({ newInstance: true });
     await setupTestWallet();
   });
 
   beforeEach(async () => {
     // newInstance relaunch (reloadReactNative hung on the SDK 57 runtime and
     // is unsupported in release builds); persisted state survives the relaunch.
-    await device.launchApp({ newInstance: true });
+    await launchAppNoSync({ newInstance: true });
     await navigateToSettings();
   });
 
