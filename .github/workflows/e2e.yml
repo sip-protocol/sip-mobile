@@ -14,12 +14,25 @@ concurrency:
 jobs:
   e2e-ios:
     name: E2E iOS
-    runs-on: macos-15
+    runs-on: macos-26
     if: |
       github.event_name == 'workflow_dispatch' ||
       github.event_name == 'schedule' ||
       contains(github.event.pull_request.labels.*.name, 'e2e')
     steps:
+      - name: Free runner disk space
+        run: |
+          # Full iOS builds + DerivedData can exhaust the runner disk
+          # (clang dies with "IO failure on output stream"); drop every
+          # Xcode except the selected one.
+          df -h /
+          SELECTED=$(xcode-select -p)
+          for x in /Applications/Xcode*.app; do
+            d="$x/Contents/Developer"
+            [ "$d" = "$SELECTED" ] || sudo rm -rf "$x"
+          done
+          df -h /
+
       - name: Checkout
         uses: actions/checkout@v7
 
@@ -57,14 +70,25 @@ jobs:
       - name: Install CocoaPods
         run: cd ios && pod install
 
-      # expo-modules-jsi 57.1.0's vendored SwiftPM manifest requires Swift
-      # tools 6.2 (Xcode 26+); the macos-15 default Xcode 16.4 (Swift 6.1.0)
-      # rejects it at package resolution.
-      - name: Select Xcode 26.3
-        run: sudo xcode-select -s /Applications/Xcode_26.3.app
-
+      # macos-26 defaults to Xcode 26.6, which compiles expo-modules-jsi
+      # 57.1.0 unpatched (Swift 6.2.x in Xcode 26.2/26.3 rejects the
+      # SWIFT_RETURNS_RETAINED RuntimeScheduler ctors — expo/expo#50067).
       - name: Detox build iOS
         run: pnpm e2e:build:ios
+
+      # Rebuild the prebuilt Detox.framework against the active Xcode;
+      # otherwise every test suite dies at validation with
+      # "Detox.framework could not be found … you changed a version of Xcode".
+      - name: Build Detox framework cache
+        run: pnpm exec detox clean-framework-cache && pnpm exec detox build-framework-cache
+
+      # Detox biometric/permission helpers need applesimutils; the macos-26
+      # image does not preinstall it (macos-15 did).
+      - name: Install applesimutils
+        run: |
+          brew tap wix/brew
+          brew trust wix/brew
+          brew install applesimutils
 
       - name: Boot iOS Simulator
         run: |
