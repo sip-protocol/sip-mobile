@@ -2,12 +2,17 @@
  * Detox E2E Test Utilities
  *
  * Helper functions for common test operations.
+ *
+ * Aligned with the Expo Router app structure (3 tabs: Home / Privacy / Swap):
+ * - Fresh installs land on the (auth)/onboarding carousel, then (auth)/wallet-setup.
+ * - Send is a quick action on the Home screen; Settings lives behind the sidebar.
+ * - A deterministic test wallet is provisioned via the import flow.
  */
 
 import { device, element, by, waitFor, expect } from 'detox';
 
 // ============================================================================
-// TIMEOUTS
+// TIMEOUTS & FIXTURES
 // ============================================================================
 
 export const TIMEOUTS = {
@@ -17,39 +22,17 @@ export const TIMEOUTS = {
   transaction: 60000,
 };
 
-// ============================================================================
-// NAVIGATION HELPERS
-// ============================================================================
-
 /**
- * Navigate to a tab by its label
+ * Deterministic BIP39 test mnemonic (all-zero entropy vector).
+ * Imports a wallet with no funds — send flows assert the insufficient-balance
+ * gating rather than on-chain submission.
  */
-export async function navigateToTab(tabName: 'Home' | 'Send' | 'Receive' | 'Swap' | 'Settings') {
-  await element(by.text(tabName)).tap();
-  await sleep(500);
-}
-
-/**
- * Go back from current screen
- */
-export async function goBack() {
-  if (device.getPlatform() === 'ios') {
-    await element(by.traits(['button']).and(by.label('Back'))).tap();
-  } else {
-    await device.pressBack();
-  }
-}
+export const TEST_SEED_PHRASE =
+  'abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about';
 
 // ============================================================================
 // WAIT HELPERS
 // ============================================================================
-
-/**
- * Sleep for a given duration
- */
-export function sleep(ms: number): Promise<void> {
-  return new Promise(resolve => setTimeout(resolve, ms));
-}
 
 /**
  * Wait for an element to be visible
@@ -63,18 +46,6 @@ export async function waitForVisible(matcher: Detox.NativeMatcher, timeout = TIM
  */
 export async function waitForNotExist(matcher: Detox.NativeMatcher, timeout = TIMEOUTS.medium) {
   await waitFor(element(matcher)).not.toExist().withTimeout(timeout);
-}
-
-/**
- * Wait for loading to complete (spinner to disappear)
- */
-export async function waitForLoading(timeout = TIMEOUTS.long) {
-  // Wait for any loading indicator to disappear
-  try {
-    await waitFor(element(by.id('loading-indicator'))).not.toExist().withTimeout(timeout);
-  } catch {
-    // No loading indicator found, continue
-  }
 }
 
 // ============================================================================
@@ -91,43 +62,37 @@ export async function typeInField(testID: string, text: string) {
   await input.typeText(text);
 }
 
-/**
- * Clear and replace text in an input field
- */
-export async function replaceText(testID: string, text: string) {
-  const input = element(by.id(testID));
-  await input.tap();
-  await input.replaceText(text);
-}
-
 // ============================================================================
-// ASSERTION HELPERS
+// SCROLL HELPERS
 // ============================================================================
 
 /**
- * Assert element is visible
+ * Scroll down in a scrollable view
  */
-export async function assertVisible(testID: string) {
-  await expect(element(by.id(testID))).toBeVisible();
-}
-
-/**
- * Assert element has text
- */
-export async function assertText(testID: string, text: string) {
-  await expect(element(by.id(testID))).toHaveText(text);
-}
-
-/**
- * Assert element contains text
- */
-export async function assertContainsText(text: string) {
-  await expect(element(by.text(text))).toBeVisible();
+export async function scrollDown(testID: string, pixels = 300) {
+  await element(by.id(testID)).scroll(pixels, 'down');
 }
 
 // ============================================================================
-// WALLET HELPERS
+// ONBOARDING & WALLET SETUP
 // ============================================================================
+
+/**
+ * Walk through the mandatory 5-slide onboarding carousel if it is showing.
+ * Fresh installs land here; completing it routes to (auth)/wallet-setup.
+ */
+export async function completeOnboardingIfPresent() {
+  try {
+    await waitFor(element(by.text('Next'))).toBeVisible().withTimeout(TIMEOUTS.short);
+  } catch {
+    return; // Onboarding already completed — app landed elsewhere
+  }
+  for (let i = 0; i < 4; i++) {
+    await element(by.text('Next')).tap();
+  }
+  await element(by.text('Get Started')).tap();
+  await waitForVisible(by.id('welcome-screen'));
+}
 
 /**
  * Check if wallet is connected (looks for balance display)
@@ -142,84 +107,54 @@ export async function isWalletConnected(): Promise<boolean> {
 }
 
 /**
- * Create or import a test wallet
- * This should be done in beforeAll for test suites that need a wallet
+ * Create a test wallet by importing the deterministic TEST_SEED_PHRASE.
+ *
+ * Flow (aligned with the current app):
+ *   onboarding carousel (fresh installs) → wallet-setup welcome screen →
+ *   Import Existing Wallet → seed phrase input → Import Wallet → Home.
+ *
+ * No-ops when the app already shows a connected wallet.
  */
 export async function setupTestWallet() {
-  // Check if already connected
   if (await isWalletConnected()) {
     return;
   }
 
-  // Navigate to wallet setup
-  await element(by.id('setup-wallet-button')).tap();
+  await completeOnboardingIfPresent();
 
-  // For testing, we'll create a new wallet
-  await element(by.id('create-wallet-button')).tap();
+  await element(by.id('import-button')).tap();
+  await waitForVisible(by.id('seed-phrase-input'));
+  await element(by.id('seed-phrase-input')).typeText(TEST_SEED_PHRASE);
+  await element(by.id('import-submit-button')).tap();
 
-  // Wait for wallet creation
-  await waitForLoading(TIMEOUTS.long);
-
-  // Should now be on home with balance
-  await waitForVisible(by.id('wallet-balance'));
+  await waitForVisible(by.id('wallet-balance'), TIMEOUTS.long);
 }
 
 // ============================================================================
-// BIOMETRIC HELPERS
+// NAVIGATION HELPERS
 // ============================================================================
 
 /**
- * Handle biometric prompt (auto-approve in debug builds)
+ * Open the sidebar from the Home screen avatar button.
  */
-export async function handleBiometricPrompt() {
-  if (device.getPlatform() === 'ios') {
-    // iOS simulator can match Face ID
-    await device.matchFace();
-  } else {
-    // Android emulator can match fingerprint
-    await device.matchFinger();
-  }
+export async function openSidebar() {
+  await element(by.label('Account avatar')).tap();
+  await waitForVisible(by.text('Settings'));
 }
 
 /**
- * Dismiss biometric prompt (cancel)
+ * Navigate to the Settings hub (sidebar → Settings).
  */
-export async function dismissBiometricPrompt() {
-  if (device.getPlatform() === 'ios') {
-    await device.unmatchFace();
-  } else {
-    await device.unmatchFinger();
-  }
-}
-
-// ============================================================================
-// SCREENSHOT HELPERS
-// ============================================================================
-
-/**
- * Take a screenshot with a descriptive name
- */
-export async function takeScreenshot(name: string) {
-  await device.takeScreenshot(name);
-}
-
-// ============================================================================
-// SCROLL HELPERS
-// ============================================================================
-
-/**
- * Scroll down in a scrollable view
- */
-export async function scrollDown(testID: string, pixels = 300) {
-  await element(by.id(testID)).scroll(pixels, 'down');
+export async function navigateToSettings() {
+  await openSidebar();
+  await element(by.text('Settings')).tap();
+  await waitForVisible(by.text('RPC Provider'));
 }
 
 /**
- * Scroll to element
+ * Navigate to the Send screen (Home quick action).
  */
-export async function scrollToElement(scrollViewID: string, targetID: string) {
-  await waitFor(element(by.id(targetID)))
-    .toBeVisible()
-    .whileElement(by.id(scrollViewID))
-    .scroll(100, 'down');
+export async function navigateToSend() {
+  await element(by.text('Send')).tap();
+  await waitForVisible(by.id('recipient-input'));
 }

@@ -230,6 +230,7 @@ export default function ImportWalletScreen() {
           <Button
             fullWidth
             size="lg"
+            testID="import-submit-button"
             onPress={handleImport}
             disabled={
               (method === "seed" && !seedPhrase.trim()) ||

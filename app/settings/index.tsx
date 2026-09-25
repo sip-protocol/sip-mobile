@@ -205,7 +205,7 @@ export default function SettingsScreen() {
         <View className="w-16" />
       </View>
 
-      <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
+      <ScrollView testID="settings-scroll-view" className="flex-1" showsVerticalScrollIndicator={false}>
         <View className="px-6 pb-8">
           {/* Quick Links */}
           <SectionTitle title="Account" />

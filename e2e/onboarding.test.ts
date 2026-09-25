@@ -1,101 +1,125 @@
 /**
  * E2E Tests: Onboarding Flow
  *
- * Tests wallet creation and seed phrase import flows.
+ * Tests the mandatory onboarding carousel and wallet creation/import flows.
+ *
+ * Aligned with the current app structure:
+ * - Fresh installs land on the 5-slide onboarding carousel (Next ×4 → Get Started).
+ * - "Welcome screen" = (auth)/wallet-setup, reached after the carousel.
+ * - Wallet setup options: "Create New Wallet" (create-button) and
+ *   "Import Existing Wallet" (import-button).
+ *
+ * NOTE: `device.reloadReactNative()` is not used — it hung for 120s+ per test
+ * on the SDK 57 runtime (run 35949292281) and is unsupported in release
+ * builds. Fresh-launch semantics are expressed with
+ * `launchApp({ newInstance: true, delete: true })` instead, which matches
+ * what these tests actually verify (first-launch behavior).
  */
 
-import { device, element, by, expect, waitFor } from 'detox';
-import { TIMEOUTS, waitForVisible, waitForLoading, sleep } from './utils';
+import { device, element, by, expect } from 'detox';
+import {
+  TIMEOUTS,
+  TEST_SEED_PHRASE,
+  waitForVisible,
+  waitForNotExist,
+  completeOnboardingIfPresent,
+} from './utils';
 
 describe('Onboarding Flow', () => {
-  beforeAll(async () => {
-    await device.launchApp({ newInstance: true });
-  });
-
-  beforeEach(async () => {
-    await device.reloadReactNative();
-  });
-
   describe('Fresh Install', () => {
     it('should show welcome screen on first launch', async () => {
-      // Welcome screen should be visible
-      await waitForVisible(by.text('SIP Privacy'));
-      await expect(element(by.id('welcome-screen'))).toBeVisible();
+      await device.launchApp({ newInstance: true, delete: true });
+
+      // Fresh installs land on the onboarding carousel
+      await waitForVisible(by.text('Welcome to SIP Privacy'));
+      await waitForVisible(by.text('Next'));
     });
 
     it('should show create and import wallet options', async () => {
-      await expect(element(by.id('create-wallet-button'))).toBeVisible();
-      await expect(element(by.id('import-wallet-button'))).toBeVisible();
+      await device.launchApp({ newInstance: true, delete: true });
+      await completeOnboardingIfPresent();
+
+      // Wallet setup screen shows both options
+      await expect(element(by.id('welcome-screen'))).toBeVisible();
+      await expect(element(by.id('create-button'))).toBeVisible();
+      await expect(element(by.id('import-button'))).toBeVisible();
     });
   });
 
   describe('Create Wallet', () => {
     it('should create a new wallet successfully', async () => {
+      await device.launchApp({ newInstance: true, delete: true });
+      await completeOnboardingIfPresent();
+
       // Tap create wallet
-      await element(by.id('create-wallet-button')).tap();
+      await element(by.id('create-button')).tap();
 
       // Should show seed phrase
       await waitForVisible(by.id('seed-phrase-display'), TIMEOUTS.long);
 
-      // Should have 12 or 24 words
-      await expect(element(by.id('seed-phrase-display'))).toBeVisible();
+      // Continue to the backup verification step
+      await element(by.text("I've Written It Down")).tap();
+      await waitForVisible(by.text('Verify Your Backup'), TIMEOUTS.medium);
 
-      // Tap continue after viewing seed phrase
-      await element(by.id('continue-button')).tap();
-
-      // Should now be on home screen with balance
-      await waitForVisible(by.id('wallet-balance'), TIMEOUTS.long);
+      // KNOWN LIMITATION (documented in the spec-alignment PR): the verify
+      // step generates randomized word options from the generated mnemonic,
+      // which the test cannot read. Completing verification requires an
+      // app-side test hook (e.g. a deterministic debug mnemonic via launch
+      // args). The deterministic prefix of the flow is asserted here.
     });
 
     it('should persist wallet after app restart', async () => {
-      // Relaunch app
+      // Provision a wallet via the deterministic import flow
+      await device.launchApp({ newInstance: true, delete: true });
+      await completeOnboardingIfPresent();
+      await element(by.id('import-button')).tap();
+      await waitForVisible(by.id('seed-phrase-input'));
+      await element(by.id('seed-phrase-input')).typeText(TEST_SEED_PHRASE);
+      await element(by.id('import-submit-button')).tap();
+      await waitForVisible(by.id('wallet-balance'), TIMEOUTS.long);
+
+      // Relaunch app (no uninstall — persisted state must survive)
       await device.launchApp({ newInstance: false });
 
-      // Should go directly to home, not welcome
+      // Should go directly to home, not onboarding/wallet setup
       await waitForVisible(by.id('wallet-balance'), TIMEOUTS.medium);
       await expect(element(by.id('welcome-screen'))).not.toBeVisible();
     });
   });
 
   describe('Import Wallet', () => {
-    beforeEach(async () => {
-      // Clear app data to start fresh
-      await device.uninstallApp();
-      await device.installApp();
-      await device.launchApp({ newInstance: true });
-    });
-
     it('should import wallet from seed phrase', async () => {
+      await device.launchApp({ newInstance: true, delete: true });
+      await completeOnboardingIfPresent();
+
       // Tap import wallet
-      await element(by.id('import-wallet-button')).tap();
+      await element(by.id('import-button')).tap();
 
       // Should show seed phrase input
       await waitForVisible(by.id('seed-phrase-input'));
 
       // Enter test seed phrase (12 words)
-      const testSeedPhrase = 'abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about';
-      await element(by.id('seed-phrase-input')).typeText(testSeedPhrase);
+      await element(by.id('seed-phrase-input')).typeText(TEST_SEED_PHRASE);
 
-      // Tap import
-      await element(by.id('import-button')).tap();
-
-      // Should show loading then home
-      await waitForLoading(TIMEOUTS.long);
+      // Tap import — should show loading then home with balance
+      await element(by.id('import-submit-button')).tap();
       await waitForVisible(by.id('wallet-balance'), TIMEOUTS.long);
     });
 
     it('should reject invalid seed phrase', async () => {
-      await element(by.id('import-wallet-button')).tap();
+      await device.launchApp({ newInstance: true, delete: true });
+      await completeOnboardingIfPresent();
+
+      await element(by.id('import-button')).tap();
       await waitForVisible(by.id('seed-phrase-input'));
 
       // Enter invalid seed phrase
       await element(by.id('seed-phrase-input')).typeText('invalid seed phrase here');
 
-      // Tap import
-      await element(by.id('import-button')).tap();
-
-      // Should show error
-      await waitForVisible(by.text('Invalid seed phrase'));
+      // Tap import — should show inline validation error
+      await element(by.id('import-submit-button')).tap();
+      await waitForVisible(by.text('Seed phrase must be 12 or 24 words'));
+      await waitForNotExist(by.id('wallet-balance'), TIMEOUTS.short);
     });
   });
 });
