@@ -148,7 +148,8 @@ export async function openSidebar() {
 export async function navigateToSettings() {
   await openSidebar();
   await element(by.text('Settings')).tap();
-  await waitForVisible(by.text('RPC Provider'));
+  // Above-the-fold hub marker (Account section top row)
+  await waitForVisible(by.text('Manage Accounts'));
 }
 
 /**

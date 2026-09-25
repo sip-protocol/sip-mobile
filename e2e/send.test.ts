@@ -23,7 +23,8 @@ import {
   navigateToSend,
 } from './utils';
 
-const VALID_ADDRESS = 'S1P6j1yeTm6zkewQVeihrTZvmfoHABRkHDhabWTuWMd';
+// Solana system program — a guaranteed-valid on-curve pubkey
+const VALID_ADDRESS = '11111111111111111111111111111111';
 const STEALTH_ADDRESS =
   'sip:solana:S1P6j1yeTm6zkewQVeihrTZvmfoHABRkHDhabWTuWMd:S1P9WhBSbAGGatvrVE4TRBZfWpbG96U26zksy2TQj8q';
 

@@ -74,14 +74,16 @@ describe('Settings Flow', () => {
 
   describe('RPC Provider', () => {
     it('should show RPC provider option', async () => {
-      await scrollDown('settings-scroll-view', 500);
+      await scrollDown('settings-scroll-view', 400);
+      await scrollDown('settings-scroll-view', 400);
       await expect(element(by.text('RPC Provider'))).toBeVisible();
       await expect(element(by.text('Helius'))).toBeVisible();
       await expect(element(by.text('PublicNode'))).toBeVisible();
     });
 
     it('should change RPC provider', async () => {
-      await scrollDown('settings-scroll-view', 500);
+      await scrollDown('settings-scroll-view', 400);
+      await scrollDown('settings-scroll-view', 400);
 
       // Select PublicNode
       await element(by.text('PublicNode')).tap();
@@ -99,14 +101,16 @@ describe('Settings Flow', () => {
 
   describe('About Section', () => {
     it('should show app version', async () => {
-      await scrollDown('settings-scroll-view', 700);
+      await scrollDown('settings-scroll-view', 400);
+      await scrollDown('settings-scroll-view', 400);
       // expoConfig.version (app.config.js) — update alongside version bumps
       await waitForVisible(by.text('Version 0.2.3'), TIMEOUTS.medium);
     });
 
     it('should show about links', async () => {
       // The legacy about modal is gone — About & Help rows open external links
-      await scrollDown('settings-scroll-view', 700);
+      await scrollDown('settings-scroll-view', 400);
+      await scrollDown('settings-scroll-view', 400);
       await expect(element(by.text('Documentation'))).toBeVisible();
       await expect(element(by.text('Report Issue'))).toBeVisible();
       await expect(element(by.text('Website'))).toBeVisible();
