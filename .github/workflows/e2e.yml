@@ -164,7 +164,7 @@ jobs:
           path: |
             ~/.gradle/caches
             ~/.gradle/wrapper
-          key: gradle-${{ hashFiles('android/gradle/wrapper/gradle-wrapper.properties') }}
+          key: gradle-v2-${{ hashFiles('android/gradle/wrapper/gradle-wrapper.properties') }}
 
       - name: Enable KVM
         run: |
@@ -172,8 +172,38 @@ jobs:
           sudo udevadm control --reload-rules
           sudo udevadm trigger --name-match=kvm
 
+      # Template gradle.properties pins the daemon to -Xmx2048m; the
+      # :expo:packageDebugAndroidTest splitter dies cause-less on CI with a
+      # null-message OOM signature. Locally the identical command passes with
+      # a larger heap (androidTest merge/dex tasks are the pressure point).
+      - name: Raise Gradle daemon heap
+        run: printf '\norg.gradle.jvmargs=-Xmx8g -XX:MaxMetaspaceSize=2g\n' >> android/gradle.properties
+
       - name: Detox build Android
         run: pnpm e2e:build:android
+
+      # The runner's preinstalled cmdline-tools predate SDK repository XML v4
+      # and their avdmanager cannot create the 'Pixel 7' profile ("No device
+      # found matching"). Installing cmdline-tools;latest lands in latest-2
+      # (PATH still resolves the old one), so create the AVD explicitly with
+      # the new binary and let the emulator-runner action boot it.
+      - name: Create AVD
+        run: |
+          # Old cmdline-tools can't read SDK XML v4; install the current
+          # ones (they land in latest-2 when latest preexists), then use
+          # the NEWEST sdkmanager/avdmanager for everything below.
+          SDKM_OLD=$(find "$ANDROID_HOME/cmdline-tools" -name sdkmanager -path '*/bin/*' | sort -V | tail -1)
+          yes | "$SDKM_OLD" --licenses > /dev/null || true
+          "$SDKM_OLD" --install "cmdline-tools;latest" > /dev/null
+          BIN=$(ls -d "$ANDROID_HOME"/cmdline-tools/latest* | sort -V | tail -1)/bin
+          "$BIN/sdkmanager" --install "system-images;android-34;google_apis;x86_64" > /dev/null
+          DEVARGS=()
+          if "$BIN/avdmanager" list device | grep -q 'pixel_7'; then
+            DEVARGS=(--device pixel_7)
+          fi
+          echo no | "$BIN/avdmanager" create avd --force -n Pixel_7_API_34 \
+            --package "system-images;android-34;google_apis;x86_64" "${DEVARGS[@]}"
+          "$BIN/avdmanager" list avd
 
       - name: Detox test Android
         uses: reactivecircus/android-emulator-runner@v2
@@ -181,7 +211,8 @@ jobs:
           api-level: 34
           target: google_apis
           arch: x86_64
-          profile: Pixel 7
+          force-avd-creation: false
+          avd-name: Pixel_7_API_34
           script: pnpm e2e:test:android
 
       - name: Upload artifacts on failure
