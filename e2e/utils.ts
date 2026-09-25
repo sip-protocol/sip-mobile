@@ -81,15 +81,26 @@ export async function scrollDown(testID: string, pixels = 300) {
  * Walk through the mandatory 5-slide onboarding carousel if it is showing.
  * Fresh installs land here; completing it routes to (auth)/wallet-setup.
  */
+function delay(ms: number): Promise<void> {
+  const { promise, resolve } = Promise.withResolvers<void>();
+  setTimeout(resolve, ms);
+  return promise;
+}
+
 export async function completeOnboardingIfPresent() {
   try {
     await waitFor(element(by.text('Next'))).toBeVisible().withTimeout(TIMEOUTS.short);
   } catch {
     return; // Onboarding already completed — app landed elsewhere
   }
+  // 5 slides; the CTA reads "Next" on slides 0-3 and "Get Started" on the last.
+  // With Detox sync OFF nothing paces these taps, and the animated
+  // scrollToIndex needs ~700ms to settle — unpaced taps land on the same slide.
   for (let i = 0; i < 4; i++) {
     await element(by.text('Next')).tap();
+    await delay(750);
   }
+  await waitFor(element(by.text('Get Started'))).toBeVisible().withTimeout(TIMEOUTS.short);
   await element(by.text('Get Started')).tap();
   await waitForVisible(by.id('welcome-screen'));
 }
