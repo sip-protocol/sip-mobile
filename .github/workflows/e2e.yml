@@ -269,7 +269,20 @@ jobs:
           arch: x86_64
           force-avd-creation: false
           avd-name: Pixel_7_API_34
-          script: pnpm e2e:test:android
+          script: |
+            # Run 36212228295: the Detox agent never connected and Metro
+            # served zero bundle requests — every test died in the 120s
+            # setup hook ("can't seem to connect to the test app(s)") even
+            # though .detoxrc declares reversePorts: [8081]. Detox's own
+            # adb reverse did not take effect on the runner (its log also
+            # shows "Emulator version detection failed"). Bridge both
+            # host ports explicitly inside the emulator session; the
+            # Detox server (8099) and Metro (8081) must both be reachable
+            # from the emulator for debug builds.
+            adb devices -l
+            adb reverse tcp:8081 tcp:8081
+            adb reverse tcp:8099 tcp:8099
+            pnpm e2e:test:android
 
       - name: Upload artifacts on failure
         if: failure()
