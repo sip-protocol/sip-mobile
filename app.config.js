@@ -89,7 +89,13 @@ export default {
             enableProguardInReleaseBuilds: true,
             enableShrinkResourcesInReleaseBuilds: true,
             useLegacyPackaging: true,
-            buildArchs: ["armeabi-v7a", "arm64-v8a"],
+            // x86_64 is required for the CI E2E emulator (android-34
+            // google_apis x86_64). With ARM-only archs the emulator's ARM
+            // translation installs + launches the app but it dies at
+            // native init before the Detox agent or Metro ever connect
+            // (runs 36212228295, 36287910458). No ARM device consumes
+            // x86_64 libs, so store listings/AAB splits are unaffected.
+            buildArchs: ["armeabi-v7a", "arm64-v8a", "x86_64"],
             enableMinifyInReleaseBuilds: true,
           },
         },
