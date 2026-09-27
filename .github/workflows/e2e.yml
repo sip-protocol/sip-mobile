@@ -162,6 +162,8 @@ jobs:
           key: expo-prebuild-${{ hashFiles('app.config.ts', 'package.json') }}
 
       - name: Expo prebuild Android
+        env:
+          SIP_E2E_DISABLE_UPDATES: '1'
         run: npx expo prebuild --platform android --clean
 
       - name: Cache Gradle
@@ -186,7 +188,9 @@ jobs:
         run: printf '\norg.gradle.jvmargs=-Xmx8g -XX:MaxMetaspaceSize=2g\n' >> android/gradle.properties
 
       - name: Detox build Android
-        run: pnpm e2e:build:android
+        # Builds the dedicated `e2e` variant (release-like, embedded JS
+        # bundle, no dev-launcher, no R8) + the matching Detox androidTest APK.
+        run: pnpm exec detox build --configuration android.emu.e2e
 
       # The runner's preinstalled cmdline-tools predate SDK repository XML v4
       # and their avdmanager cannot create the 'Pixel 7' profile ("No device
@@ -232,26 +236,6 @@ jobs:
           pkill -f KotlinCompileDaemon || true
           free -m
 
-      # Debug builds embed no JS bundle (no bundleDebugJsAndAssets task) and
-      # detox does not start Metro itself; without it the expo-dev-client
-      # launcher shows its error screen, no RN UI renders, and every test
-      # fails app-level (the iOS 41/41 signature). reversePorts: [8081] in
-      # .detoxrc.js then forwards the guest's bundle fetch to this server.
-      - name: Start Metro
-        run: |
-          nohup npx expo start --dev-client --port 8081 > metro.log 2>&1 &
-          status=""
-          for _ in $(seq 1 60); do
-            status=$(curl -s http://127.0.0.1:8081/status || true)
-            [ "$status" = "packager-status:running" ] && break
-            sleep 1
-          done
-          echo "Metro status: $status"
-          if [ "$status" != "packager-status:running" ]; then
-            cat metro.log
-            exit 1
-          fi
-
       # The two prior Android runs froze the whole runner (~62s of total log
       # silence ~30s into emulator boot) and were then force-stopped by GitHub
       # ("runner has received a shutdown signal"). Sample memory + kernel log
@@ -270,19 +254,14 @@ jobs:
           force-avd-creation: false
           avd-name: Pixel_7_API_34
           script: |
-            # Run 36212228295: the Detox agent never connected and Metro
-            # served zero bundle requests — every test died in the 120s
-            # setup hook ("can't seem to connect to the test app(s)") even
-            # though .detoxrc declares reversePorts: [8081]. Detox's own
-            # adb reverse did not take effect on the runner (its log also
-            # shows "Emulator version detection failed"). Bridge both
-            # host ports explicitly inside the emulator session; the
-            # Detox server (8099) and Metro (8081) must both be reachable
-            # from the emulator for debug builds.
+            # The e2e variant embeds its JS bundle, so no Metro is needed.
+            # 8099 must reach the host for the Detox websocket server; the
+            # runner's detox-owned adb reverse has been unreliable (run
+            # 36212228295: "Emulator version detection failed"), so bridge
+            # it explicitly inside the emulator session.
             adb devices -l
-            adb reverse tcp:8081 tcp:8081
             adb reverse tcp:8099 tcp:8099
-            pnpm e2e:test:android
+            pnpm e2e:test:android:e2e
 
       - name: Upload artifacts on failure
         if: failure()
@@ -293,5 +272,4 @@ jobs:
             artifacts/
             android/app/build/outputs/
             resource-watch.log
-            metro.log
           retention-days: 7
