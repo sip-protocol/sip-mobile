@@ -19,7 +19,8 @@
     "e2e:build:android": "detox build --configuration android.emu.debug",
     "e2e:test:ios": "detox test --configuration ios.sim.debug",
     "e2e:test:android": "detox test --configuration android.emu.debug",
-    "e2e:test:android:att": "detox test --configuration android.att.debug"
+    "e2e:test:android:att": "detox test --configuration android.att.debug",
+    "e2e:test:android:e2e": "detox test --configuration android.emu.e2e"
   },
   "dependencies": {
     "@bonfida/spl-name-service": "^3.0.21",
@@ -108,7 +109,8 @@
   "private": true,
   "pnpm": {
     "overrides": {
-      "@expo/metro-runtime": "57.0.16"
+      "@expo/metro-runtime": "57.0.16",
+      "expo-task-manager": "57.0.20"
     },
     "patchedDependencies": {
       "@solana-mobile/seed-vault-lib@0.4.1": "patches/@solana-mobile__seed-vault-lib@0.4.1.patch"

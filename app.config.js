@@ -55,6 +55,7 @@ export default {
       "./plugins/withKotlinJvmTarget",
       "./plugins/withBlockedPermissions",
       "./plugins/withJniLibsPickFirst",
+      "./plugins/withDetoxAndroid",
       "expo-router",
       "expo-splash-screen",
       "expo-secure-store",
@@ -125,8 +126,16 @@ export default {
     runtimeVersion: {
       policy: "appVersion",
     },
-    updates: {
-      url: "https://u.expo.dev/0e9edac4-13d5-4067-9b56-4da0f08d1f2a",
-    },
+    // E2E builds (plain gradlew, no EAS embedding step) have no embedded
+    // expo-updates manifest: the updates loader asserts and FATAL-crashes the
+    // app ~3 s after launch ("The embedded manifest is invalid or could not
+    // be read") before the JS bundle is ever fetched. The E2E workflow sets
+    // SIP_E2E_DISABLE_UPDATES=1 so prebuild omits the updates meta-data and
+    // the dev-client runs on Metro like a classic debug build.
+    updates: process.env.SIP_E2E_DISABLE_UPDATES === "1"
+      ? undefined
+      : {
+          url: "https://u.expo.dev/0e9edac4-13d5-4067-9b56-4da0f08d1f2a",
+        },
   },
 }
