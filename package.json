@@ -98,7 +98,7 @@
     "babel-plugin-transform-remove-console": "^6.9.4",
     "babel-preset-expo": "^57.0.12",
     "detox": "^20.51.4",
-    "eslint": "^9.0.0",
+    "eslint": "^10.11.0",
     "expo-dev-client": "~57.0.19",
     "jest": "^30.5.2",
     "jest-circus": "^30.5.2",
