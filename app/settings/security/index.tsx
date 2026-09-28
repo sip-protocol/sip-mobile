@@ -49,6 +49,7 @@ import {
 import { useWalletStore } from "@/stores/wallet"
 import { useToastStore } from "@/stores/toast"
 import { Button, Modal } from "@/components/ui"
+import { KeychainSecurityNotice } from "@/components/KeychainSecurityNotice"
 
 // ============================================================================
 // TYPES
@@ -355,6 +356,20 @@ export default function SecurityScreen() {
 
       <ScrollView className="flex-1">
         <View className="px-6 pt-6">
+          {/* Keychain Protection (#138 adaptive gating) */}
+          <View className="mb-6">
+            <Text className="text-dark-400 text-sm mb-2 uppercase">
+              Keychain Protection
+            </Text>
+            <KeychainSecurityNotice />
+            <SettingRow
+              Icon={ShieldIcon}
+              iconColor={ICON_COLORS.muted}
+              title="Wallet keys"
+              subtitle="Stored in device keychain; protection level shown above"
+            />
+          </View>
+
           {/* Biometrics Section */}
           <View>
             <Text className="text-dark-400 text-sm mb-2 uppercase">

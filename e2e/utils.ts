@@ -77,7 +77,7 @@ export async function scrollDown(testID: string, pixels = 300) {
 // ONBOARDING & WALLET SETUP
 // ============================================================================
 
-function delay(ms: number): Promise<void> {
+export function delay(ms: number): Promise<void> {
   // Promise.withResolvers needs Node 22+; CI runs Node 20 (e2e.yml node-version).
   return new Promise<void>((resolve) => setTimeout(resolve, ms));
 }
@@ -86,7 +86,11 @@ function delay(ms: number): Promise<void> {
 // Fresh installs land here; completing it routes to (auth)/wallet-setup.
 export async function completeOnboardingIfPresent() {
   try {
-    await waitFor(element(by.text('Next'))).toBeVisible().withTimeout(TIMEOUTS.short);
+    // Cold-start evidence (run 36426738681): on fresh CI emulators/simulators
+    // even the first carousel render can outlive SHORT — give the funnel
+    // entrance MEDIUM. Warm starts exit the wait immediately, so the extra
+    // budget costs nothing on the hot path.
+    await waitFor(element(by.text('Next'))).toBeVisible().withTimeout(TIMEOUTS.medium);
   } catch {
     return; // Onboarding already completed — app landed elsewhere
   }
@@ -97,9 +101,11 @@ export async function completeOnboardingIfPresent() {
     await element(by.text('Next')).tap();
     await delay(750);
   }
-  await waitFor(element(by.text('Get Started'))).toBeVisible().withTimeout(TIMEOUTS.short);
+  await waitFor(element(by.text('Get Started'))).toBeVisible().withTimeout(TIMEOUTS.medium);
   await element(by.text('Get Started')).tap();
-  await waitForVisible(by.id('welcome-screen'));
+  // Wallet-setup render on a cold iOS simulator exceeded MEDIUM (iOS run
+  // 36426738681: every completeOnboardingIfPresent caller timed out here).
+  await waitForVisible(by.id('welcome-screen'), TIMEOUTS.long);
 }
 
 /**

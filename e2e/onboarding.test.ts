@@ -22,6 +22,7 @@ import {
   TEST_SEED_PHRASE,
   waitForVisible,
   waitForNotExist,
+  delay,
   completeOnboardingIfPresent, launchAppNoSync } from './utils';
 
 describe('Onboarding Flow', () => {
@@ -33,7 +34,9 @@ describe('Onboarding Flow', () => {
       // release build can exceed 10s on CI cold starts (run 36360163283), so
       // give the initial carousel wait the long budget.
       await waitForVisible(by.text('Welcome to SIP Privacy'), TIMEOUTS.long);
-      await waitForVisible(by.text('Next'));
+      // Carousel CTA can lag the headline on cold renders (run 36426738681:
+      // headline matched at LONG, Next expired at the 10s default).
+      await waitForVisible(by.text('Next'), TIMEOUTS.long);
     });
 
     it('should show create and import wallet options', async () => {
@@ -80,8 +83,11 @@ describe('Onboarding Flow', () => {
       // land on the IME and handleImport never fires (screenshots from the
       // local repro of run 36360163283). Scroll it into view first.
       // Hide the keyboard (Android) — it overlays the submit button and
-      // swallows the tap (screenshot-verified in the local repro).
+      // swallows the tap (screenshot-verified in the local repro). Delay lets
+      // the IME finish animating in — an immediate pressBack can fire before
+      // the keyboard is up and pop the screen instead (run 36426738681).
       if (device.getPlatform() === 'android') {
+        await delay(750);
         await device.pressBack()
       }
       await element(by.id('import-submit-button')).tap();
@@ -113,8 +119,11 @@ describe('Onboarding Flow', () => {
       // Tap import — should show loading then home with balance
       // (scroll submit into view first — IME swallows taps below the fold)
       // Hide the keyboard (Android) — it overlays the submit button and
-      // swallows the tap (screenshot-verified in the local repro).
+      // swallows the tap (screenshot-verified in the local repro). Delay lets
+      // the IME finish animating in — an immediate pressBack can fire before
+      // the keyboard is up and pop the screen instead (run 36426738681).
       if (device.getPlatform() === 'android') {
+        await delay(750);
         await device.pressBack()
       }
       await element(by.id('import-submit-button')).tap();
@@ -134,12 +143,15 @@ describe('Onboarding Flow', () => {
       // Tap import — should show inline validation error
       // (scroll submit into view first — IME swallows taps below the fold)
       // Hide the keyboard (Android) — it overlays the submit button and
-      // swallows the tap (screenshot-verified in the local repro).
+      // swallows the tap (screenshot-verified in the local repro). Delay lets
+      // the IME finish animating in — an immediate pressBack can fire before
+      // the keyboard is up and pop the screen instead (run 36426738681).
       if (device.getPlatform() === 'android') {
+        await delay(750);
         await device.pressBack()
       }
       await element(by.id('import-submit-button')).tap();
-      await waitForVisible(by.text('Seed phrase must be 12 or 24 words'));
+      await waitForVisible(by.text('Seed phrase must be 12 or 24 words'), TIMEOUTS.long);
       await waitForNotExist(by.id('wallet-balance'), TIMEOUTS.short);
     });
   });
