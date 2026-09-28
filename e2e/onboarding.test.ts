@@ -29,8 +29,10 @@ describe('Onboarding Flow', () => {
     it('should show welcome screen on first launch', async () => {
       await launchAppNoSync({ newInstance: true, delete: true });
 
-      // Fresh installs land on the onboarding carousel
-      await waitForVisible(by.text('Welcome to SIP Privacy'));
+      // Fresh installs land on the onboarding carousel. First-ever render on a
+      // release build can exceed 10s on CI cold starts (run 36360163283), so
+      // give the initial carousel wait the long budget.
+      await waitForVisible(by.text('Welcome to SIP Privacy'), TIMEOUTS.long);
       await waitForVisible(by.text('Next'));
     });
 
@@ -74,6 +76,14 @@ describe('Onboarding Flow', () => {
       await element(by.id('import-button')).tap();
       await waitForVisible(by.id('seed-phrase-input'));
       await element(by.id('seed-phrase-input')).typeText(TEST_SEED_PHRASE);
+      // Submit sits below the fold; with the keyboard up the tap coordinates
+      // land on the IME and handleImport never fires (screenshots from the
+      // local repro of run 36360163283). Scroll it into view first.
+      // Hide the keyboard (Android) — it overlays the submit button and
+      // swallows the tap (screenshot-verified in the local repro).
+      if (device.getPlatform() === 'android') {
+        await device.pressBack()
+      }
       await element(by.id('import-submit-button')).tap();
       await waitForVisible(by.id('wallet-balance'), TIMEOUTS.long);
 
@@ -101,6 +111,12 @@ describe('Onboarding Flow', () => {
       await element(by.id('seed-phrase-input')).typeText(TEST_SEED_PHRASE);
 
       // Tap import — should show loading then home with balance
+      // (scroll submit into view first — IME swallows taps below the fold)
+      // Hide the keyboard (Android) — it overlays the submit button and
+      // swallows the tap (screenshot-verified in the local repro).
+      if (device.getPlatform() === 'android') {
+        await device.pressBack()
+      }
       await element(by.id('import-submit-button')).tap();
       await waitForVisible(by.id('wallet-balance'), TIMEOUTS.long);
     });
@@ -116,6 +132,12 @@ describe('Onboarding Flow', () => {
       await element(by.id('seed-phrase-input')).typeText('invalid seed phrase here');
 
       // Tap import — should show inline validation error
+      // (scroll submit into view first — IME swallows taps below the fold)
+      // Hide the keyboard (Android) — it overlays the submit button and
+      // swallows the tap (screenshot-verified in the local repro).
+      if (device.getPlatform() === 'android') {
+        await device.pressBack()
+      }
       await element(by.id('import-submit-button')).tap();
       await waitForVisible(by.text('Seed phrase must be 12 or 24 words'));
       await waitForNotExist(by.id('wallet-balance'), TIMEOUTS.short);
