@@ -22,6 +22,7 @@ import { hapticLight } from "@/utils/haptics"
 markPerformance("home_module_load")
 import * as Clipboard from "expo-clipboard"
 import { useWalletStore, formatAddress } from "@/stores/wallet"
+import { KeychainSecurityNotice } from "@/components/KeychainSecurityNotice"
 import { usePrivacyStore } from "@/stores/privacy"
 import { useSettingsStore } from "@/stores/settings"
 import { useClaim } from "@/hooks/useClaim"
@@ -283,6 +284,9 @@ function HomeScreen() {
             </TouchableOpacity>
           </View>
         </View>
+
+        {/* #138: surfaced when stored keys are not biometric-protected */}
+        <KeychainSecurityNotice />
 
         {/* Balance Card */}
         <View className="bg-dark-900 rounded-2xl p-6 mt-4 border border-dark-800">
