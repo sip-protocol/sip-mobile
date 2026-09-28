@@ -77,16 +77,13 @@ export async function scrollDown(testID: string, pixels = 300) {
 // ONBOARDING & WALLET SETUP
 // ============================================================================
 
-/**
- * Walk through the mandatory 5-slide onboarding carousel if it is showing.
- * Fresh installs land here; completing it routes to (auth)/wallet-setup.
- */
 function delay(ms: number): Promise<void> {
-  const { promise, resolve } = Promise.withResolvers<void>();
-  setTimeout(resolve, ms);
-  return promise;
+  // Promise.withResolvers needs Node 22+; CI runs Node 20 (e2e.yml node-version).
+  return new Promise<void>((resolve) => setTimeout(resolve, ms));
 }
 
+// Walk through the mandatory 5-slide onboarding carousel if it is showing.
+// Fresh installs land here; completing it routes to (auth)/wallet-setup.
 export async function completeOnboardingIfPresent() {
   try {
     await waitFor(element(by.text('Next'))).toBeVisible().withTimeout(TIMEOUTS.short);
