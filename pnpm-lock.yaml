@@ -200,6 +200,9 @@ importers:
       tweetnacl:
         specifier: ^1.0.3
         version: 1.0.3
+      whatwg-fetch:
+        specifier: ^3.6.20
+        version: 3.6.20
       zustand:
         specifier: ^5.0.15
         version: 5.0.15(@types/react@19.2.18)(react@19.2.3)(use-sync-external-store@1.6.0(react@19.2.3))

@@ -133,6 +133,12 @@ export async function setupTestWallet() {
   await element(by.id('import-button')).tap();
   await waitForVisible(by.id('seed-phrase-input'));
   await element(by.id('seed-phrase-input')).typeText(TEST_SEED_PHRASE);
+  // Scroll submit into view — IME swallows taps below the fold
+  // Hide the keyboard (Android) — it overlays the submit button and swallows
+  // the tap (screenshot-verified in the local repro).
+  if (device.getPlatform() === 'android') {
+    await device.pressBack()
+  }
   await element(by.id('import-submit-button')).tap();
 
   await waitForVisible(by.id('wallet-balance'), TIMEOUTS.long);
