@@ -11,7 +11,7 @@
 import { View, Text, TouchableOpacity, ScrollView, Alert } from "react-native"
 import { SafeAreaView } from "react-native-safe-area-context"
 import { router } from "expo-router"
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { Button, LoadingState } from "@/components/ui"
 import { useNativeWallet } from "@/hooks"
 import { useWalletStore } from "@/stores/wallet"
@@ -42,7 +42,13 @@ function getVerificationIndices(): number[] {
 export default function CreateWalletScreen() {
   const { createWallet, isLoading } = useNativeWallet()
   const { accounts } = useWalletStore()
-  const isAdditionalWallet = accounts.length > 0
+  // Snapshot at mount: createWallet() itself adds the new account to the
+  // store mid-flow (connectToWalletStore), so reading `accounts` live would
+  // flip a FIRST wallet to the "additional" label after generation and skip
+  // its backup verification (#138 E2E, run 36436286960). "Additional" means
+  // the user already had a wallet BEFORE opening this screen.
+  const wasAdditionalWalletRef = useRef(accounts.length > 0)
+  const isAdditionalWallet = wasAdditionalWalletRef.current
 
   const [step, setStep] = useState<Step>("generate")
   const [mnemonic, setMnemonic] = useState<string[]>([])

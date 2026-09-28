@@ -147,7 +147,9 @@ export async function setupTestWallet() {
   }
   await element(by.id('import-submit-button')).tap();
 
-  await waitForVisible(by.id('wallet-balance'), TIMEOUTS.long);
+  // 60s: cold-boot import on CI emulators has exceeded 30s (runs
+  // 36426738681/36436286960); beforeAll runs under the 120s jest timeout.
+  await waitForVisible(by.id('wallet-balance'), TIMEOUTS.transaction);
 }
 
 // ============================================================================

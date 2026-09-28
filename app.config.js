@@ -55,6 +55,7 @@ export default {
       "./plugins/withKotlinJvmTarget",
       "./plugins/withBlockedPermissions",
       "./plugins/withJniLibsPickFirst",
+      "./plugins/withNoAppBackup",
       "./plugins/withDetoxAndroid",
       "expo-router",
       "expo-splash-screen",
