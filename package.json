@@ -73,7 +73,7 @@
     "react-native": "0.86.3",
     "react-native-css-interop": "^0.2.7",
     "react-native-gesture-handler": "~2.32.0",
-    "react-native-get-random-values": "^1.11.0",
+    "react-native-get-random-values": "^2.0.0",
     "react-native-passkeys": "^0.4.2",
     "react-native-qrcode-svg": "^6.3.24",
     "react-native-reanimated": "~4.5.1",
