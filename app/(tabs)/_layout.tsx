@@ -27,7 +27,7 @@ function TabIcon({ focused, Icon }: TabIconProps) {
 
 export default function TabsLayout() {
   const { _hasHydrated: walletHydrated, accounts } = useWalletStore()
-  const { _hasHydrated: settingsHydrated, hasCompletedOnboarding } = useSettingsStore()
+  const { _hasHydrated: settingsHydrated } = useSettingsStore()
   const { _hasHydrated: privacyHydrated } = usePrivacyStore()
 
   // Wait for ALL stores to hydrate before checking gates
@@ -39,18 +39,17 @@ export default function TabsLayout() {
     )
   }
 
-  // Gate 1: Must complete onboarding first
-  if (!hasCompletedOnboarding) {
-    return <Redirect href="/(auth)/onboarding" />
-  }
-
-  // Gate 2: Must have wallet
+  // Gate: must have a wallet. When a fresh install skips the carousel (see
+  // #124 routing finding), a completed import/create previously bounced
+  // wallet-holding users back to the carousel here — home was unreachable
+  // (P0, 2026-09-28). Education gating now lives with the first-run UX
+  // decision on #124; home requires a wallet, nothing else.
   if (accounts.length === 0) {
     return <Redirect href="/(auth)/wallet-setup" />
   }
 
   return (
-    <View className="flex-1 bg-dark-950">
+    <View className="flex-1 bg-dark-950" testID="tabs-home-root">
       <Tabs
         screenOptions={{
           headerShown: false,
