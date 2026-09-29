@@ -253,6 +253,12 @@ jobs:
           arch: x86_64
           force-avd-creation: false
           avd-name: Pixel_7_API_34
+          # Without a profile the AVD defaults to a 320x640 @160dpi skin —
+          # half the app UI (send numpad/CTA, home quick actions) sits below
+          # the fold and Detox's 75%/90% visibility rules reject it (runs
+          # 36554883668/36570652998/36583704678). Test on a real phone
+          # geometry instead.
+          profile: pixel_7
           script: |
             # The e2e variant embeds its JS bundle, so no Metro is needed.
             # 8099 must reach the host for the Detox websocket server; the
@@ -261,6 +267,13 @@ jobs:
             # it explicitly inside the emulator session.
             adb devices -l
             adb reverse tcp:8099 tcp:8099
+            # Gesture nav turns a swipe that starts near the bottom screen
+            # edge into the HOME action — Detox scroll gestures start there,
+            # so scrolling backgrounded the app mid-suite (run 36583704678:
+            # every settings test using scrollDown failed, app found on the
+            # launcher). Three-button nav (navigation_mode 0) removes the
+            # edge gesture; `cmd overlay enable` throws on some API levels.
+            adb shell settings put secure navigation_mode 0
             # The CI emulator locks on its screen timeout whenever a test
             # stalls: in run 36554883668 five settings tests executed against
             # the lock screen ("No activities in stage RESUMED",
