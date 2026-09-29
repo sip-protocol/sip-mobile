@@ -58,8 +58,19 @@ export async function waitForNotExist(matcher: Detox.NativeMatcher, timeout = TI
 export async function typeInField(testID: string, text: string) {
   const input = element(by.id(testID));
   await input.tap();
-  await input.clearText();
-  await input.typeText(text);
+  // replaceText commits the string directly (UiObject.setText) — GBoard's
+  // IME composition mangles typeText keystrokes on long base58/URI strings
+  // (drops prefixes, appends suggestion chars) and corrupts even unfocused
+  // programmatic setText while composing.
+  await input.replaceText(text);
+  if (device.getPlatform() === 'android') {
+    // Let the IME finish animating in — an immediate pressBack can fire
+    // before the keyboard is up and pop the screen instead (run 36426738681).
+    await delay(750);
+    // Dismiss the keyboard: GBoard's overlay window swallows Detox taps
+    // aimed at elements beneath it (submit buttons, numpad keys, CTA).
+    await device.pressBack();
+  }
 }
 
 // ============================================================================
@@ -138,13 +149,7 @@ export async function setupTestWallet() {
 
   await element(by.id('import-button')).tap();
   await waitForVisible(by.id('seed-phrase-input'));
-  await element(by.id('seed-phrase-input')).typeText(TEST_SEED_PHRASE);
-  // Scroll submit into view — IME swallows taps below the fold
-  // Hide the keyboard (Android) — it overlays the submit button and swallows
-  // the tap (screenshot-verified in the local repro).
-  if (device.getPlatform() === 'android') {
-    await device.pressBack()
-  }
+  await typeInField('seed-phrase-input', TEST_SEED_PHRASE);
   await element(by.id('import-submit-button')).tap();
 
   // 60s: cold-boot import on CI emulators has exceeded 30s (runs

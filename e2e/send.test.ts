@@ -102,9 +102,11 @@ describe('Send Flow', () => {
     });
 
     it('should fill max balance when MAX tapped', async () => {
-      // Test wallet balance is 0 SOL on mainnet
+      // Test wallet balance is 0 SOL on mainnet; balance-pill is masked by
+      // default (hideBalances: true renders "******") — assert the amount
+      // label instead of the pill text.
       await element(by.id('preset-max')).tap();
-      await expect(element(by.id('balance-pill'))).toHaveText('0 SOL');
+      await waitForVisible(by.label('Amount: 0 SOL'), TIMEOUTS.short);
     });
 
     it('should show insufficient balance error', async () => {

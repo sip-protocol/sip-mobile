@@ -22,7 +22,7 @@ import {
   TEST_SEED_PHRASE,
   waitForVisible,
   waitForNotExist,
-  delay,
+  typeInField,
   completeOnboardingIfPresent, launchAppNoSync } from './utils';
 
 describe('Onboarding Flow', () => {
@@ -79,18 +79,7 @@ describe('Onboarding Flow', () => {
       await completeOnboardingIfPresent();
       await element(by.id('import-button')).tap();
       await waitForVisible(by.id('seed-phrase-input'));
-      await element(by.id('seed-phrase-input')).typeText(TEST_SEED_PHRASE);
-      // Submit sits below the fold; with the keyboard up the tap coordinates
-      // land on the IME and handleImport never fires (screenshots from the
-      // local repro of run 36360163283). Scroll it into view first.
-      // Hide the keyboard (Android) — it overlays the submit button and
-      // swallows the tap (screenshot-verified in the local repro). Delay lets
-      // the IME finish animating in — an immediate pressBack can fire before
-      // the keyboard is up and pop the screen instead (run 36426738681).
-      if (device.getPlatform() === 'android') {
-        await delay(750);
-        await device.pressBack()
-      }
+      await typeInField('seed-phrase-input', TEST_SEED_PHRASE);
       await element(by.id('import-submit-button')).tap();
       // 60s: cold-boot import on CI emulators has exceeded 30s (runs
       // 36426738681/36436286960); jest testTimeout is 120s.
@@ -117,18 +106,8 @@ describe('Onboarding Flow', () => {
       await waitForVisible(by.id('seed-phrase-input'));
 
       // Enter test seed phrase (12 words)
-      await element(by.id('seed-phrase-input')).typeText(TEST_SEED_PHRASE);
+      await typeInField('seed-phrase-input', TEST_SEED_PHRASE);
 
-      // Tap import — should show loading then home with balance
-      // (scroll submit into view first — IME swallows taps below the fold)
-      // Hide the keyboard (Android) — it overlays the submit button and
-      // swallows the tap (screenshot-verified in the local repro). Delay lets
-      // the IME finish animating in — an immediate pressBack can fire before
-      // the keyboard is up and pop the screen instead (run 36426738681).
-      if (device.getPlatform() === 'android') {
-        await delay(750);
-        await device.pressBack()
-      }
       await element(by.id('import-submit-button')).tap();
       // 60s: cold-boot import on CI emulators has exceeded 30s (runs
       // 36426738681/36436286960); jest testTimeout is 120s.
@@ -143,18 +122,8 @@ describe('Onboarding Flow', () => {
       await waitForVisible(by.id('seed-phrase-input'));
 
       // Enter invalid seed phrase
-      await element(by.id('seed-phrase-input')).typeText('invalid seed phrase here');
+      await typeInField('seed-phrase-input', 'invalid seed phrase here');
 
-      // Tap import — should show inline validation error
-      // (scroll submit into view first — IME swallows taps below the fold)
-      // Hide the keyboard (Android) — it overlays the submit button and
-      // swallows the tap (screenshot-verified in the local repro). Delay lets
-      // the IME finish animating in — an immediate pressBack can fire before
-      // the keyboard is up and pop the screen instead (run 36426738681).
-      if (device.getPlatform() === 'android') {
-        await delay(750);
-        await device.pressBack()
-      }
       await element(by.id('import-submit-button')).tap();
       await waitForVisible(by.text('Seed phrase must be 12 or 24 words'), TIMEOUTS.long);
       await waitForNotExist(by.id('wallet-balance'), TIMEOUTS.short);

@@ -164,6 +164,7 @@ export default function ImportWalletScreen() {
                     numberOfLines={4}
                     autoCapitalize="none"
                     autoCorrect={false}
+                    keyboardType="visible-password"
                     className="text-white font-mono text-base min-h-[100px]"
                     textAlignVertical="top"
                   />
