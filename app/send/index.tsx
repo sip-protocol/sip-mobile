@@ -680,6 +680,7 @@ export default function SendScreen() {
                 onChangeText={handleRecipientChange}
                 autoCapitalize="none"
                 autoCorrect={false}
+                keyboardType="visible-password"
                 multiline
                 numberOfLines={2}
               />

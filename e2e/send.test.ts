@@ -89,8 +89,11 @@ describe('Send Flow', () => {
 
   describe('Amount Input', () => {
     it('should gate the CTA on a positive amount', async () => {
-      // Numpad has no negative/zero entry: CTA stays in its disabled label
-      // until a non-zero amount is entered
+      // CTA gate = valid recipient AND positive amount. Enter the recipient
+      // first so the amount gate is isolated; Numpad has no negative/zero
+      // entry: CTA stays in its disabled label until a non-zero amount is
+      // entered.
+      await typeInField('recipient-input', VALID_ADDRESS);
       await expect(element(by.id('cta-button'))).toHaveLabel('Enter Amount');
 
       await element(by.id('key-1')).tap();
@@ -102,9 +105,11 @@ describe('Send Flow', () => {
     });
 
     it('should fill max balance when MAX tapped', async () => {
-      // Test wallet balance is 0 SOL on mainnet
+      // Test wallet balance is 0 SOL on mainnet; balance-pill is masked by
+      // default (hideBalances: true renders "******") — assert the amount
+      // label instead of the pill text.
       await element(by.id('preset-max')).tap();
-      await expect(element(by.id('balance-pill'))).toHaveText('0 SOL');
+      await waitForVisible(by.label('Amount: 0 SOL'), TIMEOUTS.short);
     });
 
     it('should show insufficient balance error', async () => {
