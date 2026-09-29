@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react"
+import { useEffect, useRef } from "react"
 import { View } from "react-native"
 import { router, usePathname } from "expo-router"
 import { useWalletStore } from "@/stores/wallet"
