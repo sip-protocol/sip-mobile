@@ -23,6 +23,7 @@ import {
   waitForVisible,
   waitForNotExist,
   typeInField,
+  tapWithRetry,
   completeOnboardingIfPresent, launchAppNoSync } from './utils';
 
 describe('Onboarding Flow', () => {
@@ -76,10 +77,10 @@ describe('Onboarding Flow', () => {
       await element(by.id('import-button')).tap();
       await waitForVisible(by.id('seed-phrase-input'));
       await typeInField('seed-phrase-input', TEST_SEED_PHRASE);
-      await element(by.id('import-submit-button')).tap();
+      await tapWithRetry(element(by.id('import-submit-button')), by.id('wallet-balance'));
       // 60s: cold-boot import on CI emulators has exceeded 30s (runs
-      // 36426738681/36436286960); jest testTimeout is 120s.
-      await waitForVisible(by.id('wallet-balance'), TIMEOUTS.transaction);
+      // 36426738681/36436286960); jest testTimeout is 120s. tapWithRetry:
+      // the submit tap can be swallowed post-launch (run 36570652998).
 
       // Relaunch app (no uninstall — persisted state must survive)
       await launchAppNoSync({ newInstance: false });
@@ -104,10 +105,10 @@ describe('Onboarding Flow', () => {
       // Enter test seed phrase (12 words)
       await typeInField('seed-phrase-input', TEST_SEED_PHRASE);
 
-      await element(by.id('import-submit-button')).tap();
+      await tapWithRetry(element(by.id('import-submit-button')), by.id('wallet-balance'));
       // 60s: cold-boot import on CI emulators has exceeded 30s (runs
-      // 36426738681/36436286960); jest testTimeout is 120s.
-      await waitForVisible(by.id('wallet-balance'), TIMEOUTS.transaction);
+      // 36426738681/36436286960); jest testTimeout is 120s. tapWithRetry:
+      // the submit tap can be swallowed post-launch (run 36570652998).
     });
 
     it('should reject invalid seed phrase', async () => {

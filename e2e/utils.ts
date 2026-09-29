@@ -73,6 +73,35 @@ export async function typeInField(testID: string, text: string) {
   }
 }
 
+/**
+ * Tap a button and verify its post-condition, re-tapping once on timeout.
+ *
+ * A tap fired while the expo-router navigator settles — the #156
+ * root-index route runs on every launch — is silently swallowed, and so is
+ * a tap right after an IME dismiss: the button never receives it and the
+ * screen freezes in place (CI run 36570652998: Send navigation and the
+ * import submit were both dropped mid-suite). Verify-then-retry makes the
+ * interaction self-healing; the re-tap is a harmless no-op if the first
+ * one was merely slow and navigation already happened.
+ */
+export async function tapWithRetry(
+  source: Detox.IndexableNativeElement,
+  outcome: Detox.NativeMatcher,
+  firstTimeout = 4000,
+) {
+  await source.tap();
+  try {
+    await waitFor(element(outcome)).toBeVisible().withTimeout(firstTimeout);
+  } catch {
+    try {
+      await source.tap();
+    } catch {
+      // Source no longer mounted — the first tap was slow, not swallowed.
+    }
+    await waitFor(element(outcome)).toBeVisible().withTimeout(TIMEOUTS.transaction);
+  }
+}
+
 // ============================================================================
 // SCROLL HELPERS
 // ============================================================================
@@ -124,7 +153,10 @@ export async function completeOnboardingIfPresent() {
  */
 export async function isWalletConnected(): Promise<boolean> {
   try {
-    await expect(element(by.id('wallet-balance'))).toBeVisible();
+    // Bounded wait, not a bare expect: right after a relaunch the home
+    // render trails the launch by seconds, and a false negative here sends
+    // callers into a pointless re-import of an already-persisted wallet.
+    await waitFor(element(by.id('wallet-balance'))).toBeVisible().withTimeout(5000);
     return true;
   } catch {
     return false;
@@ -150,11 +182,11 @@ export async function setupTestWallet() {
   await element(by.id('import-button')).tap();
   await waitForVisible(by.id('seed-phrase-input'));
   await typeInField('seed-phrase-input', TEST_SEED_PHRASE);
-  await element(by.id('import-submit-button')).tap();
-
   // 60s: cold-boot import on CI emulators has exceeded 30s (runs
   // 36426738681/36436286960); beforeAll runs under the 120s jest timeout.
-  await waitForVisible(by.id('wallet-balance'), TIMEOUTS.transaction);
+  // tapWithRetry: the submit tap right after the IME dismiss can be
+  // swallowed (run 36570652998 settings beforeAll + onboarding import).
+  await tapWithRetry(element(by.id('import-submit-button')), by.id('wallet-balance'));
 }
 
 // ============================================================================
@@ -189,8 +221,7 @@ export async function navigateToSend() {
   // visibility rule). Scroll it into view first — a scroll is a harmless
   // no-op on viewports where the content already fits.
   await scrollDown('home-scroll-view', 300);
-  await element(by.text('Send')).tap();
-  await waitForVisible(by.id('recipient-input'));
+  await tapWithRetry(element(by.text('Send')), by.id('recipient-input'));
 }
 
 /**
