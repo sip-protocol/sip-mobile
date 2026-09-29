@@ -35,10 +35,18 @@ describe('Settings Flow', () => {
 
   describe('Settings Screen UI', () => {
     it('should display all settings sections', async () => {
+      // Section headers render via textTransform:uppercase — Android bakes
+      // that into the TextView text, so by.text('Account') never matches
+      // there. Assert each section's lead row instead (authored
+      // sentence-case on both platforms), scrolling between groups.
       await expect(element(by.text('Settings'))).toBeVisible();
-      await expect(element(by.text('Account'))).toBeVisible();
-      await expect(element(by.text('Display'))).toBeVisible();
-      await expect(element(by.text('Network'))).toBeVisible();
+      await expect(element(by.text('Manage Accounts'))).toBeVisible();
+      await scrollDown('settings-scroll-view', 350);
+      await expect(element(by.text('Hide Balances'))).toBeVisible();
+      await expect(element(by.text('Mainnet'))).toBeVisible();
+      await scrollDown('settings-scroll-view', 400);
+      await expect(element(by.text('Helius'))).toBeVisible();
+      await expect(element(by.text('Documentation'))).toBeVisible();
     });
 
     it('should show wallet address when connected', async () => {
@@ -49,7 +57,8 @@ describe('Settings Flow', () => {
   describe('Network Settings', () => {
     it('should show network option', async () => {
       await scrollDown('settings-scroll-view', 250);
-      await expect(element(by.text('Network'))).toBeVisible();
+      // Radio row labels only — the section header is uppercase-transformed
+      // on Android (see 'should display all settings sections').
       await expect(element(by.text('Mainnet'))).toBeVisible();
       await expect(element(by.text('Devnet'))).toBeVisible();
     });
@@ -75,7 +84,8 @@ describe('Settings Flow', () => {
     it('should show RPC provider option', async () => {
       await scrollDown('settings-scroll-view', 400);
       await scrollDown('settings-scroll-view', 400);
-      await expect(element(by.text('RPC Provider'))).toBeVisible();
+      // Radio row labels only — the section header is uppercase-transformed
+      // on Android (see 'should display all settings sections').
       await expect(element(by.text('Helius'))).toBeVisible();
       await expect(element(by.text('PublicNode'))).toBeVisible();
     });
@@ -130,8 +140,11 @@ describe('Settings Flow', () => {
     it('should navigate to security screen', async () => {
       await element(by.text('Security')).tap();
 
-      // Screen-unique anchor: the biometrics section header
-      await waitForVisible(by.text('Biometric Authentication'), TIMEOUTS.medium);
+      // Screen-unique anchor: the keychain storage row. (The section headers
+      // here render via textTransform:uppercase, so by.text('Biometric
+      // Authentication') only matches iOS; row titles are authored
+      // sentence-case on both platforms.)
+      await waitForVisible(by.text('Wallet keys'), TIMEOUTS.medium);
     });
   });
 });

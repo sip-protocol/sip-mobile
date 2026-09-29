@@ -183,6 +183,12 @@ export async function navigateToSettings() {
  * Navigate to the Send screen (Home quick action).
  */
 export async function navigateToSend() {
+  // Small viewports (the CI API 34 emulator renders ~320x640): the keychain
+  // security notice + balance card push the quick-action circles below the
+  // fold, and Detox rejects a tap on the clipped 'Send' label (75%
+  // visibility rule). Scroll it into view first — a scroll is a harmless
+  // no-op on viewports where the content already fits.
+  await scrollDown('home-scroll-view', 300);
   await element(by.text('Send')).tap();
   await waitForVisible(by.id('recipient-input'));
 }

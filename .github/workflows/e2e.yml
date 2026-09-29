@@ -261,6 +261,13 @@ jobs:
             # it explicitly inside the emulator session.
             adb devices -l
             adb reverse tcp:8099 tcp:8099
+            # The CI emulator locks on its screen timeout whenever a test
+            # stalls: in run 36554883668 five settings tests executed against
+            # the lock screen ("No activities in stage RESUMED",
+            # has-window-focus=false) and recovered only when a later
+            # launchApp woke the device. Keep it awake for the whole run.
+            adb shell svc power stayon true
+            adb shell settings put system screen_off_timeout 2147483647
             pnpm e2e:test:android:e2e
 
       - name: Upload artifacts on failure
