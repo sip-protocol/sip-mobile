@@ -89,8 +89,11 @@ describe('Send Flow', () => {
 
   describe('Amount Input', () => {
     it('should gate the CTA on a positive amount', async () => {
-      // Numpad has no negative/zero entry: CTA stays in its disabled label
-      // until a non-zero amount is entered
+      // CTA gate = valid recipient AND positive amount. Enter the recipient
+      // first so the amount gate is isolated; Numpad has no negative/zero
+      // entry: CTA stays in its disabled label until a non-zero amount is
+      // entered.
+      await typeInField('recipient-input', VALID_ADDRESS);
       await expect(element(by.id('cta-button'))).toHaveLabel('Enter Amount');
 
       await element(by.id('key-1')).tap();
