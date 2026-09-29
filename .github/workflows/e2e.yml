@@ -110,7 +110,7 @@ jobs:
           xcrun simctl boot "$DEVICE"
 
       - name: Detox test iOS
-        run: pnpm exec detox test --configuration ios.sim.release
+        run: pnpm exec detox test --configuration ios.sim.release --take-screenshots all
 
       - name: Upload artifacts on failure
         if: failure()
