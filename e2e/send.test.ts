@@ -28,11 +28,15 @@ const STEALTH_ADDRESS =
   'sip:solana:S1P6j1yeTm6zkewQVeihrTZvmfoHABRkHDhabWTuWMd:S1P9WhBSbAGGatvrVE4TRBZfWpbG96U26zksy2TQj8q';
 
 describe('Send Flow', () => {
+  // 300s hook budget: on a cold iOS simulator the funnel walk + wallet
+  // import alone can exhaust the 120s default — its waits sum to ~134s
+  // worst-case even on the success path (iOS run 36596361635: beforeAll
+  // timed out mid-import with the app parked on wallet-setup).
   beforeAll(async () => {
     // Pre-grant camera permission so the scanner screen renders its camera view
     await launchAppNoSync({ newInstance: true, permissions: { camera: 'YES' } });
     await setupTestWallet();
-  });
+  }, 300_000);
 
   beforeEach(async () => {
     // newInstance relaunch (reloadReactNative hung on the SDK 57 runtime and

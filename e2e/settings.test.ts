@@ -21,10 +21,12 @@ import {
   navigateToSettings, launchAppNoSync } from './utils';
 
 describe('Settings Flow', () => {
+  // Same cold-iOS budget as the send suite (run 36596361635: the funnel
+  // walk timed out at the default 120s).
   beforeAll(async () => {
     await launchAppNoSync({ newInstance: true });
     await setupTestWallet();
-  });
+  }, 300_000);
 
   beforeEach(async () => {
     // newInstance relaunch (reloadReactNative hung on the SDK 57 runtime and

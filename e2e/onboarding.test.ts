@@ -27,6 +27,21 @@ import {
   completeOnboardingIfPresent, launchAppNoSync } from './utils';
 
 describe('Onboarding Flow', () => {
+  beforeEach(async () => {
+    // iOS Keychain survives delete:true app-data wipes — a wallet generated
+    // by an earlier test (create-wallet renders its recovery phrase, which
+    // materializes the keychain entry) leaks into every later "fresh
+    // install": the app boots straight to Home and import-button /
+    // welcome-screen never render (iOS run 36596361635: persist, import and
+    // reject-invalid all failed on the leaked wallet; same address in two
+    // failure screenshots). Wipe it so every test truly starts fresh.
+    // Android keystore-backed storage dies with the app — clearKeychain is
+    // iOS-only, so the guard keeps Android a no-op.
+    if (device.getPlatform() === 'ios') {
+      await device.clearKeychain();
+    }
+  });
+
   describe('Fresh Install', () => {
     it('should show onboarding carousel on first launch', async () => {
       await launchAppNoSync({ newInstance: true, delete: true });
@@ -56,8 +71,10 @@ describe('Onboarding Flow', () => {
       // Tap create wallet
       await element(by.id('create-button')).tap();
 
-      // Should show seed phrase
-      await waitForVisible(by.id('seed-phrase-display'), TIMEOUTS.long);
+      // Should show seed phrase. 60s: iOS run 36596361635 timed out at 30s
+      // while its DETOX_VISIBILITY captures show the card fully rendered —
+      // cold-simulator keygen + Fabric mount outlived the budget.
+      await waitForVisible(by.id('seed-phrase-display'), TIMEOUTS.transaction);
 
       // Continue to the backup verification step
       await element(by.text("I've Written It Down")).tap();

@@ -141,7 +141,9 @@ export async function completeOnboardingIfPresent() {
     await element(by.text('Next')).tap();
     await delay(750);
   }
-  await waitFor(element(by.text('Get Started'))).toBeVisible().withTimeout(TIMEOUTS.medium);
+  // Cold simulators render the last slide's CTA late too — iOS run
+  // 36596361635: settings' funnel timed out here at MEDIUM.
+  await waitFor(element(by.text('Get Started'))).toBeVisible().withTimeout(TIMEOUTS.long);
   await element(by.text('Get Started')).tap();
   // Wallet-setup render on a cold iOS simulator exceeded MEDIUM (iOS run
   // 36426738681: every completeOnboardingIfPresent caller timed out here).
