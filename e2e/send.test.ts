@@ -20,7 +20,9 @@ import {
   waitForNotExist,
   typeInField,
   setupTestWallet,
-  navigateToSend, launchAppNoSync } from './utils';
+  navigateToSend, launchAppNoSync, setAndroidPermission } from './utils';
+
+const CAMERA_PERMISSION = 'android.permission.CAMERA';
 
 // Solana system program — a guaranteed-valid on-curve pubkey
 const VALID_ADDRESS = '11111111111111111111111111111111';
@@ -161,6 +163,12 @@ describe('Send Flow', () => {
   });
 
   describe('QR Scanner', () => {
+    afterAll(() => {
+      // Restore the install-time granted state for any later suites sharing
+      // this device (Detox pre-grants all manifest permissions on Android).
+      setAndroidPermission(CAMERA_PERMISSION, true);
+    });
+
     it('should open QR scanner screen', async () => {
       await element(by.id('scan-qr-button')).tap();
 
@@ -169,6 +177,11 @@ describe('Send Flow', () => {
     });
 
     it('should request camera permission', async () => {
+      // Detox's permissions option only reaches iOS simulators — on Android
+      // it is silently ignored (all manifest permissions are pre-granted at
+      // install), so the scanner would render its camera view instead of the
+      // denied state. Revoke explicitly on the host before relaunching.
+      setAndroidPermission(CAMERA_PERMISSION, false);
       // Relaunch with camera denied — scanner must show its denied state
       await launchAppNoSync({
         newInstance: true,
