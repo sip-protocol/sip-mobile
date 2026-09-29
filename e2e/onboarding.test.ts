@@ -27,17 +27,13 @@ import {
 
 describe('Onboarding Flow', () => {
   describe('Fresh Install', () => {
-    it('should show wallet setup on first launch', async () => {
+    it('should show onboarding carousel on first launch', async () => {
       await launchAppNoSync({ newInstance: true, delete: true });
 
-      // Fresh-install reality (verified on-device, 2026-09-28): the app lands
-      // on the wallet-setup screen — the 5-slide onboarding carousel is
-      // currently unreachable from the router (product finding on #124).
-      // "Welcome to SIP Privacy" exists on BOTH screens, so assert the
-      // wallet-setup structure directly instead of ambiguous texts.
-      await waitForVisible(by.id('welcome-screen'), TIMEOUTS.long);
-      await expect(element(by.id('create-button'))).toBeVisible();
-      await expect(element(by.id('import-button'))).toBeVisible();
+      // First-run education is the designed entry: the root index route
+      // routes fresh installs (no wallet, onboarding not completed) to the
+      // 5-slide carousel. The funnel helper walks it via Next/Get Started.
+      await waitForVisible(by.text('Next'), TIMEOUTS.long);
     });
 
     it('should show create and import wallet options', async () => {
