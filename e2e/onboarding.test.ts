@@ -68,12 +68,12 @@ describe('Onboarding Flow', () => {
       await launchAppNoSync({ newInstance: true, delete: true });
       await completeOnboardingIfPresent();
 
-      // Tap create wallet
-      await element(by.id('create-button')).tap();
+      // Tap create wallet. tapWithRetry: the tap lands right after launch —
+      // the navigator-settle swallow class (iOS run 36658156334: even a 60s
+      // wait failed because the tap never opened the create flow).
+      await tapWithRetry(element(by.id('create-button')), by.id('seed-phrase-display'));
 
-      // Should show seed phrase. 60s: iOS run 36596361635 timed out at 30s
-      // while its DETOX_VISIBILITY captures show the card fully rendered —
-      // cold-simulator keygen + Fabric mount outlived the budget.
+      // Should show seed phrase
       await waitForVisible(by.id('seed-phrase-display'), TIMEOUTS.transaction);
 
       // Continue to the backup verification step

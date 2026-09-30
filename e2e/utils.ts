@@ -139,13 +139,22 @@ export async function completeOnboardingIfPresent() {
   // 5 slides; the CTA reads "Next" on slides 0-3 and "Get Started" on the last.
   // With Detox sync OFF nothing paces these taps, and the animated
   // scrollToIndex needs ~700ms to settle — unpaced taps land on the same slide.
-  for (let i = 0; i < 4; i++) {
-    await element(by.text('Next')).tap();
-    await delay(750);
+  // A swallowed tap (navigator-settle class) strands the walk mid-carousel,
+  // so verify the funnel actually completed and re-walk when it didn't
+  // (iOS run 36658156334: send's beforeAll died at 'Get Started' 30s —
+  // slides never advanced). Bounded to 3 attempts; the final wait re-raises.
+  for (let attempt = 0; attempt < 3; attempt++) {
+    try {
+      await waitFor(element(by.text('Get Started'))).toBeVisible().withTimeout(TIMEOUTS.long);
+      break;
+    } catch {
+      if (attempt === 2) throw new Error('Carousel walk failed: Get Started never appeared after 3 attempts');
+      for (let i = 0; i < 4; i++) {
+        await element(by.text('Next')).tap();
+        await delay(750);
+      }
+    }
   }
-  // Cold simulators render the last slide's CTA late too — iOS run
-  // 36596361635: settings' funnel timed out here at MEDIUM.
-  await waitFor(element(by.text('Get Started'))).toBeVisible().withTimeout(TIMEOUTS.long);
   await element(by.text('Get Started')).tap();
   // Wallet-setup render on a cold iOS simulator exceeded MEDIUM (iOS run
   // 36426738681: every completeOnboardingIfPresent caller timed out here).
