@@ -9,6 +9,8 @@
  * - A deterministic test wallet is provisioned via the import flow.
  */
 
+import { execSync } from 'node:child_process';
+
 import { device, element, by, waitFor, expect } from 'detox';
 
 // ============================================================================
@@ -239,4 +241,43 @@ export async function navigateToSend() {
 export async function launchAppNoSync(args: Parameters<typeof device.launchApp>[0]) {
   await device.launchApp(args);
   await device.disableSynchronization();
+}
+
+// ============================================================================
+// DEVICE PERMISSION TOGGLES (host-side)
+// ============================================================================
+
+// e2e buildType carries no applicationIdSuffix — same id for every config.
+const ANDROID_APP_ID = 'org.sip_protocol.privacy';
+
+/**
+ * Grant/revoke an Android runtime permission via adb.
+ *
+ * Detox's launchApp({ permissions }) only reaches iOS simulators (simctl
+ * privacy); on Android every manifest permission is pre-granted at install
+ * and the option is silently ignored — so an explicit host-side `pm grant/
+ * revoke` is the only lever for denied-state specs. Jest runs on the host,
+ * where adb is on PATH; `device.id` is the adb serial on Android
+ * (AndroidDriver.getExternalId → adbName) and undefined on iOS.
+ * No-op on iOS — launchApp({ permissions }) already covers it there.
+ */
+export function setAndroidPermission(permission: string, granted: boolean) {
+  if (device.getPlatform() !== 'android') return;
+  const serial = device.id ? ` -s ${device.id}` : '';
+  // appops uses the short permission name (CAMERA, not android.permission.CAMERA).
+  const op = permission.slice(permission.lastIndexOf('.') + 1);
+  if (granted) {
+    execSync(`adb${serial} shell appops set ${ANDROID_APP_ID} ${op} default`);
+    execSync(`adb${serial} shell pm grant ${ANDROID_APP_ID} ${permission}`);
+  } else {
+    execSync(`adb${serial} shell pm revoke ${ANDROID_APP_ID} ${permission}`);
+    // appops deny is what makes the denial stick for the spec: pm revoke
+    // alone still lets the app's runtime request pop the OS grant dialog
+    // on the next scan — that dialog owns window focus, so the app shows
+    // no resumed activity and its own denied state never renders
+    // (run 36652982965: "No activities in stage RESUMED", OS dialog in
+    // the failure screenshot). With appops deny, PermissionsAndroid.request
+    // resolves 'denied' immediately and the app renders its denied state.
+    execSync(`adb${serial} shell appops set ${ANDROID_APP_ID} ${op} deny`);
+  }
 }
