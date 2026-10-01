@@ -149,8 +149,16 @@ export async function completeOnboardingIfPresent() {
       break;
     } catch {
       if (attempt === 2) throw new Error('Carousel walk failed: Get Started never appeared after 3 attempts');
+      // The original walk may have partially advanced (a swallowed tap) or
+      // fully advanced (Next already gone — run 36804179459: re-walk hit
+      // 'No elements found' because only Get Started remained). Tap Next
+      // while it exists, then let the Get Started wait re-verify.
       for (let i = 0; i < 4; i++) {
-        await element(by.text('Next')).tap();
+        try {
+          await element(by.text('Next')).tap();
+        } catch {
+          break;
+        }
         await delay(750);
       }
     }
