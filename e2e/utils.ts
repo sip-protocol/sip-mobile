@@ -253,11 +253,17 @@ export async function launchAppNoSync(args: Parameters<typeof device.launchApp>[
 }
 
 // ============================================================================
-// DEVICE PERMISSION TOGGLES (host-side)
+// DEVICE PERMISSION TOGGLES + OS DIALOG (host-side)
 // ============================================================================
 
 // e2e buildType carries no applicationIdSuffix — same id for every config.
 const ANDROID_APP_ID = 'org.sip_protocol.privacy';
+
+/** Run an adb shell command against the detox-selected device. */
+function adbShell(cmd: string): string {
+  const serial = device.id ? ` -s ${device.id}` : '';
+  return execSync(`adb${serial} shell ${cmd}`).toString();
+}
 
 /**
  * Grant/revoke an Android runtime permission via adb.
@@ -272,21 +278,36 @@ const ANDROID_APP_ID = 'org.sip_protocol.privacy';
  */
 export function setAndroidPermission(permission: string, granted: boolean) {
   if (device.getPlatform() !== 'android') return;
-  const serial = device.id ? ` -s ${device.id}` : '';
-  // appops uses the short permission name (CAMERA, not android.permission.CAMERA).
-  const op = permission.slice(permission.lastIndexOf('.') + 1);
-  if (granted) {
-    execSync(`adb${serial} shell appops set ${ANDROID_APP_ID} ${op} default`);
-    execSync(`adb${serial} shell pm grant ${ANDROID_APP_ID} ${permission}`);
-  } else {
-    execSync(`adb${serial} shell pm revoke ${ANDROID_APP_ID} ${permission}`);
-    // appops deny is what makes the denial stick for the spec: pm revoke
-    // alone still lets the app's runtime request pop the OS grant dialog
-    // on the next scan — that dialog owns window focus, so the app shows
-    // no resumed activity and its own denied state never renders
-    // (run 36652982965: "No activities in stage RESUMED", OS dialog in
-    // the failure screenshot). With appops deny, PermissionsAndroid.request
-    // resolves 'denied' immediately and the app renders its denied state.
-    execSync(`adb${serial} shell appops set ${ANDROID_APP_ID} ${op} deny`);
+  adbShell(`pm ${granted ? 'grant' : 'revoke'} ${ANDROID_APP_ID} ${permission}`);
+}
+
+/**
+ * Answer the Android OS runtime-permission dialog(s) with "Don't allow".
+ *
+ * Modern Android shows the grant dialog even when the permission is revoked
+ * via adb — `pm revoke` + `appops … deny/ignore` do NOT short-circuit
+ * PermissionsAndroid.request (verified on API 34 CI and API 36.1 local, run
+ * 36662982640). Worse, the scan flow fires TWO stacked requests (RN +
+ * camera lib), so one answer is not enough: loop while the focused window
+ * is the permissioncontroller, tapping the deny button each round.
+ *
+ * The gate is `dumpsys window` mCurrentFocus (uiautomator's dump
+ * nondeterministically misses system-dialog windows). The deny button sits
+ * at ~(540, 1524) on 1080x2400 Material dialogs — verified identical on CI
+ * API 34 (pixel_7) and local API 36.1. Bounded ~10s; a silent no-op when no
+ * dialog appears.
+ */
+export async function denyAndroidPermissionDialog(attempts = 10) {
+  if (device.getPlatform() !== 'android') return;
+  for (let i = 0; i < attempts; i++) {
+    await delay(1000);
+    let focus = '';
+    try {
+      focus = adbShell('dumpsys window 2>/dev/null | grep mCurrentFocus || true');
+    } catch {
+      continue;
+    }
+    if (!/permissioncontroller/i.test(focus)) return;
+    adbShell('input tap 540 1524');
   }
 }

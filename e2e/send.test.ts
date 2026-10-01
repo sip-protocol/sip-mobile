@@ -20,7 +20,7 @@ import {
   waitForNotExist,
   typeInField,
   setupTestWallet,
-  navigateToSend, launchAppNoSync, setAndroidPermission } from './utils';
+  navigateToSend, launchAppNoSync, setAndroidPermission, denyAndroidPermissionDialog } from './utils';
 
 const CAMERA_PERMISSION = 'android.permission.CAMERA';
 
@@ -190,6 +190,9 @@ describe('Send Flow', () => {
       await navigateToSend();
       await element(by.id('scan-qr-button')).tap();
 
+      // Modern Android shows the grant dialog despite the revoke — answer it
+      // (see denyAndroidPermissionDialog); the app then renders its denied state.
+      await denyAndroidPermissionDialog();
       await waitForVisible(by.text('Camera Permission Required'));
     });
   });
