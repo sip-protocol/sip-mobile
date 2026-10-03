@@ -197,6 +197,18 @@ jobs:
           printf '\norg.gradle.jvmargs=-Xmx8g -XX:MaxMetaspaceSize=2g\n' >> android/gradle.properties
           printf 'org.gradle.caching=true\n' >> android/gradle.properties
 
+      # Witness the BUILD phase. Rounds 11-14 all died during gradle build
+      # (two graceful shutdown signals at ~47 min after 9-16 min task
+      # stalls; one hard loss at ~75 min that also ate the log blob and
+      # post steps) — the watcher used to start only at the test step, so
+      # every death was unwitnessed. Samples free/ps/df/dmesg every 5s for
+      # 90 min; uploads via the on-failure artifact step. 90 min also
+      # covers the test phase, so only one watcher runs per job.
+      - name: Resource watcher (diagnostic)
+        run: |
+          nohup bash -c 'for _ in $(seq 1 1080); do { date -u +%H:%M:%S; df -m / | sed -n 2p; free -m | sed -n 2p; ps -eo rss,comm --sort=-rss | head -6; sudo dmesg | tail -2; } >> "$GITHUB_WORKSPACE/resource-watch.log"; sleep 5; done' > /dev/null 2>&1 &
+          echo "resource watcher started (covers build + test, 90 min)"
+
       - name: Detox build Android
         # Builds the dedicated `e2e` variant (release-like, embedded JS
         # bundle, no dev-launcher, no R8) + the matching Detox androidTest APK.
@@ -245,15 +257,6 @@ jobs:
           # Kotlin compile daemon is a separate JVM that outlives gradlew --stop
           pkill -f KotlinCompileDaemon || true
           free -m
-
-      # The two prior Android runs froze the whole runner (~62s of total log
-      # silence ~30s into emulator boot) and were then force-stopped by GitHub
-      # ("runner has received a shutdown signal"). Sample memory + kernel log
-      # every 5s so the artifact shows host state right up to the freeze.
-      - name: Resource watcher (diagnostic)
-        run: |
-          nohup bash -c 'for _ in $(seq 1 720); do { date -u +%H:%M:%S; free -m | sed -n 2p; ps -eo rss,comm --sort=-rss | head -6; sudo dmesg | tail -2; } >> "$GITHUB_WORKSPACE/resource-watch.log"; sleep 5; done' > /dev/null 2>&1 &
-          echo "resource watcher started"
 
       - name: Detox test Android
         uses: reactivecircus/android-emulator-runner@v2
