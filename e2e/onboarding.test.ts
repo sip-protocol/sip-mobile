@@ -27,6 +27,21 @@ import {
   completeOnboardingIfPresent, launchAppNoSync } from './utils';
 
 describe('Onboarding Flow', () => {
+  beforeEach(async () => {
+    // iOS Keychain survives delete:true app-data wipes — a wallet generated
+    // by an earlier test (create-wallet renders its recovery phrase, which
+    // materializes the keychain entry) leaks into every later "fresh
+    // install": the app boots straight to Home and import-button /
+    // welcome-screen never render (iOS run 36596361635: persist, import and
+    // reject-invalid all failed on the leaked wallet; same address in two
+    // failure screenshots). Wipe it so every test truly starts fresh.
+    // Android keystore-backed storage dies with the app — clearKeychain is
+    // iOS-only, so the guard keeps Android a no-op.
+    if (device.getPlatform() === 'ios') {
+      await device.clearKeychain();
+    }
+  });
+
   describe('Fresh Install', () => {
     it('should show onboarding carousel on first launch', async () => {
       await launchAppNoSync({ newInstance: true, delete: true });
@@ -35,7 +50,9 @@ describe('Onboarding Flow', () => {
       // routes fresh installs (no wallet, onboarding not completed) to the
       // 5-slide carousel. The funnel helper walks it via Next/Get Started.
       await waitForVisible(by.text('Next'), TIMEOUTS.long);
-    });
+      // 180s: a slow CI simulator launch can approach 120s alone (iOS run
+      // 36647489122: this test hit jest's default 120s cap at 140s).
+    }, 180_000);
 
     it('should show create and import wallet options', async () => {
       await launchAppNoSync({ newInstance: true, delete: true });
@@ -45,7 +62,7 @@ describe('Onboarding Flow', () => {
       await expect(element(by.id('welcome-screen'))).toBeVisible();
       await expect(element(by.id('create-button'))).toBeVisible();
       await expect(element(by.id('import-button'))).toBeVisible();
-    });
+    }, 180_000);
   });
 
   describe('Create Wallet', () => {
@@ -53,11 +70,13 @@ describe('Onboarding Flow', () => {
       await launchAppNoSync({ newInstance: true, delete: true });
       await completeOnboardingIfPresent();
 
-      // Tap create wallet
-      await element(by.id('create-button')).tap();
+      // Tap create wallet. tapWithRetry: the tap lands right after launch —
+      // the navigator-settle swallow class (iOS run 36658156334: even a 60s
+      // wait failed because the tap never opened the create flow).
+      await tapWithRetry(element(by.id('create-button')), by.id('seed-phrase-display'));
 
       // Should show seed phrase
-      await waitForVisible(by.id('seed-phrase-display'), TIMEOUTS.long);
+      await waitForVisible(by.id('seed-phrase-display'), TIMEOUTS.transaction);
 
       // Continue to the backup verification step
       await element(by.text("I've Written It Down")).tap();
@@ -68,7 +87,7 @@ describe('Onboarding Flow', () => {
       // which the test cannot read. Completing verification requires an
       // app-side test hook (e.g. a deterministic debug mnemonic via launch
       // args). The deterministic prefix of the flow is asserted here.
-    });
+    }, 180_000);
 
     it('should persist wallet after app restart', async () => {
       // Provision a wallet via the deterministic import flow
@@ -88,7 +107,7 @@ describe('Onboarding Flow', () => {
       // Should go directly to home, not onboarding/wallet setup
       await waitForVisible(by.id('wallet-balance'), TIMEOUTS.medium);
       await expect(element(by.id('welcome-screen'))).not.toBeVisible();
-    });
+    }, 180_000);
   });
 
   describe('Import Wallet', () => {
@@ -109,7 +128,7 @@ describe('Onboarding Flow', () => {
       // 60s: cold-boot import on CI emulators has exceeded 30s (runs
       // 36426738681/36436286960); jest testTimeout is 120s. tapWithRetry:
       // the submit tap can be swallowed post-launch (run 36570652998).
-    });
+    }, 180_000);
 
     it('should reject invalid seed phrase', async () => {
       await launchAppNoSync({ newInstance: true, delete: true });
@@ -121,9 +140,15 @@ describe('Onboarding Flow', () => {
       // Enter invalid seed phrase
       await typeInField('seed-phrase-input', 'invalid seed phrase here');
 
-      await element(by.id('import-submit-button')).tap();
-      await waitForVisible(by.text('Seed phrase must be 12 or 24 words'), TIMEOUTS.long);
+      // tapWithRetry already verifies the toast; do NOT wait for it again —
+      // the toast auto-dismisses in ~3s, so a second wait races the dismissal
+      // and fails (iOS run 36658156334: tapWithRetry verified it, the extra
+      // waitForVisible stared at nothing for 30s).
+      await tapWithRetry(
+        element(by.id('import-submit-button')),
+        by.text('Seed phrase must be 12 or 24 words'),
+      );
       await waitForNotExist(by.id('wallet-balance'), TIMEOUTS.short);
-    });
+    }, 180_000);
   });
 });

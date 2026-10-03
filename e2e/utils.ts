@@ -9,6 +9,8 @@
  * - A deterministic test wallet is provisioned via the import flow.
  */
 
+import { execSync } from 'node:child_process';
+
 import { device, element, by, waitFor, expect } from 'detox';
 
 // ============================================================================
@@ -137,11 +139,30 @@ export async function completeOnboardingIfPresent() {
   // 5 slides; the CTA reads "Next" on slides 0-3 and "Get Started" on the last.
   // With Detox sync OFF nothing paces these taps, and the animated
   // scrollToIndex needs ~700ms to settle — unpaced taps land on the same slide.
-  for (let i = 0; i < 4; i++) {
-    await element(by.text('Next')).tap();
-    await delay(750);
+  // A swallowed tap (navigator-settle class) strands the walk mid-carousel,
+  // so verify the funnel actually completed and re-walk when it didn't
+  // (iOS run 36658156334: send's beforeAll died at 'Get Started' 30s —
+  // slides never advanced). Bounded to 3 attempts; the final wait re-raises.
+  for (let attempt = 0; attempt < 3; attempt++) {
+    try {
+      await waitFor(element(by.text('Get Started'))).toBeVisible().withTimeout(TIMEOUTS.long);
+      break;
+    } catch {
+      if (attempt === 2) throw new Error('Carousel walk failed: Get Started never appeared after 3 attempts');
+      // The original walk may have partially advanced (a swallowed tap) or
+      // fully advanced (Next already gone — run 36804179459: re-walk hit
+      // 'No elements found' because only Get Started remained). Tap Next
+      // while it exists, then let the Get Started wait re-verify.
+      for (let i = 0; i < 4; i++) {
+        try {
+          await element(by.text('Next')).tap();
+        } catch {
+          break;
+        }
+        await delay(750);
+      }
+    }
   }
-  await waitFor(element(by.text('Get Started'))).toBeVisible().withTimeout(TIMEOUTS.medium);
   await element(by.text('Get Started')).tap();
   // Wallet-setup render on a cold iOS simulator exceeded MEDIUM (iOS run
   // 36426738681: every completeOnboardingIfPresent caller timed out here).
@@ -237,4 +258,78 @@ export async function navigateToSend() {
 export async function launchAppNoSync(args: Parameters<typeof device.launchApp>[0]) {
   await device.launchApp(args);
   await device.disableSynchronization();
+}
+
+// ============================================================================
+// DEVICE PERMISSION TOGGLES + OS DIALOG (host-side)
+// ============================================================================
+
+// e2e buildType carries no applicationIdSuffix — same id for every config.
+const ANDROID_APP_ID = 'org.sip_protocol.privacy';
+
+/** Run an adb shell command against the detox-selected device. */
+function adbShell(cmd: string): string {
+  const serial = device.id ? ` -s ${device.id}` : '';
+  return execSync(`adb${serial} shell ${cmd}`).toString();
+}
+
+/**
+ * Grant/revoke an Android runtime permission via adb.
+ *
+ * Detox's launchApp({ permissions }) only reaches iOS simulators (simctl
+ * privacy); on Android every manifest permission is pre-granted at install
+ * and the option is silently ignored — so an explicit host-side `pm grant/
+ * revoke` is the only lever for denied-state specs. Jest runs on the host,
+ * where adb is on PATH; `device.id` is the adb serial on Android
+ * (AndroidDriver.getExternalId → adbName) and undefined on iOS.
+ * No-op on iOS — launchApp({ permissions }) already covers it there.
+ */
+export function setAndroidPermission(permission: string, granted: boolean) {
+  if (device.getPlatform() !== 'android') return;
+  adbShell(`pm ${granted ? 'grant' : 'revoke'} ${ANDROID_APP_ID} ${permission}`);
+}
+
+/**
+ * Answer the Android OS runtime-permission dialog(s) with "Don't allow".
+ *
+ * Modern Android shows the grant dialog even when the permission is revoked
+ * via adb — `pm revoke` + `appops … deny/ignore` do NOT short-circuit
+ * PermissionsAndroid.request (verified on API 34 CI and API 36.1 local, run
+ * 36662982640). Worse, the scan flow fires TWO stacked requests (RN +
+ * camera lib), so one answer is not enough: loop while the focused window
+ * is the permissioncontroller, tapping the deny button each round.
+ *
+ * The gate is `dumpsys window` mCurrentFocus (uiautomator's dump
+ * nondeterministically misses system-dialog windows). The deny button sits
+ * at ~(540, 1524) on 1080x2400 Material dialogs — verified identical on CI
+ * API 34 (pixel_7) and local API 36.1. Bounded ~10s; a silent no-op when no
+ * dialog appears.
+ */
+export async function denyAndroidPermissionDialog(attempts = 20) {
+  if (device.getPlatform() !== 'android') return;
+  // Two stacked requests fire (RN + camera lib) with a >1s gap between the
+  // dialogs (CI run 36804324830: the helper answered #1, returned during the
+  // gap, and #2 popped unattended — the denied state only rendered after the
+  // assertion had already thrown). Require 3 consecutive seconds of
+  // non-controller focus before declaring victory — dumpsys reads can come
+  // back empty under load, and 2 clean checks were beaten by a slower gap
+  // (run 36809927854: denied state visible at failure capture, assertion
+  // already thrown).
+  let clean = 0;
+  for (let i = 0; i < attempts; i++) {
+    await delay(1000);
+    let focus = '';
+    try {
+      focus = adbShell('dumpsys window 2>/dev/null | grep mCurrentFocus || true');
+    } catch {
+      continue;
+    }
+    if (!/permissioncontroller/i.test(focus)) {
+      clean += 1;
+      if (clean >= 3) return;
+      continue;
+    }
+    clean = 0;
+    adbShell('input tap 540 1524');
+  }
 }

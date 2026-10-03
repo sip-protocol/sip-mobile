@@ -98,8 +98,18 @@ export function Sidebar({ visible, onClose }: SidebarProps) {
   if (!visible || !activeAccount) return null
 
   const navigate = (path: string) => {
+    // Push FIRST, then close. The old order (close, then router.push after
+    // a fixed 150ms setTimeout) races the sidebar Modal's native iOS
+    // dismissal: pushing while that presentation is still tearing down gets
+    // the push silently dropped, the drawer stays open and the destination
+    // never renders — iOS run 36647489122: all 10 settings tests failed
+    // this way (drawer open in every failure screenshot, hub never
+    // rendered). Android's faster dismissal won the race, masking it.
+    // Navigating before close needs no timing: the route change unmounts
+    // this Modal together with the tabs screen.
+    // expo-router's Href union doesn't accept a bare string param.
+    router.push(path as unknown as Parameters<typeof router.push>[0])
     onClose()
-    setTimeout(() => router.push(path as any), 150)
   }
 
   const handleCopyAddress = async () => {
@@ -244,8 +254,10 @@ export function Sidebar({ visible, onClose }: SidebarProps) {
               ))}
               <TouchableOpacity
                 onPress={() => {
+                  // Push before close — same iOS Modal-dismissal race as
+                  // navigate() above (a 150ms delayed push gets dropped).
+                  router.push("/(auth)/wallet-setup?addAccount=true" as unknown as Parameters<typeof router.push>[0])
                   onClose()
-                  setTimeout(() => router.push("/(auth)/wallet-setup?addAccount=true" as any), 150)
                 }}
                 className="flex-row items-center px-4 py-3"
                 accessibilityRole="button"

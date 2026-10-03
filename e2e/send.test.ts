@@ -20,7 +20,9 @@ import {
   waitForNotExist,
   typeInField,
   setupTestWallet,
-  navigateToSend, launchAppNoSync } from './utils';
+  navigateToSend, launchAppNoSync, setAndroidPermission, denyAndroidPermissionDialog, tapWithRetry, delay } from './utils';
+
+const CAMERA_PERMISSION = 'android.permission.CAMERA';
 
 // Solana system program — a guaranteed-valid on-curve pubkey
 const VALID_ADDRESS = '11111111111111111111111111111111';
@@ -28,11 +30,15 @@ const STEALTH_ADDRESS =
   'sip:solana:S1P6j1yeTm6zkewQVeihrTZvmfoHABRkHDhabWTuWMd:S1P9WhBSbAGGatvrVE4TRBZfWpbG96U26zksy2TQj8q';
 
 describe('Send Flow', () => {
+  // 300s hook budget: on a cold iOS simulator the funnel walk + wallet
+  // import alone can exhaust the 120s default — its waits sum to ~134s
+  // worst-case even on the success path (iOS run 36596361635: beforeAll
+  // timed out mid-import with the app parked on wallet-setup).
   beforeAll(async () => {
     // Pre-grant camera permission so the scanner screen renders its camera view
     await launchAppNoSync({ newInstance: true, permissions: { camera: 'YES' } });
     await setupTestWallet();
-  });
+  }, 300_000);
 
   beforeEach(async () => {
     // newInstance relaunch (reloadReactNative hung on the SDK 57 runtime and
@@ -120,8 +126,7 @@ describe('Send Flow', () => {
       await element(by.id('key-9')).multiTap(7);
 
       // Review triggers balance validation and surfaces a toast
-      await element(by.id('cta-button')).tap();
-      await waitForVisible(by.text('Insufficient balance'));
+      await tapWithRetry(element(by.id('cta-button')), by.text('Insufficient balance'));
     });
   });
 
@@ -130,18 +135,17 @@ describe('Send Flow', () => {
       await typeInField('recipient-input', VALID_ADDRESS);
       await element(by.id('key-1')).tap();
 
-      await element(by.id('cta-button')).tap();
-
-      // Insufficient balance blocks the review flow with a toast
-      await waitForVisible(by.text('Insufficient balance'));
+      // tapWithRetry verifies the toast itself — a separate waitForVisible
+      // races the ~3s toast auto-dismissal (CI run 37091240762: the gate
+      // test lost its 10s window to a momentary app stall).
+      await tapWithRetry(element(by.id('cta-button')), by.text('Insufficient balance'));
     });
 
     it('should not open confirmation modal without balance', async () => {
       await typeInField('recipient-input', VALID_ADDRESS);
       await element(by.id('key-1')).tap();
 
-      await element(by.id('cta-button')).tap();
-      await waitForVisible(by.text('Insufficient balance'));
+      await tapWithRetry(element(by.id('cta-button')), by.text('Insufficient balance'));
 
       // The "Confirm Transfer" modal (confirm-send-button) must not open
       await expect(element(by.id('confirm-send-button'))).not.toBeVisible();
@@ -157,6 +161,12 @@ describe('Send Flow', () => {
   });
 
   describe('QR Scanner', () => {
+    afterAll(() => {
+      // Restore the install-time granted state for any later suites sharing
+      // this device (Detox pre-grants all manifest permissions on Android).
+      setAndroidPermission(CAMERA_PERMISSION, true);
+    });
+
     it('should open QR scanner screen', async () => {
       await element(by.id('scan-qr-button')).tap();
 
@@ -165,6 +175,11 @@ describe('Send Flow', () => {
     });
 
     it('should request camera permission', async () => {
+      // Detox's permissions option only reaches iOS simulators — on Android
+      // it is silently ignored (all manifest permissions are pre-granted at
+      // install), so the scanner would render its camera view instead of the
+      // denied state. Revoke explicitly on the host before relaunching.
+      setAndroidPermission(CAMERA_PERMISSION, false);
       // Relaunch with camera denied — scanner must show its denied state
       await launchAppNoSync({
         newInstance: true,
@@ -173,7 +188,28 @@ describe('Send Flow', () => {
       await navigateToSend();
       await element(by.id('scan-qr-button')).tap();
 
-      await waitForVisible(by.text('Camera Permission Required'));
-    });
+      // Modern Android shows the grant dialog despite the revoke — answer it
+      // (see denyAndroidPermissionDialog). Detox throws an expectation
+      // immediately (no polling) while a dialog still owns window focus —
+      // the denied state can render after the first attempt dies (CI runs
+      // 36809927854/37091240762: failure screenshots show the denied state
+      // at capture) — so retry the assertion, re-answering any re-popped
+      // dialog, before giving up.
+      await denyAndroidPermissionDialog();
+      for (let attempt = 0; attempt < 3; attempt++) {
+        try {
+          await waitForVisible(by.text('Camera Permission Required'), TIMEOUTS.medium);
+          return;
+        } catch {
+          await delay(2000);
+          await denyAndroidPermissionDialog();
+        }
+      }
+      await waitForVisible(by.text('Camera Permission Required'), TIMEOUTS.long);
+      // 240s: the retry ladder (3 × (10s wait + 2s + dialog answering) +
+      // relaunch + nav + final LONG wait) legitimately exceeds jest's 120s
+      // default on a slow simulator (CI run 37095212623: died at the cap
+      // at 129s with every retry working as designed).
+    }, 240_000);
   });
 });

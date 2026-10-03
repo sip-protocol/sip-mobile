@@ -274,6 +274,24 @@ jobs:
             # launcher). Three-button nav (navigation_mode 0) removes the
             # edge gesture; `cmd overlay enable` throws on some API levels.
             adb shell settings put secure navigation_mode 0
+            # The keyguard may already be UP when this script runs: the
+            # emulator boots in the action's emulator phase and its default
+            # screen timeout can fire before our keep-awake lands. stayon
+            # keeps the screen ON but never dismisses an existing keyguard —
+            # run 36647475658: every suite failed with has-window-focus=false
+            # for the whole job because the keyguard held window focus from
+            # the first test on (earlier runs only recovered when a later
+            # launchApp happened to wake the device — a race this run lost).
+            adb shell input keyevent KEYCODE_WAKEUP
+            adb shell wm dismiss-keyguard
+            # ANR armor (run 36809938508: "Pixel Launcher isn't responding"
+            # dialog covered the app for a whole suite — CI emulator CPU
+            # starvation ANRs system apps intermittently). hide_error_dialogs
+            # suppresses ANR/crash dialogs where supported; disabling the
+            # launcher removes the most frequent ANR source entirely (the
+            # emulator needs no launcher — tests start activities directly).
+            adb shell settings put global hide_error_dialogs 1
+            adb shell pm disable-user --user 0 com.google.android.apps.nexuslauncher || true
             # The CI emulator locks on its screen timeout whenever a test
             # stalls: in run 36554883668 five settings tests executed against
             # the lock screen ("No activities in stage RESUMED",
