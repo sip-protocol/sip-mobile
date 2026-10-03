@@ -37,11 +37,8 @@ vi.mock("@noble/curves/ed25519.js", () => ({
 }))
 
 // Mock noble hashes
-vi.mock("@noble/hashes/sha256", () => ({
+vi.mock("@noble/hashes/sha2.js", () => ({
   sha256: vi.fn().mockReturnValue(new Uint8Array(32).fill(0x12)),
-}))
-
-vi.mock("@noble/hashes/sha512", () => ({
   sha512: vi.fn().mockReturnValue(new Uint8Array(64).fill(0x34)),
 }))
 

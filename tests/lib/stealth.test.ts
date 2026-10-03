@@ -213,8 +213,8 @@ describe("Stealth Library", () => {
   })
 })
 
-import { sha256 } from "@noble/hashes/sha256"
-import { hkdf } from "@noble/hashes/hkdf"
+import { sha256 } from "@noble/hashes/sha2.js"
+import { hkdf } from "@noble/hashes/hkdf.js"
 import { xchacha20poly1305 } from "@noble/ciphers/chacha.js"
 import { randomBytes } from "@noble/ciphers/utils.js"
 

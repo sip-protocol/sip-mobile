@@ -21,8 +21,8 @@
 
 import { describe, it, expect } from "vitest"
 import { ed25519 } from "@noble/curves/ed25519.js"
-import { sha256 } from "@noble/hashes/sha256"
-import { sha512 } from "@noble/hashes/sha512"
+import { sha256 } from "@noble/hashes/sha2.js"
+import { sha512 } from "@noble/hashes/sha2.js"
 import {
   generateStealthAddress,
   checkStealthAddress,

@@ -897,7 +897,7 @@ export async function buildClaimTransfer(
   stealthPublicKey: Uint8Array
   nullifier: Uint8Array
 }> {
-  const { sha256 } = await import("@noble/hashes/sha256")
+  const { sha256 } = await import("@noble/hashes/sha2.js")
   const { hexToBytes } = await import("@/lib/stealth")
 
   // Parse stealth private key (it's a scalar, not a seed)
@@ -1118,7 +1118,7 @@ async function signWithScalar(
   publicKeyBytes: Uint8Array
 ): Promise<Uint8Array> {
   const { ed25519 } = await import("@noble/curves/ed25519.js")
-  const { sha512 } = await import("@noble/hashes/sha512")
+  const { sha512 } = await import("@noble/hashes/sha2.js")
 
   const ED25519_ORDER = BigInt(
     "0x1000000000000000000000000000000014def9dea2f79cd65812631a5cf5d3ed"
