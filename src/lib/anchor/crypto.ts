@@ -6,8 +6,8 @@
  */
 
 import { ed25519 } from "@noble/curves/ed25519.js"
-import { sha256 as nobleSha256 } from "@noble/hashes/sha256"
-import { sha512 as nobleSha512 } from "@noble/hashes/sha512"
+import { sha256 as nobleSha256 } from "@noble/hashes/sha2.js"
+import { sha512 as nobleSha512 } from "@noble/hashes/sha2.js"
 import nacl from "tweetnacl"
 import * as Crypto from "expo-crypto"
 
