@@ -18,8 +18,8 @@ importers:
   .:
     dependencies:
       '@bonfida/spl-name-service':
-        specifier: ^3.0.21
-        version: 3.0.21(@solana/web3.js@1.99.0(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10))(bufferutil@4.1.0)(fastestsmallesttextencoderdecoder@1.0.22)(typescript@5.9.3)(utf-8-validate@5.0.10)
+        specifier: ^4.0.1
+        version: 4.0.1(@solana/web3.js@1.99.0(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10))(bufferutil@4.1.0)(fastestsmallesttextencoderdecoder@1.0.22)(typescript@5.9.3)(utf-8-validate@5.0.10)
       '@coral-xyz/anchor':
         specifier: ^0.32.1
         version: 0.32.1(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)
@@ -795,6 +795,11 @@ packages:
 
   '@bonfida/spl-name-service@3.0.21':
     resolution: {integrity: sha512-dYKZwG2ColaDUvX+ZrzcPtE6sQcNNwXywMsLit57Z+bKSEYQdIFxncrDSSzjLKcxQRFPUQObptaSEcv+ZwcMQA==}
+    peerDependencies:
+      '@solana/web3.js': ^1.98.2
+
+  '@bonfida/spl-name-service@4.0.1':
+    resolution: {integrity: sha512-XsREmLTig+o8IYiWyVAs6KQ76aUK762yxE+ATDGAnwHFIbQYfT3PZiwTYKTSvos0Ok65DmqU/aWoyQZe+nXXGg==}
     peerDependencies:
       '@solana/web3.js': ^1.98.2
 
@@ -8146,6 +8151,26 @@ snapshots:
       '@noble/curves': 1.9.7
       '@scure/base': 1.2.6
       '@solana/spl-token': 0.4.6(@solana/web3.js@1.99.0(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10))(bufferutil@4.1.0)(fastestsmallesttextencoderdecoder@1.0.22)(typescript@5.9.3)(utf-8-validate@5.0.10)
+      '@solana/web3.js': 1.99.0(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)
+      borsh: 2.0.0
+      buffer: 6.0.3
+      graphemesplit: 2.6.0
+      ipaddr.js: 2.4.0
+      punycode: 2.3.1
+    transitivePeerDependencies:
+      - bufferutil
+      - encoding
+      - fastestsmallesttextencoderdecoder
+      - typescript
+      - utf-8-validate
+
+  '@bonfida/spl-name-service@4.0.1(@solana/web3.js@1.99.0(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10))(bufferutil@4.1.0)(fastestsmallesttextencoderdecoder@1.0.22)(typescript@5.9.3)(utf-8-validate@5.0.10)':
+    dependencies:
+      '@bonfida/sns-records': 0.1.0(@solana/web3.js@1.99.0(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10))
+      '@noble/curves': 1.9.7
+      '@noble/hashes': 1.8.0
+      '@scure/base': 1.2.6
+      '@solana/spl-token': 0.4.14(@solana/web3.js@1.99.0(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10))(bufferutil@4.1.0)(fastestsmallesttextencoderdecoder@1.0.22)(typescript@5.9.3)(utf-8-validate@5.0.10)
       '@solana/web3.js': 1.99.0(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)
       borsh: 2.0.0
       buffer: 6.0.3

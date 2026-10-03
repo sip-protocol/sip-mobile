@@ -23,7 +23,7 @@ import { SafeAreaView } from "react-native-safe-area-context"
 import { router } from "expo-router"
 import { useState, useEffect, useCallback, useMemo, useRef } from "react"
 import type { Connection, Transaction } from "@solana/web3.js"
-import { getAllDomains, reverseLookup } from "@bonfida/spl-name-service"
+import { getSnsDomainsForOwner } from "@bonfida/spl-name-service"
 import {
   ArrowLeftIcon,
   GlobeIcon,
@@ -182,7 +182,10 @@ export default function SipStealthScreen() {
     async function load() {
       if (!native.wallet) return
       try {
-        const records = await getAllDomains(connection, native.wallet.publicKey)
+        // v4 of @bonfida/spl-name-service replaced getAllDomains+reverseLookup
+        // with getSnsDomainsForOwner: one call, owner-filtered, returning
+        // TLD-less names (verified against mainnet — `domain` has no suffix).
+        const records = await getSnsDomainsForOwner(connection, native.wallet.publicKey)
         if (cancelled) return
 
         if (records.length === 0) {
@@ -190,16 +193,11 @@ export default function SipStealthScreen() {
           return
         }
 
-        const entries = await Promise.all(
-          records.map(async (record) => {
-            const bareName = await reverseLookup(connection, record)
-            return {
-              pubkey: record.toBase58(),
-              bareName,
-              fullDomain: `${bareName}.sol`,
-            }
-          })
-        )
+        const entries = records.map((r) => ({
+          pubkey: r.key.toBase58(),
+          bareName: r.domain,
+          fullDomain: `${r.domain}.sol`,
+        }))
         if (cancelled) return
 
         // Seed each card into `loading` before kicking off resolves.
