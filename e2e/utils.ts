@@ -290,6 +290,35 @@ export function setAndroidPermission(permission: string, granted: boolean) {
 }
 
 /**
+ * Poll until the app itself (not a system dialog) holds the window focus.
+ *
+ * Detox throws an expectation IMMEDIATELY (no polling) while any dialog owns
+ * focus — "No activities in stage RESUMED" — so an assertion started before
+ * the app re-focused dies without using its timeout. Gate assertions behind
+ * this: two consecutive dumpsys reads showing our focus. Re-run
+ * denyAndroidPermissionDialog() first if a dialog was up.
+ */
+export async function waitForAndroidAppFocus(clean = 2, attempts = 15) {
+  if (device.getPlatform() !== 'android') return;
+  let good = 0;
+  for (let i = 0; i < attempts; i++) {
+    await delay(1000);
+    let focus = '';
+    try {
+      focus = adbShell('dumpsys window 2>/dev/null | grep mCurrentFocus || true');
+    } catch {
+      continue;
+    }
+    if (/permissioncontroller/i.test(focus)) {
+      good = 0;
+      continue;
+    }
+    good += 1;
+    if (good >= clean) return;
+  }
+}
+
+/**
  * Answer the Android OS runtime-permission dialog(s) with "Don't allow".
  *
  * Modern Android shows the grant dialog even when the permission is revoked
