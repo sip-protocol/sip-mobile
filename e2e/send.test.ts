@@ -20,7 +20,7 @@ import {
   waitForNotExist,
   typeInField,
   setupTestWallet,
-  navigateToSend, launchAppNoSync, setAndroidPermission, denyAndroidPermissionDialog, tapWithRetry, delay } from './utils';
+  navigateToSend, launchAppNoSync, setAndroidPermission, denyAndroidPermissionDialog, tapWithRetry, delay, waitForAndroidAppFocus } from './utils';
 
 const CAMERA_PERMISSION = 'android.permission.CAMERA';
 
@@ -103,7 +103,7 @@ describe('Send Flow', () => {
       await typeInField('recipient-input', VALID_ADDRESS);
       await expect(element(by.id('cta-button'))).toHaveLabel('Enter Amount');
 
-      await element(by.id('key-1')).tap();
+      await tapWithRetry(element(by.id('key-1')), by.text('Send Privately'));
       await expect(element(by.id('cta-button'))).toHaveLabel('Send Privately');
     });
 
@@ -133,7 +133,11 @@ describe('Send Flow', () => {
   describe('Send Transaction', () => {
     it('should gate confirmation behind balance validation', async () => {
       await typeInField('recipient-input', VALID_ADDRESS);
-      await element(by.id('key-1')).tap();
+      // tapWithRetry: the numpad tap can be swallowed under GH3 (CI run
+      // 37113056212: key-1 never registered, amount stayed 0, CTA stayed
+      // disabled and the toast never fired). Outcome = the CTA flips to
+      // its enabled label once the amount is positive.
+      await tapWithRetry(element(by.id('key-1')), by.text('Send Privately'));
 
       // tapWithRetry verifies the toast itself — a separate waitForVisible
       // races the ~3s toast auto-dismissal (CI run 37091240762: the gate
@@ -143,7 +147,7 @@ describe('Send Flow', () => {
 
     it('should not open confirmation modal without balance', async () => {
       await typeInField('recipient-input', VALID_ADDRESS);
-      await element(by.id('key-1')).tap();
+      await tapWithRetry(element(by.id('key-1')), by.text('Send Privately'));
 
       await tapWithRetry(element(by.id('cta-button')), by.text('Insufficient balance'));
 
@@ -205,6 +209,10 @@ describe('Send Flow', () => {
           await denyAndroidPermissionDialog();
         }
       }
+      // Gate on app focus before the last stand: an assertion started while
+      // a dialog still owns focus throws instantly instead of polling its
+      // timeout (CI run 37113056212: denied state visible at capture).
+      await waitForAndroidAppFocus();
       await waitForVisible(by.text('Camera Permission Required'), TIMEOUTS.long);
       // 240s: the retry ladder (3 × (10s wait + 2s + dialog answering) +
       // relaunch + nav + final LONG wait) legitimately exceeds jest's 120s
