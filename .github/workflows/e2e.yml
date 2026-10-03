@@ -170,7 +170,14 @@ jobs:
           path: |
             ~/.gradle/caches
             ~/.gradle/wrapper
-          key: gradle-v2-${{ hashFiles('android/gradle/wrapper/gradle-wrapper.properties') }}
+          key: gradle-v3-${{ hashFiles('android/gradle/wrapper/gradle-wrapper.properties') }}
+          restore-keys: |
+            gradle-v3-
+            gradle-v2-
+          # Runner reclaims kill the Android job mid-build (~47 min, rounds
+          # 11-13). save-always banks completed task outputs from a killed
+          # run so the next dispatch resumes warm instead of from scratch.
+          save-always: true
 
       - name: Enable KVM
         run: |
@@ -182,8 +189,13 @@ jobs:
       # :expo:packageDebugAndroidTest splitter dies cause-less on CI with a
       # null-message OOM signature. Locally the identical command passes with
       # a larger heap (androidTest merge/dex tasks are the pressure point).
-      - name: Raise Gradle daemon heap
-        run: printf '\norg.gradle.jvmargs=-Xmx8g -XX:MaxMetaspaceSize=2g\n' >> android/gradle.properties
+      # Task-output caching (build-cache-1, already inside the Gradle cache
+      # path) is what actually stops the RN module compiles from rerunning —
+      # without it the ~/.gradle/caches restore only saves dependency fetch.
+      - name: Tune Gradle daemon (heap + task cache)
+        run: |
+          printf '\norg.gradle.jvmargs=-Xmx8g -XX:MaxMetaspaceSize=2g\n' >> android/gradle.properties
+          printf 'org.gradle.caching=true\n' >> android/gradle.properties
 
       - name: Detox build Android
         # Builds the dedicated `e2e` variant (release-like, embedded JS
