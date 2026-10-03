@@ -23,7 +23,7 @@
     "e2e:test:android:e2e": "detox test --configuration android.emu.e2e --take-screenshots all"
   },
   "dependencies": {
-    "@bonfida/spl-name-service": "^3.0.21",
+    "@bonfida/spl-name-service": "^4.0.1",
     "@coral-xyz/anchor": "^0.32.1",
     "@ethersproject/shims": "^5.8.0",
     "@expo/vector-icons": "^15.1.1",
