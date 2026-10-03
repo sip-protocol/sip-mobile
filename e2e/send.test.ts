@@ -206,6 +206,10 @@ describe('Send Flow', () => {
         }
       }
       await waitForVisible(by.text('Camera Permission Required'), TIMEOUTS.long);
-    });
+      // 240s: the retry ladder (3 × (10s wait + 2s + dialog answering) +
+      // relaunch + nav + final LONG wait) legitimately exceeds jest's 120s
+      // default on a slow simulator (CI run 37095212623: died at the cap
+      // at 129s with every retry working as designed).
+    }, 240_000);
   });
 });
