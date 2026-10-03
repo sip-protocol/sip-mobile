@@ -20,7 +20,7 @@ import {
   waitForNotExist,
   typeInField,
   setupTestWallet,
-  navigateToSend, launchAppNoSync, setAndroidPermission, denyAndroidPermissionDialog } from './utils';
+  navigateToSend, launchAppNoSync, setAndroidPermission, denyAndroidPermissionDialog, tapWithRetry, delay } from './utils';
 
 const CAMERA_PERMISSION = 'android.permission.CAMERA';
 
@@ -126,8 +126,7 @@ describe('Send Flow', () => {
       await element(by.id('key-9')).multiTap(7);
 
       // Review triggers balance validation and surfaces a toast
-      await element(by.id('cta-button')).tap();
-      await waitForVisible(by.text('Insufficient balance'));
+      await tapWithRetry(element(by.id('cta-button')), by.text('Insufficient balance'));
     });
   });
 
@@ -136,18 +135,17 @@ describe('Send Flow', () => {
       await typeInField('recipient-input', VALID_ADDRESS);
       await element(by.id('key-1')).tap();
 
-      await element(by.id('cta-button')).tap();
-
-      // Insufficient balance blocks the review flow with a toast
-      await waitForVisible(by.text('Insufficient balance'));
+      // tapWithRetry verifies the toast itself — a separate waitForVisible
+      // races the ~3s toast auto-dismissal (CI run 37091240762: the gate
+      // test lost its 10s window to a momentary app stall).
+      await tapWithRetry(element(by.id('cta-button')), by.text('Insufficient balance'));
     });
 
     it('should not open confirmation modal without balance', async () => {
       await typeInField('recipient-input', VALID_ADDRESS);
       await element(by.id('key-1')).tap();
 
-      await element(by.id('cta-button')).tap();
-      await waitForVisible(by.text('Insufficient balance'));
+      await tapWithRetry(element(by.id('cta-button')), by.text('Insufficient balance'));
 
       // The "Confirm Transfer" modal (confirm-send-button) must not open
       await expect(element(by.id('confirm-send-button'))).not.toBeVisible();
@@ -191,9 +189,23 @@ describe('Send Flow', () => {
       await element(by.id('scan-qr-button')).tap();
 
       // Modern Android shows the grant dialog despite the revoke — answer it
-      // (see denyAndroidPermissionDialog); the app then renders its denied state.
+      // (see denyAndroidPermissionDialog). Detox throws an expectation
+      // immediately (no polling) while a dialog still owns window focus —
+      // the denied state can render after the first attempt dies (CI runs
+      // 36809927854/37091240762: failure screenshots show the denied state
+      // at capture) — so retry the assertion, re-answering any re-popped
+      // dialog, before giving up.
       await denyAndroidPermissionDialog();
-      await waitForVisible(by.text('Camera Permission Required'));
+      for (let attempt = 0; attempt < 3; attempt++) {
+        try {
+          await waitForVisible(by.text('Camera Permission Required'), TIMEOUTS.medium);
+          return;
+        } catch {
+          await delay(2000);
+          await denyAndroidPermissionDialog();
+        }
+      }
+      await waitForVisible(by.text('Camera Permission Required'), TIMEOUTS.long);
     });
   });
 });

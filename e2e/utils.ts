@@ -305,13 +305,16 @@ export function setAndroidPermission(permission: string, granted: boolean) {
  * API 34 (pixel_7) and local API 36.1. Bounded ~10s; a silent no-op when no
  * dialog appears.
  */
-export async function denyAndroidPermissionDialog(attempts = 12) {
+export async function denyAndroidPermissionDialog(attempts = 20) {
   if (device.getPlatform() !== 'android') return;
   // Two stacked requests fire (RN + camera lib) with a >1s gap between the
   // dialogs (CI run 36804324830: the helper answered #1, returned during the
   // gap, and #2 popped unattended — the denied state only rendered after the
-  // assertion had already thrown). Require 2 consecutive seconds of
-  // non-controller focus before declaring victory.
+  // assertion had already thrown). Require 3 consecutive seconds of
+  // non-controller focus before declaring victory — dumpsys reads can come
+  // back empty under load, and 2 clean checks were beaten by a slower gap
+  // (run 36809927854: denied state visible at failure capture, assertion
+  // already thrown).
   let clean = 0;
   for (let i = 0; i < attempts; i++) {
     await delay(1000);
@@ -323,7 +326,7 @@ export async function denyAndroidPermissionDialog(attempts = 12) {
     }
     if (!/permissioncontroller/i.test(focus)) {
       clean += 1;
-      if (clean >= 2) return;
+      if (clean >= 3) return;
       continue;
     }
     clean = 0;
