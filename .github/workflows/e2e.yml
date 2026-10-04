@@ -176,24 +176,6 @@ jobs:
             gradle-v3-
             gradle-v2-
 
-      - name: Cache Gradle (save)
-        # actions/cache's combined `save-always` input is inert (v6 deprecates
-        # it as "does not work as intended"; rounds 14-15 proved nothing was
-        # banked). The split save step with `if: always()` is the supported
-        # way to bank completed task outputs from FAILED/killed runs — the
-        # runner reclaims of rounds 11-14 died mid-build, and a banked
-        # build-cache-1 is what lets the next dispatch resume warm.
-        # cache-hit is true only on an EXACT primary-key hit; a restore-keys
-        # fallback (v2 content) still saves under the v3 key. Skipping on an
-        # exact hit avoids the failed reservation error.
-        if: always() && steps.gradle-cache.outputs.cache-hit != 'true'
-        uses: actions/cache/save@v4
-        with:
-          path: |
-            ~/.gradle/caches
-            ~/.gradle/wrapper
-          key: gradle-v3-${{ hashFiles('android/gradle/wrapper/gradle-wrapper.properties') }}
-
       - name: Enable KVM
         run: |
           echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
@@ -339,3 +321,24 @@ jobs:
             android/app/build/outputs/
             resource-watch.log
           retention-days: 7
+
+      - name: Cache Gradle (save)
+        # actions/cache's combined `save-always` input is inert (v6 deprecates
+        # it as "does not work as intended"; rounds 14-15 proved nothing was
+        # banked). This split save step is the supported way to bank completed
+        # task outputs (build-cache-1) from FAILED or gracefully-killed runs —
+        # the runner reclaims of rounds 11-14 died mid-build, and a banked
+        # build-cache-1 is what lets the next dispatch resume warm.
+        # Placed at JOB END so ~/.gradle/caches contains the build's task
+        # outputs (a pre-build save would bank only the just-restored content
+        # and freeze the v3 key at v2 content — exact hits would then skip all
+        # future saves). `cache-hit` is true only on an EXACT primary-key hit;
+        # a restore-keys fallback (v2 content) still saves under the v3 key.
+        # Hard runner death still saves nothing (agent gone) — known limit.
+        if: always() && steps.gradle-cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: gradle-v3-${{ hashFiles('android/gradle/wrapper/gradle-wrapper.properties') }}
