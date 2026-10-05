@@ -12,6 +12,6 @@
     "help": "dapp-store --help"
   },
   "devDependencies": {
-    "@solana-mobile/dapp-store-cli": "^0.15.0"
+    "@solana-mobile/dapp-store-cli": "^1.0.1"
   }
 }
