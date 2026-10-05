@@ -65,12 +65,22 @@ export default function ScannerScreen() {
   const [flashOn, setFlashOn] = useState(false)
   const { addToast } = useToastStore()
 
-  // Request permission on mount
+  // Request permission once on mount. A denied answer must NOT re-trigger
+  // an automatic request: the denied status update re-runs this effect and
+  // re-pops the OS dialog in a loop (badgering). On CI the E2E deny-dialog
+  // drain could never reach a stable RESUMED window because of this (issue
+  // #170: 4 consecutive camera reds across runs 37264914667, 37304258959,
+  // 37312508108, 37322117157); for users, denying the scanner camera meant
+  // endless re-prompting instead of the gate screen. After the single
+  // auto-request, the manual Grant Permission button is the only
+  // re-request path.
+  const [autoRequestSent, setAutoRequestSent] = useState(false)
   useEffect(() => {
-    if (!permission?.granted) {
+    if (!autoRequestSent && permission !== null && !permission.granted) {
+      setAutoRequestSent(true)
       requestPermission()
     }
-  }, [permission, requestPermission])
+  }, [permission, autoRequestSent, requestPermission])
 
   // Handle barcode scan
   const handleBarCodeScanned = useCallback(
