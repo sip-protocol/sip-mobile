@@ -297,9 +297,17 @@ export function setAndroidPermission(permission: string, granted: boolean) {
  * the app re-focused dies without using its timeout. Gate assertions behind
  * this: two consecutive dumpsys reads showing our focus. Re-run
  * denyAndroidPermissionDialog() first if a dialog was up.
+ *
+ * Returns true when the clean streak was reached, false when attempts were
+ * exhausted (callers may ignore the result — the gate is advisory).
+ * An EMPTY dumpsys read counts as NOT good: under load reads come back
+ * empty (see denyAndroidPermissionDialog), and an empty read proves nothing
+ * about focus — treating it as good could pass the gate while a dialog
+ * still owns the window. Same for adb failures: unknown state restarts the
+ * clean streak instead of silently counting toward it.
  */
-export async function waitForAndroidAppFocus(clean = 2, attempts = 15) {
-  if (device.getPlatform() !== 'android') return;
+export async function waitForAndroidAppFocus(clean = 2, attempts = 15): Promise<boolean> {
+  if (device.getPlatform() !== 'android') return true;
   let good = 0;
   for (let i = 0; i < attempts; i++) {
     await delay(1000);
@@ -307,15 +315,17 @@ export async function waitForAndroidAppFocus(clean = 2, attempts = 15) {
     try {
       focus = adbShell('dumpsys window 2>/dev/null | grep mCurrentFocus || true');
     } catch {
+      good = 0; // adb hiccup — focus unknown, restart the clean streak
       continue;
     }
-    if (/permissioncontroller/i.test(focus)) {
-      good = 0;
+    if (focus === '' || /permissioncontroller/i.test(focus)) {
+      good = 0; // empty read or dialog still up — neither is app focus
       continue;
     }
     good += 1;
-    if (good >= clean) return;
+    if (good >= clean) return true;
   }
+  return false;
 }
 
 /**

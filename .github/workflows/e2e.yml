@@ -15,8 +15,7 @@ jobs:
     runs-on: macos-26
     if: |
       github.event_name == 'workflow_dispatch' ||
-      github.event_name == 'schedule' ||
-      contains(github.event.pull_request.labels.*.name, 'e2e')
+      github.event_name == 'schedule'
     steps:
       - name: Free runner disk space
         run: |
@@ -125,8 +124,7 @@ jobs:
     runs-on: ubuntu-latest
     if: |
       github.event_name == 'workflow_dispatch' ||
-      github.event_name == 'schedule' ||
-      contains(github.event.pull_request.labels.*.name, 'e2e')
+      github.event_name == 'schedule'
     steps:
       - name: Checkout
         uses: actions/checkout@v7
@@ -171,6 +169,11 @@ jobs:
           path: |
             ~/.gradle/caches
             ~/.gradle/wrapper
+          # HAZARD: hashFiles returns '' if the wrapper props file is ever
+          # missing — the key collapses to bare `gradle-v3-`, which exact-hits
+          # the first restore-keys prefix and would freeze stale content while
+          # LOOKING like a hit. A bare `gradle-v3-` key in run logs is a red
+          # flag, not a cache hit.
           key: gradle-v3-${{ hashFiles('android/gradle/wrapper/gradle-wrapper.properties') }}
           restore-keys: |
             gradle-v3-
@@ -207,6 +210,7 @@ jobs:
           echo "resource watcher started (covers build + test, 90 min)"
 
       - name: Detox build Android
+        id: build
         # Builds the dedicated `e2e` variant (release-like, embedded JS
         # bundle, no dev-launcher, no R8) + the matching Detox androidTest APK.
         run: pnpm exec detox build --configuration android.emu.e2e
@@ -326,16 +330,22 @@ jobs:
         # actions/cache's combined `save-always` input is inert (v6 deprecates
         # it as "does not work as intended"; rounds 14-15 proved nothing was
         # banked). This split save step is the supported way to bank completed
-        # task outputs (build-cache-1) from FAILED or gracefully-killed runs —
-        # the runner reclaims of rounds 11-14 died mid-build, and a banked
+        # task outputs (build-cache-1) from FAILED runs — and from cancels
+        # only inside the ~5-min post-step grace the runner allows; anything
+        # harder (runner reclaim, agent gone) still banks nothing — the
+        # runner reclaims of rounds 11-14 died mid-build, and a banked
         # build-cache-1 is what lets the next dispatch resume warm.
         # Placed at JOB END so ~/.gradle/caches contains the build's task
         # outputs (a pre-build save would bank only the just-restored content
         # and freeze the v3 key at v2 content — exact hits would then skip all
         # future saves). `cache-hit` is true only on an EXACT primary-key hit;
         # a restore-keys fallback (v2 content) still saves under the v3 key.
-        # Hard runner death still saves nothing (agent gone) — known limit.
-        if: always() && steps.gradle-cache.outputs.cache-hit != 'true'
+        # steps.build.outcome is 'skipped' when a PRE-build step fails
+        # (KVM/daemon/watcher) — restoring fallback content and then banking
+        # it under v3 would freeze the key at v2 content, so only save when
+        # the build actually RAN (a build that ran and FAILED still banks its
+        # task outputs). Hard runner death still saves nothing — known limit.
+        if: always() && steps.gradle-cache.outputs.cache-hit != 'true' && steps.build.outcome != 'skipped'
         uses: actions/cache/save@v4
         with:
           path: |
