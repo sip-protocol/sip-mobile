@@ -170,10 +170,11 @@ jobs:
             ~/.gradle/caches
             ~/.gradle/wrapper
           # HAZARD: hashFiles returns '' if the wrapper props file is ever
-          # missing — the key collapses to bare `gradle-v3-`, which exact-hits
-          # the first restore-keys prefix and would freeze stale content while
-          # LOOKING like a hit. A bare `gradle-v3-` key in run logs is a red
-          # flag, not a cache hit.
+          # missing — the key collapses to bare `gradle-v3-`, which the
+          # recency-ordered restore-keys fallback prefix-matches, restoring
+          # stale content while the log LOOKS like a hit; the next healthy
+          # save re-banks the true key. A bare `gradle-v3-` key in run logs
+          # is a red flag, not a cache hit.
           key: gradle-v3-${{ hashFiles('android/gradle/wrapper/gradle-wrapper.properties') }}
           restore-keys: |
             gradle-v3-
@@ -331,7 +332,8 @@ jobs:
         # it as "does not work as intended"; rounds 14-15 proved nothing was
         # banked). This split save step is the supported way to bank completed
         # task outputs (build-cache-1) from FAILED runs — and from cancels
-        # only inside the ~5-min post-step grace the runner allows; anything
+        # only inside the runner's documented ~5-min job-cancellation
+        # timeout (force-kill after); anything
         # harder (runner reclaim, agent gone) still banks nothing — the
         # runner reclaims of rounds 11-14 died mid-build, and a banked
         # build-cache-1 is what lets the next dispatch resume warm.
@@ -344,7 +346,11 @@ jobs:
         # (KVM/daemon/watcher) — restoring fallback content and then banking
         # it under v3 would freeze the key at v2 content, so only save when
         # the build actually RAN (a build that ran and FAILED still banks its
-        # task outputs). Hard runner death still saves nothing — known limit.
+        # task outputs). Known accepted corner: a build that fails in its
+        # first seconds banks ≈the just-restored fallback content — same
+        # v3-at-v2 freeze until the next healthy save re-banks the real key;
+        # mid-build failures (the case that matters) bank genuinely warmer
+        # content. Hard runner death still saves nothing — known limit.
         if: always() && steps.gradle-cache.outputs.cache-hit != 'true' && steps.build.outcome != 'skipped'
         uses: actions/cache/save@v4
         with:

@@ -303,8 +303,9 @@ export function setAndroidPermission(permission: string, granted: boolean) {
  * An EMPTY dumpsys read counts as NOT good: under load reads come back
  * empty (see denyAndroidPermissionDialog), and an empty read proves nothing
  * about focus — treating it as good could pass the gate while a dialog
- * still owns the window. Same for adb failures: unknown state restarts the
- * clean streak instead of silently counting toward it.
+ * still owns the window. Same for adb failures: unknown state restarts
+ * the clean streak instead of letting an in-progress streak survive
+ * across an unknown read.
  */
 export async function waitForAndroidAppFocus(clean = 2, attempts = 15): Promise<boolean> {
   if (device.getPlatform() !== 'android') return true;
