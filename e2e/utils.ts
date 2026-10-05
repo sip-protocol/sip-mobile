@@ -204,10 +204,22 @@ export async function setupTestWallet() {
   await waitForVisible(by.id('seed-phrase-input'));
   await typeInField('seed-phrase-input', TEST_SEED_PHRASE);
   // 60s: cold-boot import on CI emulators has exceeded 30s (runs
-  // 36426738681/36436286960); beforeAll runs under the 120s jest timeout.
-  // tapWithRetry: the submit tap right after the IME dismiss can be
-  // swallowed (run 36570652998 settings beforeAll + onboarding import).
-  await tapWithRetry(element(by.id('import-submit-button')), by.id('wallet-balance'));
+  // 36426738681/36436286960). tapWithRetry: the submit tap right after the
+  // IME dismiss can be swallowed (run 36570652998 settings beforeAll +
+  // onboarding import). iOS run 37304258959: home render on a busy macos-26
+  // runner exceeded the 60s transaction bound — the beforeAll throw was
+  // hook-attributed to all 13 Send Flow tests (one timestamp, 26 reds with
+  // the settings/onboarding describes). One extra bounded wait absorbs slow
+  // renders; a genuinely failed import still throws at the end of it.
+  await tapWithRetry(element(by.id('import-submit-button')), by.id('wallet-balance')).catch(
+    (e: unknown) => {
+      // Keep the root cause in the CI log — the re-wait below surfaces a
+      // generic 'wallet-balance not visible' timeout that hides whether the
+      // submit tap was swallowed vs the import itself failing.
+      console.warn('[setupTestWallet] import tapWithRetry failed, tolerating slow home render:', e)
+      return waitForVisible(by.id('wallet-balance'), 90_000)
+    },
+  );
 }
 
 // ============================================================================

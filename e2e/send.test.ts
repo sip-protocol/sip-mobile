@@ -30,15 +30,17 @@ const STEALTH_ADDRESS =
   'sip:solana:S1P6j1yeTm6zkewQVeihrTZvmfoHABRkHDhabWTuWMd:S1P9WhBSbAGGatvrVE4TRBZfWpbG96U26zksy2TQj8q';
 
 describe('Send Flow', () => {
-  // 300s hook budget: on a cold iOS simulator the funnel walk + wallet
+  // 420s hook budget: on a cold iOS simulator the funnel walk + wallet
   // import alone can exhaust the 120s default — its waits sum to ~134s
   // worst-case even on the success path (iOS run 36596361635: beforeAll
-  // timed out mid-import with the app parked on wallet-setup).
+  // timed out mid-import with the app parked on wallet-setup), and the
+  // slow-render tolerance in setupTestWallet adds up to 90s more
+  // (run 37304258959: home render exceeded the 60s transaction bound).
   beforeAll(async () => {
     // Pre-grant camera permission so the scanner screen renders its camera view
     await launchAppNoSync({ newInstance: true, permissions: { camera: 'YES' } });
     await setupTestWallet();
-  }, 300_000);
+  }, 420_000);
 
   beforeEach(async () => {
     // newInstance relaunch (reloadReactNative hung on the SDK 57 runtime and
@@ -213,12 +215,40 @@ describe('Send Flow', () => {
       // a dialog still owns focus throws instantly instead of polling its
       // timeout (CI run 37113056212: denied state visible at capture).
       await waitForAndroidAppFocus();
-      await waitForVisible(by.text('Camera Permission Required'), TIMEOUTS.long);
-      // 240s: worst-case ladder is 3 × (10s MEDIUM wait + 2s delay + ≤20s
-      // dialog answering) ≈ 96s, plus a cold relaunch (up to ~60s on the CI
-      // emulator) + nav + one 30s LONG final wait ≈ 190s — well past jest's
-      // 120s default (CI run 37095212623: died at the cap at 129s with every
-      // retry working as designed), so the cap is 2× the default.
-    }, 240_000);
+      // The dialog handoff itself can land the activity in a non-RESUMED
+      // transition exactly when the assert fires — Detox throws instantly
+      // instead of polling (runs 37264914667 + 37304258959: testFnFailure
+      // screenshots show the denied gate fully rendered while the assert
+      // died). Catch that race, re-run the focus gate, assert once more.
+      try {
+        await waitForVisible(by.text('Camera Permission Required'), TIMEOUTS.long);
+      } catch {
+        // A momentary transition recovers with a focus gate + re-assert.
+        // A WEDGED app does not: the permission request can ANR under CI
+        // emulator CPU starvation and hide_error_dialogs suppresses the ANR
+        // dialog, leaving the activity non-RESUMED indefinitely with the
+        // gate UI frozen (run 37312508108: the retry assert died identically
+        // — the app never left the wedge). Relaunch revives it; the revoked
+        // permission persists, so the denied gate is the expected landing.
+        await waitForAndroidAppFocus();
+        try {
+          await waitForVisible(by.text('Camera Permission Required'), TIMEOUTS.long);
+        } catch {
+          await launchAppNoSync({ newInstance: true });
+          await navigateToSend();
+          await element(by.id('scan-qr-button')).tap();
+          await denyAndroidPermissionDialog();
+          await waitForAndroidAppFocus();
+          await waitForVisible(by.text('Camera Permission Required'), TIMEOUTS.long);
+        }
+      }
+      // 420s worst case (all tiers fail): initial drain ≈ 96s (3 × (10s
+      // MEDIUM wait + 2s delay + ≤20s dialog answering)), tier 1 = focus
+      // gate ≤15s (15 × 1s attempts) + 30s LONG, tier 2 = gate ≤15s + 30s
+      // LONG, tier 3 = relaunch ≈ 60s + nav + dialog drain ≤20s + gate ≤15s
+      // + 30s LONG ≈ 421s at the absolute extreme — the jest cap then fails
+      // loudly rather than masking anything (CI run 37095212623: died at
+      // the 120s default cap at 129s with every retry working as designed).
+    }, 420_000);
   });
 });
