@@ -214,10 +214,11 @@ describe('Send Flow', () => {
       // timeout (CI run 37113056212: denied state visible at capture).
       await waitForAndroidAppFocus();
       await waitForVisible(by.text('Camera Permission Required'), TIMEOUTS.long);
-      // 240s: the retry ladder (3 × (10s wait + 2s + dialog answering) +
-      // relaunch + nav + final LONG wait) legitimately exceeds jest's 120s
-      // default on a slow simulator (CI run 37095212623: died at the cap
-      // at 129s with every retry working as designed).
+      // 240s: worst-case ladder is 3 × (10s MEDIUM wait + 2s delay + ≤20s
+      // dialog answering) ≈ 96s, plus a cold relaunch (up to ~60s on the CI
+      // emulator) + nav + one 30s LONG final wait ≈ 190s — well past jest's
+      // 120s default (CI run 37095212623: died at the cap at 129s with every
+      // retry working as designed), so the cap is 2× the default.
     }, 240_000);
   });
 });
