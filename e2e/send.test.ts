@@ -223,14 +223,31 @@ describe('Send Flow', () => {
       try {
         await waitForVisible(by.text('Camera Permission Required'), TIMEOUTS.long);
       } catch {
+        // A momentary transition recovers with a focus gate + re-assert.
+        // A WEDGED app does not: the permission request can ANR under CI
+        // emulator CPU starvation and hide_error_dialogs suppresses the ANR
+        // dialog, leaving the activity non-RESUMED indefinitely with the
+        // gate UI frozen (run 37312508108: the retry assert died identically
+        // — the app never left the wedge). Relaunch revives it; the revoked
+        // permission persists, so the denied gate is the expected landing.
         await waitForAndroidAppFocus();
-        await waitForVisible(by.text('Camera Permission Required'), TIMEOUTS.long);
+        try {
+          await waitForVisible(by.text('Camera Permission Required'), TIMEOUTS.long);
+        } catch {
+          await launchAppNoSync({ newInstance: true });
+          await navigateToSend();
+          await element(by.id('scan-qr-button')).tap();
+          await denyAndroidPermissionDialog();
+          await waitForAndroidAppFocus();
+          await waitForVisible(by.text('Camera Permission Required'), TIMEOUTS.long);
+        }
       }
-      // 300s: worst-case ladder is 3 × (10s MEDIUM wait + 2s delay + ≤20s
-      // dialog answering) ≈ 96s, plus a cold relaunch (up to ~60s on the CI
-      // emulator) + nav + two 30s LONG waits + two ≤15s focus gates ≈ 250s —
-      // well past jest's 120s default (CI run 37095212623: died at the cap
-      // at 129s with every retry working as designed).
-    }, 300_000);
+      // 420s: worst-case ladder ≈ 96s (3 × (10s MEDIUM wait + 2s delay + ≤20s
+      // dialog answering)), cold relaunch ≈ 60s, nav, then three recovery
+      // tiers (gate ≤15s + 30s LONG each) ≈ 135s, plus a wedge-recovery
+      // relaunch ≈ 60s + nav + gate + 30s — well past jest's 120s default
+      // (CI run 37095212623: died at the cap at 129s with every retry
+      // working as designed).
+    }, 420_000);
   });
 });
