@@ -30,15 +30,17 @@ const STEALTH_ADDRESS =
   'sip:solana:S1P6j1yeTm6zkewQVeihrTZvmfoHABRkHDhabWTuWMd:S1P9WhBSbAGGatvrVE4TRBZfWpbG96U26zksy2TQj8q';
 
 describe('Send Flow', () => {
-  // 300s hook budget: on a cold iOS simulator the funnel walk + wallet
+  // 420s hook budget: on a cold iOS simulator the funnel walk + wallet
   // import alone can exhaust the 120s default — its waits sum to ~134s
   // worst-case even on the success path (iOS run 36596361635: beforeAll
-  // timed out mid-import with the app parked on wallet-setup).
+  // timed out mid-import with the app parked on wallet-setup), and the
+  // slow-render tolerance in setupTestWallet adds up to 90s more
+  // (run 37304258959: home render exceeded the 60s transaction bound).
   beforeAll(async () => {
     // Pre-grant camera permission so the scanner screen renders its camera view
     await launchAppNoSync({ newInstance: true, permissions: { camera: 'YES' } });
     await setupTestWallet();
-  }, 300_000);
+  }, 420_000);
 
   beforeEach(async () => {
     // newInstance relaunch (reloadReactNative hung on the SDK 57 runtime and
@@ -213,12 +215,22 @@ describe('Send Flow', () => {
       // a dialog still owns focus throws instantly instead of polling its
       // timeout (CI run 37113056212: denied state visible at capture).
       await waitForAndroidAppFocus();
-      await waitForVisible(by.text('Camera Permission Required'), TIMEOUTS.long);
-      // 240s: worst-case ladder is 3 × (10s MEDIUM wait + 2s delay + ≤20s
+      // The dialog handoff itself can land the activity in a non-RESUMED
+      // transition exactly when the assert fires — Detox throws instantly
+      // instead of polling (runs 37264914667 + 37304258959: testFnFailure
+      // screenshots show the denied gate fully rendered while the assert
+      // died). Catch that race, re-run the focus gate, assert once more.
+      try {
+        await waitForVisible(by.text('Camera Permission Required'), TIMEOUTS.long);
+      } catch {
+        await waitForAndroidAppFocus();
+        await waitForVisible(by.text('Camera Permission Required'), TIMEOUTS.long);
+      }
+      // 300s: worst-case ladder is 3 × (10s MEDIUM wait + 2s delay + ≤20s
       // dialog answering) ≈ 96s, plus a cold relaunch (up to ~60s on the CI
-      // emulator) + nav + one 30s LONG final wait ≈ 190s — well past jest's
-      // 120s default (CI run 37095212623: died at the cap at 129s with every
-      // retry working as designed), so the cap is 2× the default.
-    }, 240_000);
+      // emulator) + nav + two 30s LONG waits + two ≤15s focus gates ≈ 250s —
+      // well past jest's 120s default (CI run 37095212623: died at the cap
+      // at 129s with every retry working as designed).
+    }, 300_000);
   });
 });
