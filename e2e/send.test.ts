@@ -242,12 +242,13 @@ describe('Send Flow', () => {
           await waitForVisible(by.text('Camera Permission Required'), TIMEOUTS.long);
         }
       }
-      // 420s: worst-case ladder ≈ 96s (3 × (10s MEDIUM wait + 2s delay + ≤20s
-      // dialog answering)), cold relaunch ≈ 60s, nav, then three recovery
-      // tiers (gate ≤15s + 30s LONG each) ≈ 135s, plus a wedge-recovery
-      // relaunch ≈ 60s + nav + gate + 30s — well past jest's 120s default
-      // (CI run 37095212623: died at the cap at 129s with every retry
-      // working as designed).
+      // 420s worst case (all tiers fail): initial drain ≈ 96s (3 × (10s
+      // MEDIUM wait + 2s delay + ≤20s dialog answering)), tier 1 = focus
+      // gate ≤15s (15 × 1s attempts) + 30s LONG, tier 2 = gate ≤15s + 30s
+      // LONG, tier 3 = relaunch ≈ 60s + nav + dialog drain ≤20s + gate ≤15s
+      // + 30s LONG ≈ 421s at the absolute extreme — the jest cap then fails
+      // loudly rather than masking anything (CI run 37095212623: died at
+      // the 120s default cap at 129s with every retry working as designed).
     }, 420_000);
   });
 });

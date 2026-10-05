@@ -211,8 +211,14 @@ export async function setupTestWallet() {
   // hook-attributed to all 13 Send Flow tests (one timestamp, 26 reds with
   // the settings/onboarding describes). One extra bounded wait absorbs slow
   // renders; a genuinely failed import still throws at the end of it.
-  await tapWithRetry(element(by.id('import-submit-button')), by.id('wallet-balance')).catch(() =>
-    waitForVisible(by.id('wallet-balance'), 90_000),
+  await tapWithRetry(element(by.id('import-submit-button')), by.id('wallet-balance')).catch(
+    (e: unknown) => {
+      // Keep the root cause in the CI log — the re-wait below surfaces a
+      // generic 'wallet-balance not visible' timeout that hides whether the
+      // submit tap was swallowed vs the import itself failing.
+      console.warn('[setupTestWallet] import tapWithRetry failed, tolerating slow home render:', e)
+      return waitForVisible(by.id('wallet-balance'), 90_000)
+    },
   );
 }
 
