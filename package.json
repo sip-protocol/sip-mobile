@@ -37,7 +37,7 @@
     "@scure/bip39": "^2.4.0",
     "@sip-protocol/sdk": "^0.15.1",
     "@sip-protocol/sns-stealth": "^0.1.1",
-    "@solana-mobile/mobile-wallet-adapter-protocol-web3js": "^2.3.0",
+    "@solana-mobile/mobile-wallet-adapter-protocol-web3js": "^3.0.0",
     "@solana-mobile/seed-vault-lib": "0.4.1",
     "@solana/web3.js": "^1.99.0",
     "bs58": "^6.0.0",
