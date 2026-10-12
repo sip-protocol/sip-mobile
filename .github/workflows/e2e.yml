@@ -164,7 +164,7 @@ jobs:
 
       - name: Cache Gradle (restore)
         id: gradle-cache
-        uses: actions/cache/restore@v4
+        uses: actions/cache/restore@v6
         with:
           path: |
             ~/.gradle/caches
@@ -352,7 +352,7 @@ jobs:
         # mid-build failures (the case that matters) bank genuinely warmer
         # content. Hard runner death still saves nothing — known limit.
         if: always() && steps.gradle-cache.outputs.cache-hit != 'true' && steps.build.outcome != 'skipped'
-        uses: actions/cache/save@v4
+        uses: actions/cache/save@v6
         with:
           path: |
             ~/.gradle/caches
